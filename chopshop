@@ -1,0 +1,293 @@
+#!/usr/bin/env python
+
+# Copyright (c) 2012 The MITRE Corporation. All rights reserved.
+#
+# Redistribution and use in source and binary forms, with or without
+# modification, are permitted provided that the following conditions
+# are met:
+# 1. Redistributions of source code must retain the above copyright
+#    notice, this list of conditions and the following disclaimer.
+# 2. Redistributions in binary form must reproduce the above copyright
+#    notice, this list of conditions and the following disclaimer in the
+#    documentation and/or other materials provided with the distribution.
+#
+# THIS SOFTWARE IS PROVIDED BY THE AUTHOR AND CONTRIBUTORS ``AS IS'' AND
+# ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+# IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+# ARE DISCLAIMED.  IN NO EVENT SHALL THE AUTHOR OR CONTRIBUTORS BE LIABLE
+# FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+# DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS
+# OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION)
+# HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
+# LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY
+# OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
+# SUCH DAMAGE.
+
+#Chopshop
+
+"""
+TODO 
+    Need to add multi-threading support -- requires locking of smallest_discard object
+
+"""
+
+
+VERSION = 2.1
+
+import sys
+import signal
+import os
+import tempfile
+import imp
+import nids
+import fileinput
+import fcntl
+import string
+import gc
+import shlex
+import traceback
+from optparse import OptionParser
+from threading import Thread
+from threading import Lock
+import threading
+
+#Python Version Check
+version = sys.version_info
+version = float(str(version[0]) + "." + str(version[1]))
+
+if version < 2.6:
+    print "Python Minimum Version 2.6 required"
+    sys.exit(-1)
+
+from multiprocessing import Process, Queue as mQueue
+import Queue
+import time
+
+#Chopshop Working Directory -- defaults to where script exists
+CHOPSHOP_WD = os.path.realpath(os.path.dirname(sys.argv[0]))
+
+sys.path.append(CHOPSHOP_WD + '/shop')
+
+##### DEBUG CODE #####
+### This is meant to be used for the sole purpose of chopshop core development
+### DO NOT ENABLE THIS UNLESS YOU ARE WORKING ON THE CORE OR SHOP COMPONENTS
+import ChopShopDebug as CSD
+#CSD.enable_debug()
+#####
+
+from ChopHelper import UiCommander
+import ChopNids
+from ChopSurgeon import Surgeon
+
+#Yes this is roundabout and inefficient, but since this process outputs minimal text
+#I don't see it as a big deal
+def cpprint(color, msg):
+    outq.put(['msg',color, msg]) 
+
+
+def main():
+    global uicommand
+    global inq
+    global outq
+
+    ccore = None
+    surgeon = None
+
+
+    inq = mQueue()
+    outq = mQueue()
+    dataq = mQueue()
+    nidsp = Process(target = ChopNids.__core_runner_ , args = (outq, inq, dataq, ))
+    nidsp.daemon = True
+    nidsp.start()
+
+### Add basic signal handling
+
+    def signal_handler(signal, frame):
+        try:
+            outq.put(['stop'])
+        except:
+            pass
+
+        try:
+            if nidsp.is_alive():
+                nidsp.terminate()
+            nidsp.join(.1)
+        except:
+            pass
+
+
+        if surgeon is not None:
+            surgeon.stop()
+
+        uicommand.stop_gui()
+        uicommand.join()
+
+        try:
+            inq.close()
+            outq.close()
+            dataq.close()
+        except:
+            pass
+
+        sys.exit(0)
+        
+    signal.signal(signal.SIGINT, signal_handler)
+
+### Program startup set and get option information
+
+    #Initialize the OutCommander -- chopshop's interface to the output channels
+    uicommand = UiCommander(inq, outq, dataq)
+
+    #Set the default path of directory
+    global CHOPSHOP_WD
+    mod_dir = CHOPSHOP_WD + '/modules/'
+    ext_dir = CHOPSHOP_WD + '/ext_libs/'
+
+    optparser = OptionParser()
+    optparser.add_option("-B", "--base_dir", dest = "base_dir", default=None,
+        help = "Base directory to load modules and external libraries from")
+    optparser.add_option("-E", "--ext_dir", dest = "ext_dir",
+        default=ext_dir, help = "Directory to load external libraries from")
+    optparser.add_option("-M", "--mod_dir", dest = "mod_dir",
+        default=mod_dir, help = "Directory to load modules from")
+    optparser.add_option("-f", "--file", action="store", dest="filename",
+        type="string", help="input pcap file")
+    optparser.add_option("-l", "--aslist", action = "store_true", dest = "aslist",
+        default=False, help="Treat filename as a file containing a list of files")
+    optparser.add_option("-L", "--long", action="store_true", dest="longrun",
+        default=False, help="Read from filename forever even if there's no more pcap data")
+    optparser.add_option("-i", "--interface", action="store", dest="interface",
+        type="string", help="interface to listen on")
+    optparser.add_option("-m", "--module_info", action="store_true", dest="modinfo",
+        default=False,help="print information about module(s) and exit")
+    optparser.add_option("-G", "--GMT", action="store_true", dest="GMT",
+        default=False, help="timestamps in GMT (tsprnt and tsprettyprnt only)")
+    optparser.add_option("-v", "--version", action="store_true", dest="version",
+        default=False,help="print version and exit")
+
+    #Setup output related options
+    uicommand.setup_opts(optparser)
+
+    (options, args) = optparser.parse_args()
+
+    #Setup output related variables
+    status = uicommand.setup_var(options)
+
+### Process Options
+
+    if options.version:
+        print "Chopshop version %s" % VERSION
+        sys.exit()
+
+    outq.put(['opt', options])
+
+    if len(args) > 0:
+        outq.put(["load_mod", args])
+        resp = inq.get()
+        if resp == "zero":
+            print "No Modules loaded"
+            sys.exit(0)
+    else:
+        print "Module list required"
+        sys.exit(0)
+
+
+    #Check for invokation of module_info
+    if options.modinfo:
+        outq.put(['mod_info'])
+        resp = inq.get()
+        if resp != "fini":
+            pass
+        sys.exit(0)
+    #Figure out where we're reading packets from
+
+    if not options.interface:
+        if not options.filename:
+            #If nothing is set for input, attempt to read a list of files from stdin
+            try:
+                files = sys.stdin.readlines()
+            except Exception, e:
+                sys.exit("Error getting files from stdin %s\n" %  str(e))
+
+            if options.gui: #recover the tty
+                try:
+                    f = open('/dev/tty')
+                    os.dup2(f.fileno(), 0)
+                except:
+                    print "Unable to reclaim tty"
+                    sys.exit(-1)
+
+            surgeon = Surgeon(files)
+            options.filename = surgeon.create_fifo()    
+            outq.put(['opt', options])
+            surgeon.operate()
+        else:
+            if not os.path.exists(options.filename):
+                print "Unable to find file '%s'" % options.filename
+                sys.exit(-1)
+
+            if options.aslist:
+                #input file is a listing of files to process 
+                surgeon = Surgeon([options.filename],options.longrun)
+                options.filename = surgeon.create_fifo()
+                outq.put(['opt', options])
+                surgeon.operate(True)
+
+
+
+    outq.put(['cont'])# END FIRST MP WHILE
+### Setup the core and output components
+    #If gui has been selected, set it up
+    uicommand.setup_gui()
+
+    #setup chopshop main and debug output handler
+    uicommand.setup_windows()
+
+    cpprint("RED", "Starting ChopShop ...")
+    
+    cpprint("CYAN", status)
+
+    #If gui has been selected, start it
+    uicommand.start_gui()
+
+    outq.put(['start'])
+
+    while True:
+        try:
+            data = inq.get(True, .1)
+        except Queue.Empty, e:
+            if not nidsp.is_alive():
+                break
+            continue
+
+        if data[0] == "stop":
+            outq.put(['stop'])
+            nidsp.join(1)
+            if nidsp.is_alive():
+                nidsp.terminate() 
+            break
+        time.sleep(.1)
+
+ 
+### Teardown of the program
+
+    #Join with the surgeon
+    if surgeon is not None:
+        surgeon.stop()
+
+    #Join with Nids Process(es)
+    nidsp.join()
+
+    #Join with UiCommander and UiHelper
+    uicommand.join()
+
+    try:
+        inq.close()
+        outq.close()
+        dataq.close()
+    except:
+        pass
+
+if __name__ == '__main__':
+    main()

@@ -1,0 +1,82 @@
+# Copyright (c) 2012 The MITRE Corporation. All rights reserved.
+#
+# Redistribution and use in source and binary forms, with or without
+# modification, are permitted provided that the following conditions
+# are met:
+# 1. Redistributions of source code must retain the above copyright
+#    notice, this list of conditions and the following disclaimer.
+# 2. Redistributions in binary form must reproduce the above copyright
+#    notice, this list of conditions and the following disclaimer in the
+#    documentation and/or other materials provided with the distribution.
+#
+# THIS SOFTWARE IS PROVIDED BY THE AUTHOR AND CONTRIBUTORS ``AS IS'' AND
+# ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+# IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+# ARE DISCLAIMED.  IN NO EVENT SHALL THE AUTHOR OR CONTRIBUTORS BE LIABLE
+# FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+# DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS
+# OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION)
+# HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
+# LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY
+# OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
+# SUCH DAMAGE.
+
+== INTRODUCTION ==
+The plugin framework consists of creating a python file with a
+unique name and placing it in the modules directory.  This
+file must have a .py or .pyc extension in order to be
+recognized by the framework.  It must also define the
+following functions.
+
+== FUNCTIONS ==
+// Initialize the module, before processing any packets.
+init(module_data)
+  module_data is an associative array with at least the 
+  following key(s):
+    'args':  an array of command-line args suitable to pass to
+             the parse_args() function of an
+             optparse.OptionParser() object.
+
+  Returns: associative array with at least the following key(s):
+    'proto': must be set to one of 'tcp', 'udp', or 'ip' to
+             indicate if register_tcp, register_udp, or
+             register_ip will be used.
+
+
+// Called when a new stream is detected (SYN, SYN/ACK, ACK),
+// but before any data is received.
+taste(tcp_data)
+  Treat tcp_data like the object sent to callbacks for nids'
+  register_tcp.   (ex: o.addr, o.client.count_new, o.discard(0))
+  Additional attributes of tcp_data:
+    .module_data
+    .timestamp    // nids.get_pkt_ts() of latest pkt for this data
+
+  Returns: True or False, specifying whether or not to further
+           process data from this stream.
+
+
+// Treat this like the callback for nids.register_tcp()
+handleStream(tcp_data)
+  Treat tcp_data like the object sent to callbacks for nids'
+  register_tcp.   (ex: o.addr, o.client.count_new, o.discard(0))
+  Additional attributes of tcp_data:
+    .module_data
+    .timestamp    // nids.get_pkt_ts() of latest pkt for this data
+    .stream_data
+
+
+// Called when a stream is closed (RST, etc.)
+teardown(tcp_data)
+  Treat tcp_data like the object sent to callbacks for nids'
+  register_tcp.   (ex: o.addr, o.client.count_new, o.discard(0))
+  Additional attributes of tcp_data:
+    .module_data
+    .timestamp    // nids.get_pkt_ts() of latest pkt for this data
+    .stream_data
+
+
+// Called when the program is about to end
+shutdown(module_data)
+
+

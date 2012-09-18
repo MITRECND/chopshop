@@ -1,0 +1,54 @@
+# Copyright (c) 2012 The MITRE Corporation. All rights reserved.
+#
+# Redistribution and use in source and binary forms, with or without
+# modification, are permitted provided that the following conditions
+# are met:
+# 1. Redistributions of source code must retain the above copyright
+#    notice, this list of conditions and the following disclaimer.
+# 2. Redistributions in binary form must reproduce the above copyright
+#    notice, this list of conditions and the following disclaimer in the
+#    documentation and/or other materials provided with the distribution.
+#
+# THIS SOFTWARE IS PROVIDED BY THE AUTHOR AND CONTRIBUTORS ``AS IS'' AND
+# ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+# IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+# ARE DISCLAIMED.  IN NO EVENT SHALL THE AUTHOR OR CONTRIBUTORS BE LIABLE
+# FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+# DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS
+# OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION)
+# HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
+# LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY
+# OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
+# SUCH DAMAGE.
+
+Decoder for gh0st backdoor. The gh0st backdoor is well known and documented.
+The structure of the gh0st protocol is:
+
+A 5 byte value.
+Length of entire compressed message.
+Length of uncompressed zlib payload.
+zlib payload (starts with 0x789c).
+
+Once a gh0st message has been found it is buffered until the entire message
+is available. Once buffering is complete the message is decompressed.
+The first byte of most messages is a command. Known command values are:
+
+0x00: Keepalive
+0x01: List drives
+0x02: Browse (rest of the message is what to browse)
+0x03: Print (rest of the message is what to print)
+0x04: Download (has 8 bytes between the command and data)
+0x05: Data transfer (has 8 bytes between the command and data)
+0x07: Ack?
+0x09: Unknown
+0x1e: Shell
+
+0x66: System info
+0x67: Drive info
+0x68: ???
+0x69: Unknown
+0x6a: Response to 0x03 (print)
+0x70: Ack?
+0x71: Print drive information
+0x72: Print directory listing
+0x7a: Unknown
