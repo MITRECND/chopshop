@@ -3,14 +3,16 @@ chopshop
 
 Protocol Analysis/Decoder Framework
 
-= Description =
+Description
+===========
 Chopshop is a MITRE developed framework to aid analysts in the creation and
 execution of pynids based decoders and detectors of APT tradecraft
 
 Note that chopshop is still in beta and is dependant on libnids/pynids for the
 majority of its underlying functionality
 
-= Using Chopshop =
+Using Chopshop
+==============
 Chopshop consists of a python script that is run on the command line. It
 requires Python 2.6+ and pynids to be installed. It also requires "modules" to
 be created that do the processing of network data. Chopshop, by itself, does
@@ -66,7 +68,8 @@ following variables:
 This enables files to be output to a location of the program invoker's
 choosing, more info can be found below in the examples.
 
-==User Interface==
+User Interface
+==============
 When invoked with the -g flag, Chopshop starts with a gui enabled. The GUI,
 written in curses, will take over the entire screen and display information in
 different windows. The following keys are recognized by the GUI:
@@ -88,7 +91,8 @@ PgUp  or K: Moves up 10 lines in the data display window
 When moving around in the data window, remember to disable autoscroll or else
 the window will return to the end of the data shortly
 
-==Modules==
+Modules
+=======
 As mentioned, chopshop requires modules to do the bulk of its work. Modules
 are, in essence, mini programs that do all of the grunt work to decode or
 analyze traffic. More information on the creation of modules can be found
@@ -99,8 +103,10 @@ arguments (if required). All modules are capable of being given command line
 arguments and module documentation should be referenced for proper invocation
 requirements.
 
-==Example Use Cases==
-===Example 1===
+Example Use Cases
+=================
+Example 1
+---------
 As an example let's assume we have a pcap (/pcaps/netcat.pcap) which has
 traffic that uses the netcat to access a remote shell. We can use the chopshop
 module called "payloads" to dump the traffic. Someone trying to run chopshop
@@ -113,7 +119,8 @@ chopshop -f /pcaps/netcat.pcap "payloads -c -r -i 192.168.1.10"
 The above invocation would run chopshop, load the payloads module and run all
 traffic in the netcat.pcap file against the module.
 
-===Example 2===
+Example 2
+---------
 As a second example, let's assume we have a pcap /pcaps/data.pcap which has
 traffic that is either netcat traffic or could be gh0st traffic.  We're not
 quite sure which one it is and would like to try both.  Someone trying to
@@ -128,7 +135,8 @@ gh0st_decode modules and run all traffic in data.pcap through both. Both
 modules would also retain their own information and not clobber each other in
 the process.
 
-===Example 3===
+Example 3
+---------
 Let's assume the same information as the above example but this time we would
 like to output all data to the output directory in our current working
 directory:
@@ -143,7 +151,8 @@ Additionally, they would output all of their output to "output/payloads.txt"
 and "output/gh0st_decode.txt" respectively.  Note that by using -F, output to
 stdout is suppressed unless specifically invoked (by using -S).
 
-===Example 4===
+Example 4
+---------
 Building upon the last example let's output the modules output to their own
 directories and name each of the files after the module name and timestamp:
 
@@ -155,7 +164,8 @@ The above invocation would do the same thing as the above example but would
 output data to "output/payloads/payloads-[timestamp].txt" and
 "output/gh0st_decode/gh0st_decode-[timestamp].txt"
 
-== Processing Multiple pcaps ==
+Processing multiple pcaps
+=========================
 All examples and use cases so far have only shown chopshop processing one pcap
 at a time. Chopshop has the capability to process multiple pcaps in a few ways.
 The easiest of which is to pipe their names into chopshop from the command
@@ -168,7 +178,8 @@ find /pcaps -name "*.pcap" |sort | chopshop "payloads -c -r -i 192.168.1.10"
 Chopshop by default, if given no input information (-f or -i), will assume
 there is a list of filenames being passed via stdin.
 
-===Example 5===
+Example 5
+---------
 Chopshop can be used in a long running mode by using the -l and -L flags. These
 flags make chopshop assume that the input file is a list of files it should
 process and that it should continuously run until told to cancel (via Ctrl-C or
@@ -181,13 +192,16 @@ chopshop -f myfilelist -l -L "payloads -c -r -i 192.168.1.10"
 If 'myfilelist' is a fifo, we can feed it a list of files and have chopshop
 process those files
 
-=Module Development=
-== Introduction ==
+Module Development
+==================
+Introduction
+------------
 Creating chopshop modules consists of creating a python file with a unique name
 and placing it in the modules directory. This file must have a .py extension in
 order to be recognized by the framework.
 
-==newmod.sh==
+newmod.sh
+---------
 Chopshop provides a shell script to setup a module stub for you. You can use
 'newmod.sh' to create this stub and open an editor for you to get right to
 work. The newmod.sh script takes two arguments. The first is the name of the
@@ -198,7 +212,8 @@ depending upon the layer 4 payload you intend to parse.
 ./newmod.sh awesome_decoder tcp
 </code>
 
-==tcp_data structure==
+tcp_data structure
+------------------
 The tcp data that is passed to modules contains the following elements:
 
 <b>addr</b> - quadtuple containing source ip/port and destination ip/port same
@@ -247,7 +262,8 @@ Both the client and server objects contain the following fields:
 
 All elements are the same as described in nids/pynids documentation.
 
-==udp_data structure==
+udp_data structure
+------------------
 The udp_data structure that is passed to functions contains the following
 elements:
 
@@ -273,13 +289,15 @@ The udp_data structure has the following functions:
 <b>stop()</b> -- tells chopshop that this quad-tuple should be ignored for the
 lifetime of the module
 
-===Variables===
+Variables
+---------
 Every module must define a global "moduleName" variable and populate it with
 the module name -- this is mainly used for output purposes but is an absolute
 requirement for every module.
 
-===Required Functions===
-====ALL MODULES====
+Required Functions
+------------------
+###ALL MODULES
 Modules must define the following functions to be used with chopshop:
 
 <b>module_info()</b> -- invoked when a chopshop user uses the -m/--module_info
@@ -301,7 +319,7 @@ packets.
                  set to a friendly string so that chopshop can
                  inform the user
 
-====TCP MODULES====
+###TCP MODULES
 <b>taste(tcp_data)</b> -- Called when a new stream is detected (SYN, SYN/ACK,
 ACK), but before any data is received.
   Treat tcp_data like the object sent to callbacks for nids' register_tcp.
@@ -315,12 +333,13 @@ nids.register_tcp().
   Treat tcp_data like the object sent to callbacks for nids' register_tcp.
   (ex: o.addr, o.client.count_new, o.discard(0))
 
-====UDP MODULES====
+###UDP MODULES
 <b>handleDatagram(udp_data)</b> -- Called once per UDP datagram. Calling
 udp.stop() tells chopshop to ignore this quad-tuple for the lifetime of the
 module. This is very different from TCP behavior, so be aware!
 
-===Optional Functions===
+Optional Functions
+------------------
 Modules do not need to define the following functions but doing so provides
 extra functionality or information.
 
@@ -331,7 +350,8 @@ gives the module one last chance to do what it needs to.
   Treat tcp_data like the object sent to callbacks for nids' register_tcp.
   (ex: o.addr, o.client.count_new, o.discard(0))
 
-===The "chop" library===
+The "chop" library
+==================
 ChopShop provides the "chop" library for module usage to interact with the
 outside world. This allows the module writer to worry less about how to output
 data. The chop library provides output "channels" to allow you to very easily
@@ -380,7 +400,8 @@ chop.tsprettyprnt:
 Note that if a gui is not available or colors are not supported in the terminal
 running chopshop, chop.prettyprnt's functionality is equivalent to chop.prnt
 
-====Examples====
+Examples
+--------
 Using the chop library is pretty straightforward, if you want to output regular
 text data just type:
 <pre>
@@ -419,8 +440,8 @@ If you feel the need to make your own custom json encoder, you can use
 "chop.set_custom_json_encoder(encoder_function)" to customize how the json will
 be output.
 
-==== File Saving ====
-
+File Saving
+-----------
 ChopShop provides a simple API for saving files using the chop.*file() family
 of functions. There are three functions in this family:
 
@@ -494,7 +515,8 @@ The other supported format string is "%T" which will be translated into the
 current UNIX timestamp (/tmp/%N/%T would put files in
 /tmp/module_name/timestamp).
 
-==Best Practices for Module Writing==
+Best Practices for Module Writing
+=================================
 Module writers should follow the best practices outlined below:
 
 * Never use function calls that can adversely affect chopshop or any other
