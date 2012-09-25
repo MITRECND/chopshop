@@ -40,7 +40,7 @@ def log(cp, msg, level, obj):
         chop.prnt("%s:%i - %s (%i)" % (elog['file'], elog['line'], elog['msg'], elog['level']))
     else:
         chop.prnt("%i - %s" % (level, msg))
-    return htpy.HOOK_STOP
+    return htpy.HOOK_OK
 
 def request_headers(cp, obj):
     obj['stream_data']['d']['request'] = { 'headers': cp.get_all_request_headers(),
@@ -141,7 +141,7 @@ def handleStream(tcp):
         elif tcp.client.count_new > 0:
             tcp.stream_data['cp'].res_data(tcp.client.data[:tcp.client.count_new])
             tcp.discard(tcp.client.count_new)
-    except:
+    except htpy.stop:
         tcp.stop()
     return
 
