@@ -42,39 +42,101 @@ def log(cp, msg, level, obj):
         chop.prnt("%i - %s" % (level, msg))
     return htpy.HOOK_OK
 
+# The request and response body callbacks are treated identical with one
+# exception: the location in the output dictionary where the data is stored.
+# Because they are otherwise identical each body callback is a thin wrapper
+# around the real callback.
+def request_body(data, length, obj):
+    return body(data, length, obj, 'request')
+
+def response_body(data, length, obj):
+    return body(data, length, obj, 'response')
+
+def body(data, length, obj, direction):
+    d = obj['stream_data']['d']
+
+    if length == 0:
+        if 'body' not in d[direction]:
+            return htpy.HOOK_OK
+
+        if len(d[direction]['body']) >= obj['module_data']['blen']:
+            d[direction]['body'] = d[direction]['body'][:obj['module_data']['blen']]
+            dump(obj['module_data'], d)
+        return htpy.HOOK_OK
+
+    if 'body' in d[direction]:
+        d[direction]['body'] += data
+    else:
+        d[direction]['body'] = data
+
+    return htpy.HOOK_OK
+
+def dump(module_data, d):
+    if module_data['prnt']:
+        chop.prnt(d)
+    if module_data['mongo']:
+        module_data['db'].insert(d)
+    if module_data['json']:
+        chop.json(d)
+
+    # In case pipelining is going on remove these.
+    d['request'] = { 'headers': {} }
+    d['response'] = { 'headers': {} }
+
 def request_headers(cp, obj):
-    obj['stream_data']['d']['request'] = { 'headers': cp.get_all_request_headers(),
-                                           'uri': cp.get_uri()
-                                         }
+    d = obj['stream_data']['d']
+    d['request'] = { 'headers': {} }
+    if obj['module_data']['fields'] == None:
+        d['request']['headers'] = cp.get_all_request_headers()
+        d['request']['uri'] = cp.get_uri()
+    else:
+        for field in obj['module_data']['fields']:
+            if field == 'uri':
+                d['request']['uri'] = cp.get_uri()
+            else:
+                value = cp.get_request_header(field)
+                if value != None:
+                    d['request']['headers'][field] = value
+
+    if not d['request']['headers']:
+        del d['request']['headers']
+
     return htpy.HOOK_OK
 
 def response_headers(cp, obj):
-    obj['stream_data']['d']['response'] = {
-                                            'headers': cp.get_all_response_headers(),
-                                            'status': cp.get_response_status()
-                                          }
+    d = obj['stream_data']['d']
+    d['response'] = { 'headers': {} }
+    if obj['module_data']['fields'] == None:
+        d['response']['headers'] = cp.get_all_response_headers()
+        d['response']['status'] = cp.get_response_status()
+    else:
+        for field in obj['module_data']['fields']:
+            if field == 'status':
+                d['response']['status'] = cp.get_response_status()
+            else:
+                value = cp.get_response_header(field)
+                if value != None:
+                    d['response']['headers'][field] = value
 
-    # We dump the object after each response. This ensures that we
-    # get data even if the session does not enter teardown.
-    if obj['module_data']['prnt']:
-        chop.prnt(obj['stream_data']['d'])
-    if obj['module_data']['mongo']:
-        obj['module_data']['db'].insert(obj['stream_data']['d'])
-    if obj['module_data']['json']:
-        chop.json(obj['stream_data']['d'])
+    if not d['response']['headers']:
+        del d['response']['headers']
 
-    # In case pipelining is going on remove these.
-    del obj['stream_data']['d']['request']
-    del obj['stream_data']['d']['response']
+    # If bodies are not wanted, dump the object after each response.
+    # This ensures that we get data even if the session does not
+    # enter teardown.
+    if 'blen' not in obj['module_data']:
+        dump(obj['module_data'], d)
     return htpy.HOOK_OK
 
 def module_info():
-    print "Parse HTTP and generate JSON or send to mongo"
+    print "Parse HTTP. Print, generate JSON or send to mongo"
 
 def init(module_data):
     module_options = { 'proto': 'tcp' }
     parser = OptionParser()
 
+    parser.add_option("-f", "--fields", action="store", dest="fields",
+        default=None, help="Comma separated list of fields to extract")
     parser.add_option("-p", "--print", action="store_true", dest="prnt",
         default=False, help="Send output to stdout")
     parser.add_option("-M", "--mongo", action="store_true", dest="mongo",
@@ -99,17 +161,28 @@ def init(module_data):
     if not options.prnt and not options.mongo and not options.json:
         module_options['error'] = "Select one output method."
         return module_options
+
     if module_data['mongo']:
         try:
             from dbtools import mongo_connector
         except ImportException, e:
             module_options['error'] = str(e)
             return module_options
-
         module_data['db'] = mongo_connector(options.host, options.port, options.db, options.col)
 
     if module_data['json']:
         chop.set_custom_json_encoder(dns_to_dict)
+
+    module_data['fields'] = options.fields
+    if options.fields:
+        fields = options.fields.split(',')
+        for field in fields:
+            if field.startswith('body:'):
+                module_data['blen'] = int(field.split(':')[1])
+                chop.prnt("Extracting %i body bytes" % module_data['blen'])
+            else:
+                chop.prnt("Extracting field: %s" % field)
+        module_data['fields'] = fields
 
     return module_options
 
@@ -123,6 +196,9 @@ def taste(tcp):
     tcp.stream_data['cp'].register_log(log)
     tcp.stream_data['cp'].register_request_headers(request_headers)
     tcp.stream_data['cp'].register_response_headers(response_headers)
+    if 'blen' in tcp.module_data:
+        tcp.stream_data['cp'].register_request_body_data(request_body)
+        tcp.stream_data['cp'].register_response_body_data(response_body)
     tcp.stream_data['d'] = {
                              'timestamp': packet_timedate(tcp.timestamp),
                              'src': src,
