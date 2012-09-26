@@ -56,6 +56,17 @@ SED=	/bin/sed
 SED_ARGS=	-i'' -re
 endif
 
+# Use GNU tar when releasing on OS X. BSD tar, the default tar(1),
+# includes extended headers that cause (harmless) warnings when
+# extracting with older versions of GNU tar. Since I roll releases
+# on OS X always use gnutar. This should be extended for other systems
+# that don't default to BSD tar.
+ifeq (${UNAME}, Darwin)
+TAR=	/usr/bin/gnutar
+else
+TAR=	/usr/bin/tar
+endif
+
 # Define this if you have a specific python binary to use.
 # Provide the full path to your python binary of choice.
 #
@@ -139,4 +150,4 @@ install:
 release:
 	@/bin/rm -rf ./${RELEASE_DIR}
 	@/bin/mkdir ./${RELEASE_DIR}
-	@COPYFILE_DISABLE=true tar -cvy -s ,^,${RELEASE_NAME}/, --exclude ${RELEASE_DIR} --exclude ".git*" --exclude "*.swp" --exclude "*.pyc" -f ${RELEASE_FILE} .
+	@COPYFILE_DISABLE=true ${TAR} -cvj --transform=s,^,${RELEASE_NAME}/, --exclude ${RELEASE_DIR} --exclude ".git*" --exclude "*.swp" --exclude "*.pyc" -f ${RELEASE_FILE} .
