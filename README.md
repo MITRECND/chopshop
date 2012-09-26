@@ -6,10 +6,10 @@ Protocol Analysis/Decoder Framework
 Description
 ===========
 Chopshop is a MITRE developed framework to aid analysts in the creation and
-execution of pynids based decoders and detectors of APT tradecraft
+execution of pynids based decoders and detectors of APT tradecraft.
 
 Note that chopshop is still in beta and is dependant on libnids/pynids for the
-majority of its underlying functionality
+majority of its underlying functionality.
 
 Using Chopshop
 ==============
@@ -89,7 +89,7 @@ PgUp  or K: Moves up 10 lines in the data display window
 </pre>
 
 When moving around in the data window, remember to disable autoscroll or else
-the window will return to the end of the data shortly
+the window will return to the end of the data shortly.
 
 Modules
 =======
@@ -162,7 +162,7 @@ chopshop -F "output/%N/%N-%T.txt" -f /pcaps/data.pcap "payloads -c -r -i 192.168
 
 The above invocation would do the same thing as the above example but would
 output data to "output/payloads/payloads-[timestamp].txt" and
-"output/gh0st_decode/gh0st_decode-[timestamp].txt"
+"output/gh0st_decode/gh0st_decode-[timestamp].txt".
 
 Processing multiple pcaps
 =========================
@@ -190,7 +190,7 @@ chopshop -f myfilelist -l -L "payloads -c -r -i 192.168.1.10"
 </code>
 
 If 'myfilelist' is a fifo, we can feed it a list of files and have chopshop
-process those files
+process those files.
 
 Module Development
 ==================
@@ -381,7 +381,7 @@ chop.set_ts_format_short - accepts a boolean that enables short time format
 </pre>
 
 <b>NO methods should use python's regular "print" command '''except''' for
-module.info()</b>
+module.info().</b>
 
 The following colors are currently supported with chop.prettyprnt and
 chop.tsprettyprnt:
@@ -398,7 +398,7 @@ chop.tsprettyprnt:
 </pre>
 
 Note that if a gui is not available or colors are not supported in the terminal
-running chopshop, chop.prettyprnt's functionality is equivalent to chop.prnt
+running chopshop, chop.prettyprnt's functionality is equivalent to chop.prnt.
 
 Examples
 --------
