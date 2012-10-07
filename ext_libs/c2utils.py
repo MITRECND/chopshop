@@ -157,7 +157,6 @@ def hexdump(data, tabs=0, spaces=0, show_offset=True):
     """
     result = ''
     for i in range(0, len(data), 16):
-        hexstring = ""
         hexstring = ' '.join([binascii.hexlify(a) for a in data[i:i+16]])
 
         asciistring = b2a_printable(data[i:i+16])
