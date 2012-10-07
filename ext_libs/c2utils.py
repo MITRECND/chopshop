@@ -150,11 +150,10 @@ def packet_time(t, date=False, utc=False):
         return time.strftime(fmt, ts).rstrip()
     return "%02d:%02d:%02d" % (ts[3], ts[4], ts[5])
 
-def hexdump(data, tabs=0, spaces=0, show_offset=False):
+def hexdump(data, tabs=0, spaces=0, show_offset=True):
     """Given a buffer of binary data, return a string with a hexdump
     of that data.  Optionally, indent each line by the given
-    number of tabs and spaces.  Also, optionally, show the offset
-    every 8 lines.
+    number of tabs and spaces.  Also, optionally, do not show the offset.
     """
     result = ''
     for i in range(0, len(data), 16):
@@ -163,10 +162,7 @@ def hexdump(data, tabs=0, spaces=0, show_offset=False):
 
         asciistring = b2a_printable(data[i:i+16])
         if show_offset:
-            if 0 == i % 128:
                 result += "%s%s%07x: %-48s |%-16s|\n" % (tabs * '\t', spaces * ' ', i, hexstring, asciistring)
-            else:
-                result += "%s%s         %-48s |%-16s|\n" % (tabs * '\t', spaces * ' ', hexstring, asciistring)
         else:
             result += "%s%s%-48s |%-16s|\n" % (tabs * '\t', spaces * ' ', hexstring, asciistring)
     return result
