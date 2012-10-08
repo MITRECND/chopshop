@@ -679,8 +679,6 @@ class UiCommander:
 
     def setup_windows(self):
         data = self.inq.get()
-        if data[0] != "ready":
-            pass
 
         self.outq.put(['to_outs', self.to_outs])
         self.outq.put(['formats', self.formats])
@@ -770,9 +768,7 @@ class UiHelper(Thread):
                     self.printlock.release()
 
         if self.to_outs.has_key('to_ui') and self.to_outs['to_ui']:
-            if not self.panellist[panid]:
-                pass
-            else:
+            if self.panellist[panid]:
                 newline = "\n"
                 if supress:
                     newline = ""

@@ -558,7 +558,6 @@ def __core_runner_(iq, oq, dq):
         os.dup2(g.fileno(), 0)
     except:
         CSD.debug_out("Error assigning dev/null as output\n")
-        pass
 
     corecommand.setup_var(options)
     #Setup main and debug handlers
@@ -588,10 +587,8 @@ def __core_runner_(iq, oq, dq):
 
         if data[0] == 'msg':
             chop.prettyprnt(data[1], data[2])
-            pass
         elif data[0] == 'start':
             ccore.start()
-            pass
         elif data[0] == 'stop':
             ccore.stop()
             break
