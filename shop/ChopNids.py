@@ -35,7 +35,6 @@ from multiprocessing import Process, Manager, Queue as mQueue
 import Queue
 import time
 
-from ChopHelper import CoreCommander
 
 import ChopShopDebug as CSD
 
@@ -45,6 +44,7 @@ udp_modules = []
 all_modules = []
 
 ptimestamp = 0
+metadata = {}
 
 class udpdata:
     def __init__(self):
@@ -126,13 +126,16 @@ def copy_tcp_data(tcp,offset_info,client_direction):
     return tcplocal
 
 class ChopCore(Thread):
-    def __init__(self,options, module_list):
+    def __init__(self,options, module_list, chp, chophelper):
         Thread.__init__(self)
         self.options = options
         self.module_list = module_list
-
+        self.chophelper = chophelper 
         self.stopped = False
         self.complete = False
+
+        global chop
+        chop = chp
 
     def stop(self):
         self.complete = True
@@ -145,11 +148,16 @@ class ChopCore(Thread):
         global ptimestamp
         return ptimestamp
 
+    def getmeta(self):
+        global metadata
+        return metadata
+
     def prep_modules(self):
+        self.chophelper.set_core(self)
         modules = self.module_list
         for module in modules:
             module = module[0]
-            module.chop = corecommand.setup_module(module.moduleName)
+            module.chop = self.chophelper.setup_module(module.moduleName)
 
     def run(self):
         global chop
@@ -167,10 +175,6 @@ class ChopCore(Thread):
             #Create module_data for all modules
             module.module_data = {'args':arguments}
             module.streaminfo = {}
-
-            #Setup queue, panel and chop command for the module
-            #XXX
-            #module.chop = outcommand.setup_window(module.moduleName)
 
             chop.prettyprnt("CYAN", "\tInitializing module '" + name + "'")
             try:
@@ -206,11 +210,11 @@ class ChopCore(Thread):
         chop.prettyprnt("RED", "Running Modules ...")
 
         #Actually run the modules
-        if options.interface:
+        if options['interface']:
             nids.param("scan_num_hosts",0)
-            nids.param("device",options.interface)
-            if options.pcap_filter:
-                nids.param("pcap_filter", options.pcap_filter)
+            nids.param("device",options['interface'])
+            #if options.pcap_filter:
+            #    nids.param("pcap_filter", options.pcap_filter)
             try:
                 nids.init()
             except Exception, e:
@@ -233,15 +237,15 @@ class ChopCore(Thread):
                     chop.prnt("Error processing packets", e)
                     #no need to exit
         else:
-            if options.filename is "":
+            if options['filename'] is "":
                 chop.prnt("Empty Filename")
                 self.complete = True
                 return
 
             nids.param("scan_num_hosts",0)
-            nids.param("filename",options.filename)
-            if options.pcap_filter:
-                nids.param("pcap_filter", options.pcap_filter)
+            nids.param("filename",options['filename'])
+            #if options.pcap_filter:
+            #    nids.param("pcap_filter", options.pcap_filter)
 
             try:
                 nids.init()
@@ -258,7 +262,7 @@ class ChopCore(Thread):
                 if self.stopped:
                     break
                 try:
-                    if options.longrun: #long running don't stop until the proces is killed externally
+                    if options['longrun']: #long running don't stop until the proces is killed externally
                         while not self.stopped:
                             if not nids.next():
                                 time.sleep(.001)
@@ -267,7 +271,7 @@ class ChopCore(Thread):
                             pass
                         self.stopped = True #Force it to true and exit
                 except Exception, e:
-                    if not options.longrun:
+                    if not options['longrun']:
                         self.stopped = True #Force it to true and exit
                     chop.prnt("Error processing packets", e)
 
@@ -282,17 +286,27 @@ class ChopCore(Thread):
             except Exception,e:
                 pass
 
-        chop.prettyprnt("RED", "Shutdown Complete ... ChopShop Processes finished")
+        chop.prettyprnt("RED", "Module Shutdown Complete ...")
         self.complete = True
 
 def handleUdpDatagrams(addr, data, ip):
     global ptimestamp
+    global metadata
     ptimestamp = nids.get_pkt_ts()
     ((src,sport),(dst,dport)) = addr
     if src < dst:
         f_string = src + ":" + str(sport) + "-" + dst + ":" + str(dport)
     else:
         f_string = dst + ":" + str(dport) + "-" + src + ":" + str(sport)
+
+    
+    metadata['proto'] = 'udp'
+    metadata['time'] = ptimestamp
+    metadata['addr'] = { 'src' : src,
+                         'dst' : dst,
+                         'sport' : sport,
+                         'dport' : dport
+                       }
 
     stopped = False
     for module in udp_modules:
@@ -342,11 +356,18 @@ def handleTcpStreams(tcp):
         smallest_discard = tcp.server.count_new
 
     global ptimestamp
+    global metadata
     ptimestamp = nids.get_pkt_ts()
     ((src,sport),(dst,dport)) = tcp.addr
     f_string = src + ":" + str(sport) + "-" + dst + ":" + str(dport)
 
-
+    metadata['proto'] = 'tcp'
+    metadata['time'] = ptimestamp
+    metadata['addr'] = { 'src' : src,
+                         'dst' : dst,
+                         'sport' : sport,
+                         'dport' : dport
+                       }
 
     if tcp.nids_state == nids.NIDS_JUST_EST: #Implement tasting
         for module in tcp_modules:
@@ -456,139 +477,4 @@ def handleTcpStreams(tcp):
                 del tcpd
                 del module.streaminfo[f_string]
 
-
-def loadModules(name, path):
-    try:
-        (file, pathname, description) = imp.find_module(name, [path])
-        loaded_mod = imp.load_module(name, file, pathname, description)
-    except Exception, e:
-        traceback.print_exc()
-        print "Exception:" , e
-        sys.exit("Error loading module '" + name + "'")
-
-    return loaded_mod
-
-
-def __core_runner_(iq, oq, dq):
-    os.setpgrp()
-    global inq
-    global outq
-    global corecommand
-
-    inq = iq
-    outq = oq
-
-    corecommand = CoreCommander(inq, outq, dq)
-
-    options = None
-    module_list = []
-    ccore = None
-    mod_dir = None
-
-    while (True):
-        try:
-            data = inq.get(True, .1)
-        except Queue.Empty, e:
-            continue
-
-
-        if data[0] == 'opt':
-            options = data[1]
-
-            #Set up the module directory and the external libraries directory
-            mod_dir = options.mod_dir
-            ext_dir = options.ext_dir
-            if options.base_dir:
-                base_dir = os.path.realpath(options.base_dir)
-                mod_dir = base_dir + '/modules/'
-                ext_dir = base_dir + '/ext_libs/'
-            sys.path.append(os.path.realpath(ext_dir))
-        elif data[0] == 'load_mod':
-            args = data[1]
-            mods = args[0].split(';')
-            for mod in mods:
-                mod = mod.strip()
-                sindex = mod.find(' ')
-                if sindex != -1:
-                    modl = []
-                    modl.append(loadModules(mod[0:sindex],mod_dir))
-                    modl.append(mod[sindex + 1:])
-                    modl.append(mod[0:sindex])
-                    module_list.append(modl)
-                else:
-                    modl = []
-                    modl.append(loadModules(mod,mod_dir))
-                    modl.append("")
-                    modl.append(mod)
-                    module_list.append(modl)
-            if len(module_list) == 0:
-                outq.put('zero')
-            else:
-                outq.put('fini')
-        elif data[0] == 'mod_info':
-            for mod in module_list:
-                print mod[0].moduleName + ":",
-                try:
-                    mod[0].module_info()
-                    sys.stdout.write("\n")
-                except Exception, e:
-                    print "Missing module information for %s" % mod[2]
-                    sys.stdout.write("\n")
-                try:
-                    sys.argv[0] = mod[0].moduleName
-                    mod[0].init({'args': ['-h']})
-                except SystemExit, e:
-                    pass
-                sys.stdout.write("\n") 
-            outq.put('fini')
-            return
-        elif data[0] == 'cont':
-            break
-        elif data[0] == 'exit':
-            return
-
-    try:
-        f = open('/dev/null', 'w')
-        os.dup2(f.fileno(), 1)
-        g = open('/dev/null', 'r')
-        os.dup2(g.fileno(), 0)
-    except:
-        CSD.debug_out("Error assigning dev/null as output\n")
-
-    corecommand.setup_var(options)
-    #Setup main and debug handlers
-    ccore = ChopCore(options, module_list)
-
-    global chop
-    #Setups up main/debug panels/windows and also informs other side that we're ready
-    #to setup module windows/panels
-    chop = corecommand.setup_modules_begin(ccore)
-
-    #setup ccore Core
-    #Sets up 'chop' class and windows/panels
-    ccore.prep_modules()
-
-    #Inform other side we're done setting up modules
-    corecommand.setup_modules_end()
-
-
-    while (True):
-        if ccore.complete:
-            break
-
-        try:
-            data = inq.get(True, .1)
-        except Queue.Empty, e:
-            continue
-
-        if data[0] == 'msg':
-            chop.prettyprnt(data[1], data[2])
-        elif data[0] == 'start':
-            ccore.start()
-        elif data[0] == 'stop':
-            ccore.stop()
-            break
-
-    ccore.join()
-    corecommand.join()
 
