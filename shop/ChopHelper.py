@@ -262,8 +262,8 @@ class ChopHelper:
 
         #Inform the caller that we are adding a module
         message = { 'type' : 'ctrl',
-                    'msg'  : 'addmod',
-                    'data' : { 'name' : name,
+                    'data' : { 'msg'  : 'addmod',
+                               'name' : name,
                                'id': id
                              }
                   }

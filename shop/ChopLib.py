@@ -27,7 +27,6 @@
 VERSION = 3.0
 
 import sys
-import signal
 import os
 import imp
 import traceback
@@ -40,6 +39,7 @@ sys.path.append(CHOPSHOP_WD + '/shop')
 from ChopNids import ChopCore
 from ChopHelper import ChopHelper 
 from ChopSurgeon import Surgeon
+from ChopException import ChopLibException
 
 
 class ChopLib(Thread):
@@ -51,7 +51,7 @@ class ChopLib(Thread):
         pyversion = float(str(pyversion[0]) + "." + str(pyversion[1]))
 
         if pyversion < 2.6:
-            raise ChopException("Minimum Python Version 2.6 Required")
+            raise ChopLibException("Minimum Python Version 2.6 Required")
 
         global Queue
         global Process
@@ -226,6 +226,12 @@ class ChopLib(Thread):
     def modules(self, v):
         self.options['modules'] = v
 
+
+    def get_message_queue(self):
+        return self.tocaller
+
+    def get_stop_fn(self):
+        return self.stop
        
     def version(self):
         global VERSION
@@ -251,7 +257,7 @@ class ChopLib(Thread):
             if not self.options['interface']:
                 if not self.options['filename']:
                     if not self.options['filelist']:
-                        raise ChopException("No input specified")
+                        raise ChopLibException("No input specified")
                     else:
                         surgeon = Surgeon(self.options['filelist'])
                         self.options['filename'] = surgeon.create_fifo()
@@ -259,7 +265,7 @@ class ChopLib(Thread):
                 else:
                     if not os.path.exists(self.options['filename']):
                         #print "Unable to find file '%s'" % self.options['filename']
-                        raise ChopException("Unable to find file '%s'" % self.options['filename'])
+                        raise ChopLibException("Unable to find file '%s'" % self.options['filename'])
                         #sys.exit(-1)
 
                     if self.options['aslist']:
@@ -274,7 +280,7 @@ class ChopLib(Thread):
         #Wait for a reponse
         resp = self.fromnids.get()
         if resp != 'ok':
-            raise ChopException(resp)
+            raise ChopLibException(resp)
 
         if self.options['modinfo']:
             self.tonids.put(['mod_info'])
@@ -283,7 +289,7 @@ class ChopLib(Thread):
 
             #Inform caller that the process is done
             message = { 'type' : 'ctrl',
-                        'msg'  : 'finished'
+                        'data' : {'msg'  : 'finished'}
                       }
             
             self.tocaller.put(message)
@@ -312,7 +318,7 @@ class ChopLib(Thread):
             if data[0] == "stop": 
                 #Send the message to caller that we need to stop
                 message = { 'type' : 'ctrl',
-                            'msg'  : 'stop'
+                            'data' : {'msg'  : 'stop'}
                           }
                 self.tocaller.put(message)
 
@@ -335,7 +341,7 @@ class ChopLib(Thread):
 
         #Inform caller that we are now finished
         message = { 'type' : 'ctrl',
-                    'msg'  : 'finished'
+                    'data' : {'msg'  : 'finished'}
                   }
         
         self.tocaller.put(message)
@@ -524,8 +530,5 @@ class ChopLib(Thread):
 
         chop.prettyprnt("RED", "ChopShop Complete")
 
-
-class ChopException(BaseException):
-    pass
 
 
