@@ -27,13 +27,10 @@ import sys
 import os
 import imp
 import nids
-import fileinput
-import string
 import shlex
 import traceback
 from threading import Thread
 from threading import Lock
-import threading
 from multiprocessing import Process, Manager, Queue as mQueue
 import Queue
 import time
