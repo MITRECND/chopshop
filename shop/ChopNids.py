@@ -24,18 +24,13 @@
 # SUCH DAMAGE.
 
 import sys
-import signal
 import os
-import tempfile
 import imp
 import nids
 import fileinput
-import fcntl
 import string
-import gc
 import shlex
 import traceback
-from optparse import OptionParser
 from threading import Thread
 from threading import Lock
 import threading
