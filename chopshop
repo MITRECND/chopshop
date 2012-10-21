@@ -37,19 +37,11 @@ VERSION = 2.2
 import sys
 import signal
 import os
-import tempfile
-import imp
 import nids
 import fileinput
-import fcntl
-import string
-import gc
-import shlex
-import traceback
 from optparse import OptionParser
 from threading import Thread
 from threading import Lock
-import threading
 
 #Python Version Check
 version = sys.version_info
@@ -192,13 +184,10 @@ def main():
         print "Module list required"
         sys.exit(0)
 
-
     #Check for invokation of module_info
     if options.modinfo:
         outq.put(['mod_info'])
         resp = inq.get()
-        if resp != "fini":
-            pass
         sys.exit(0)
     #Figure out where we're reading packets from
 
