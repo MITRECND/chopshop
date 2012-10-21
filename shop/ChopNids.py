@@ -209,6 +209,8 @@ class ChopCore(Thread):
         if options.interface:
             nids.param("scan_num_hosts",0)
             nids.param("device",options.interface)
+            if options.pcap_filter:
+                nids.param("pcap_filter", options.pcap_filter)
             try:
                 nids.init()
             except Exception, e:
@@ -238,6 +240,8 @@ class ChopCore(Thread):
 
             nids.param("scan_num_hosts",0)
             nids.param("filename",options.filename)
+            if options.pcap_filter:
+                nids.param("pcap_filter", options.pcap_filter)
 
             try:
                 nids.init()

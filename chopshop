@@ -137,6 +137,8 @@ def main():
     ext_dir = CHOPSHOP_WD + '/ext_libs/'
 
     optparser = OptionParser()
+    optparser.add_option("-b", "--bpf", dest="pcap_filter", default=None,
+        help="BPF filter to apply")
     optparser.add_option("-B", "--base_dir", dest = "base_dir", default=None,
         help = "Base directory to load modules and external libraries from")
     optparser.add_option("-E", "--ext_dir", dest = "ext_dir",
