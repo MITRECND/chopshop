@@ -26,6 +26,8 @@ usage: chopshop [options] "list ; of ; modules"
 
 options:
   -h, --help            show this help message and exit
+  -b PCAP_FILTER, --bpf=PCAP_FILTER
+                        BPF filter to apply
   -B BASE_DIR, --base_dir=BASE_DIR
                         Base directory to load modules and external libraries from
   -E EXT_DIR, --ext_dir=EXT_DIR
