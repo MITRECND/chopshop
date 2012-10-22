@@ -59,9 +59,7 @@ def body(data, length, obj, direction):
         if 'body' not in d[direction]:
             return htpy.HOOK_OK
 
-        if len(d[direction]['body']) >= obj['module_data']['blen']:
-            d[direction]['body'] = d[direction]['body'][:obj['module_data']['blen']]
-            dump(obj['module_data'], d)
+        dump(obj['module_data'], d)
         return htpy.HOOK_OK
 
     if 'body' in d[direction]:
@@ -69,6 +67,8 @@ def body(data, length, obj, direction):
     else:
         d[direction]['body'] = data
 
+    if obj['module_data']['blen'] != 0 and len(d[direction]['body']) >= obj['module_data']['blen']:
+        d[direction]['body'] = d[direction]['body'][:obj['module_data']['blen']]
     return htpy.HOOK_OK
 
 def dump(module_data, d):
@@ -179,7 +179,10 @@ def init(module_data):
         for field in fields:
             if field.startswith('body:'):
                 module_data['blen'] = int(field.split(':')[1])
-                chop.prnt("Extracting %i body bytes" % module_data['blen'])
+                if module_data['blen'] == 0:
+                    chop.prnt("Extracting all body bytes")
+                else:
+                    chop.prnt("Extracting %i body bytes" % module_data['blen'])
             else:
                 chop.prnt("Extracting field: %s" % field)
         module_data['fields'] = fields
