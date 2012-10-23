@@ -34,7 +34,8 @@ from threading import Thread, Lock
 
 CHOPSHOP_WD = os.path.realpath(os.path.dirname(sys.argv[0]))
 
-sys.path.append(CHOPSHOP_WD + '/shop')
+if CHOPSHOP_WD + '/shop' not in sys.path: 
+    sys.path.append(CHOPSHOP_WD + '/shop')
 
 from ChopNids import ChopCore
 from ChopHelper import ChopHelper 
@@ -64,6 +65,7 @@ class ChopLib(Thread):
                          'base_dir': None,
                          'filename': '',
                          'filelist': None,
+                         'bpf': None,
                          'aslist': False,
                          'longrun': False,
                          'interface': '',
@@ -226,6 +228,14 @@ class ChopLib(Thread):
     def modules(self, v):
         self.options['modules'] = v
 
+    @property
+    def bpf(self):
+        """BPF string to pass to Nids"""
+        return self.options['bpf']
+
+    @bpf.setter
+    def bpf(self, v):
+        self.options['bpf'] = v
 
     def get_message_queue(self):
         return self.tocaller
@@ -240,12 +250,13 @@ class ChopLib(Thread):
     def stop(self):
         self.stopped = True
 
-    def setup_local_chop(self, name = "ChopShop"):
+    def setup_local_chop(self, name = "ChopShop", pid = -1):
         #This allows Process 1 to access Chops, note that it has
         #a hardcoded id of -1 since otherwise it might overlap
-        #with the other chops
+        #with the other chops, only use a custom id if you know
+        #what you're doing
         chophelper = ChopHelper(self.tocaller, self.options)
-        self.chop = chophelper.setup_module(name, -1)
+        self.chop = chophelper.setup_module(name, pid)
         
 
 
