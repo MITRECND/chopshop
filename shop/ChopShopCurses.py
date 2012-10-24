@@ -98,9 +98,6 @@ Colors = Color()
     vpanel is a "virtual" data panel and stores the data for a given window, it also keeps
     track of where the panel is.
 
-    If you would like to create your own UI instance, know that vpanel is necessary, but only the
-    add_data function need be exposed
-
     add_data -- will set the data in the buffer to what was received
 
 """
@@ -139,7 +136,7 @@ class vpanel:
         self.data.append([newdata, dcolor])
 
     def resize(self):
-        CSD.debug_out("Resize called\n")
+        #Removes the top 1/4 of the data elements in the panel
         start = len(self.data)/4
         self.data = self.data[start:]
 
@@ -164,25 +161,22 @@ class vpanel:
     conforms to these requirements
 """
 
-class ChopUI:
-    def __init__(self):
-        self.stdscr = None
-
-        self.buildup()
-        self.nui = ChopCurses(self.stdscr)    
-
-    def new_panel(self, name):
-        return self.nui.new_vpanel(name)        
-
-    def setup_core_ref(self, core):
-        self.nui.setup_core_ref(core)
-
-    def buildup(self):
+class ChopShopCurses:
+    def __init__(self, ui_stop_fn, lib_stop_fn):
         self.stdscr = curses.initscr()
         curses.start_color()
         curses.noecho()
         curses.cbreak()
         self.stdscr.keypad(1)
+
+
+        self.nui = ChopCurses(self.stdscr, ui_stop_fn, lib_stop_fn)    
+    
+    def add_panel(self, panel_id, name):
+        self.nui.add_panel(panel_id,name)
+
+    def add_data(self, panel_id, data, color):
+        self.nui.add_data(panel_id, data, color)
 
     def teardown(self):
         self.stdscr.keypad(0)
@@ -194,11 +188,14 @@ class ChopUI:
         while self.nui.is_alive(): #loop so signals still work
             self.nui.join(.1)
         self.teardown()
+        CSD.debug_out("ChopShopCurses join complete\n")
 
     def stop(self):
+        CSD.debug_out("ChopShopCurses stop called\n")
         self.nui.stop()#should run once more then quit
         self.nui.join()
         self.teardown()
+        CSD.debug_out("ChopShopCurses stop complete\n")
 
  
     def go(self):
@@ -240,8 +237,9 @@ class ChopCurses(Thread):
 
     stdscr = 0
 
-    panels = []
-    current_win = 0
+    panels = {} #Since ids are not just positive integers need a dictionary
+    panel_id_list = [] #A list of ordered panel ids -- to make it easier to switch
+    current_win = 0 #The index in panel_id_list
     
     title_window = 0
     nav_window = 0
@@ -250,17 +248,19 @@ class ChopCurses(Thread):
     #Seed to termios.TIOCCWINSZ to get H,W
     seed = struct.pack("HH", 0,0) 
 
-    def __init__(self, stdscr):
+    def __init__(self, stdscr, ui_stop_fn, lib_stop_fn):
         Thread.__init__(self)
-        self.started = False
+        #self.started = False
         self.colors = False
         self.stopped = False
         self.stdscr = stdscr
+        self.ui_stop_fn = ui_stop_fn
+        self.lib_stop_fn = lib_stop_fn
 
         global Colors
 
         if curses.has_colors():
-            self.colors =  True
+            self.colors = True
             Colors.define_colors(True)
 
         #Colors is color safe, if colors are not available it will be equal to
@@ -268,8 +268,11 @@ class ChopCurses(Thread):
         self.titlecolor = Colors.RED
         self.navcolor = Colors.MAGENTA 
 
-    def setup_core_ref(self, core):
-        self.core = core
+    def __current_panel__(self):
+        if len(self.panel_id_list) == 0:
+            return vpanel("dummy")
+
+        return self.panels[self.panel_id_list[self.current_win]]
 
     def stop(self):
         self.stopped = True
@@ -289,10 +292,8 @@ class ChopCurses(Thread):
         self.update_title()
         self.update_windows()
 
-        CSD.debug_out("Before While Loop\n")
-
         counter = time.time()
-        self.started = True
+        #self.started = True
         while not self.stopped:
             c = self.data_window.getch()
 
@@ -301,7 +302,7 @@ class ChopCurses(Thread):
             newtime = time.time()
             if newtime - counter >= 1 :
                 counter = newtime
-                if self.panels[self.current_win].autoscroll:
+                if self.__current_panel__().autoscroll:
                     self.scroll_end()
 
                 #check to see if window has been resized
@@ -321,51 +322,59 @@ class ChopCurses(Thread):
                 self.current_win -= 1
                 self.update_windows()
         elif (c == curses.KEY_RIGHT or c == ord('l')):
-            if self.current_win != len(self.panels) - 1:
+            if self.current_win != len(self.panel_id_list) - 1:
                 self.current_win += 1
                 self.update_windows()
         elif (c == curses.KEY_UP or c == ord('k')):
-            if self.panels[self.current_win].position > 0:
-                self.panels[self.current_win].position -= 1
+            if self.__current_panel__().position > 0:
+                self.__current_panel__().position -= 1
                 self.update_pad_simple()
         elif (c == curses.KEY_DOWN or c == ord('j')):
-            if self.panels[self.current_win].position < BUFFER_SIZE:
-                self.panels[self.current_win].position += 1
+            if self.__current_panel__().position < BUFFER_SIZE:
+                self.__current_panel__().position += 1
                 self.update_pad_simple()
         elif (c == curses.KEY_NPAGE or c == ord('J')):
-            if self.panels[self.current_win].position >= BUFFER_SIZE - 10:
-                self.panels[self.current_win].position = BUFFER_SIZE
+            if self.__current_panel__().position >= BUFFER_SIZE - 10:
+                self.__current_panel__().position = BUFFER_SIZE
             else:
-                self.panels[self.current_win].position += 10
+                self.__current_panel__().position += 10
             self.update_pad_simple()
         elif (c == curses.KEY_PPAGE or c == ord('K')):
-            if self.panels[self.current_win].position <= 10:
-                self.panels[self.current_win].position = 0
+            if self.__current_panel__().position <= 10:
+                self.__current_panel__().position = 0
             else:
-                self.panels[self.current_win].position -= 10
+                self.__current_panel__().position -= 10
             self.update_pad_simple()
         elif (c == ord('b')): #scroll to the beginning
-            self.panels[self.current_win].position = 0
+            self.__current_panel__().position = 0
             self.update_pad_simple()
         elif (c == ord('n')): #scroll to the end
             self.scroll_end()
             self.update_pad_simple()
         elif (c == ord('s')):#Toggles autoscrolling -- by default this is enabled
-            if self.panels[self.current_win].autoscroll:
-                self.panels[self.current_win].autoscroll = False
+            if self.__current_panel__().autoscroll:
+                self.__current_panel__().autoscroll = False
             else:
-                self.panels[self.current_win].autoscroll = True
+                self.__current_panel__().autoscroll = True
         elif (c == ord('q')):
-            #Stop the Core
+            CSD.debug_out("q pressed, stopping\n")
             try:
-                self.core.put(['stop'])
-            except:
+                self.lib_stop_fn()
+            except Exception, e:
+                CSD.debug_out("Exception: %s\n" % e)
+                pass
+
+            try:
+                self.ui_stop_fn()
+            except Exception, e:
+                CSD.debug_out("Exception: %s\n" % e)
+                #TODO
                 pass
             return False
         elif (c == ord('Q')):
             #Stop the Core
             try:
-                self.core.put(['stop'])
+                self.lib_stop_fn()
             except:
                 pass
         else:
@@ -374,15 +383,36 @@ class ChopCurses(Thread):
 
         return True
 
-    def new_vpanel(self, name):
+    def add_panel(self, panel_id, name):
         ndvwin = vpanel(name)
-        self.panels.append(ndvwin)
+        self.panels[panel_id] = ndvwin
+
+        current_key = None
+        if len(self.panel_id_list) > self.current_win:
+            current_key = self.panel_id_list[self.current_win]
+            
+        self.panel_id_list = []
+        for j in self.panels.iterkeys():
+            self.panel_id_list.append(j)
+
+        self.panel_id_list = sorted(self.panel_id_list)
+            
+        if current_key is not None: #Need to update the key
+            for i in range(len(self.panel_id_list)):
+                if self.panel_id_list[i] == current_key:
+                    self.current_win = i
+        
+
+        self.update_navigation()
        
-        if self.started:
-            self.update_navigation() 
+        #if self.started:
+        #    self.update_navigation() 
 
-        return ndvwin
+        #return ndvwin
 
+
+    def add_data(self, panel_id, data, color):
+        self.panels[panel_id].add_data(data, color)
 
     def check_resize_ui(self):
         try:
@@ -445,7 +475,7 @@ class ChopCurses(Thread):
         self.update_title()
             
         #Reset autoscroll on all panels
-        for panel in self.panels:
+        for (key,panel) in self.panels:
             panel.autoscroll = True
 
         #Attempt to refresh the windows
@@ -483,7 +513,7 @@ class ChopCurses(Thread):
 
         CSD.debug_out("Setting end position to: " + str(end_pos) + "\n")
 
-        self.panels[self.current_win].position = end_pos
+        self.__current_panel__().position = end_pos
 
     def update_windows(self):
         CSD.debug_out("Updating Window\n")
@@ -497,15 +527,22 @@ class ChopCurses(Thread):
     def update_navigation(self):
         self.nav_window.erase()
         self.nav_window.addstr(1,1, "Navigation Window\n\n", self.navcolor)
-        
-        counter = 0
-        for pan in self.panels:
+
+        for i in range(len(self.panel_id_list)):
             standout = curses.A_NORMAL
-            if counter == self.current_win and self.colors:
+            if i == self.current_win and self.colors:
                 standout = curses.A_STANDOUT
 
-            self.nav_window.addstr(" " + pan.windowname + "\n", standout )
-            counter += 1
+            self.nav_window.addstr(" " + self.panels[self.panel_id_list[i]].windowname + "\n", standout)
+        
+        #counter = 0
+        #for pan in self.panels:
+        #    standout = curses.A_NORMAL
+        #    if counter == self.current_win and self.colors:
+        #        standout = curses.A_STANDOUT
+
+        #    self.nav_window.addstr(" " + pan.windowname + "\n", standout )
+        #    counter += 1
 
         self.nav_window.border()
 
@@ -516,7 +553,7 @@ class ChopCurses(Thread):
 
     def update_pad_simple(self): #updates the view of the pad instead of the entire contents
         try:
-            self.data_window.refresh(self.panels[self.current_win].position, 0, self.dyval, self.dxval, self.dlines, self.dxval + self.dcols)
+            self.data_window.refresh(self.__current_panel__().position, 0, self.dyval, self.dxval, self.dlines, self.dxval + self.dcols)
         except:
             pass #get it on the next go
 
@@ -524,16 +561,16 @@ class ChopCurses(Thread):
     def update_pad(self):
         self.data_window.erase()
 
-        for data in self.panels[self.current_win].data:
+        for data in self.__current_panel__().data:
             try:
                 self.data_window.addstr(data[0], data[1])
             except:
-                self.panels[self.current_win].resize()
+                self.__current_panel__().resize()
                 self.update_pad()
                 return
 
         try:
-            self.data_window.nooutrefresh(self.panels[self.current_win].position,0, self.dyval, self.dxval, self.dlines , self.dxval + self.dcols) 
+            self.data_window.nooutrefresh(self.__current_panel__().position,0, self.dyval, self.dxval, self.dlines , self.dxval + self.dcols) 
             curses.doupdate()
         except:
             pass #get it on the next go
