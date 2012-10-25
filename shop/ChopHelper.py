@@ -133,30 +133,24 @@ class chops:
 
             self.dataq.put(message)
 
-    #TODO collapse savefile and appendfile?
     def savefile(self, filename, data, finalize = True):
-        if self.to_outs['savefiles']:
+        self.appendfile(filename,data,finalize,'w')
 
-            message = __get_message_template__()
-            message['type'] = 'filedata'
-            message['data'] = { 'filename': filename, 
-                                'data' : data,
-                                'mode' : 'w',
-                                'finalize': finalize
-                              }
 
-            self.dataq.put(message)
-
-    def appendfile(self, filename, data, finalize = False):
+    #mode should not be used by chop users -- 
+    #it is meant to be used by savefile
+    def appendfile(self, filename, data, finalize = False, mode = 'a'):
         if self.to_outs['savefiles']:
 
             message = self.__get_message_template__()
             message['type'] = 'filedata'
             message['data'] = { 'filename': filename, 
                                 'data' : data,
-                                'mode' : 'a',
+                                'mode' : mode,
                                 'finalize': finalize
                               }
+
+        self.dataq.put(message)
 
     def finalizefile(self, filename):
         if self.to_outs['savefiles']:
