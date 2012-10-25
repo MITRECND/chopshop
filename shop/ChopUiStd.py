@@ -248,11 +248,11 @@ class ChopJson:
         #Cleanup and close any files
         for j,k in self.filelist.iteritems():
             k.close()
-            del(self.filelist[j])
 
 class ChopFilesave:
     def __init__(self, ui_stop_fn = None, lib_stop_fn = None, format_string = None):
         self.format_string = format_string
+        self.savedfiles = {}
         
         if format_string[0] == '-':
             raise ChopUiException("Ambiguous file format: '" + format_string + "' -- please fix and run again\n")
@@ -263,10 +263,36 @@ class ChopFilesave:
         pass
    
     def handle_message(self, message):
-        pass
+        filename = message['data']['filename']
+
+        if message['data']['data'] != "":
+            #Only if there's data to write
+            if not self.savedfiles.has_key(filename):
+                try:
+                    (self.savedfiles[filename], error) = __get_open_file__(message['module'], self.format_string,
+                                                                            True, filename, 
+                                                                            message['data']['mode'])
+
+                finally:
+                    pass
+
+            if self.savedfiles[filename] is None:
+                #TODO error
+                del self.savedfiles[filename]
+                return
+                #pass
+
+            self.savedfiles[filename].write(message['data']['data'])
+            self.savedfiles[filename].flush()
+
+        if message['data']['finalize'] and self.savedfiles.has_key(filename):
+            self.savedfiles[filename].close()
+            del self.savedfiles[filename]
+            
 
     def handle_ctrl(self, message):
         pass
 
     def stop(self):
-        pass
+        for j,k in self.savedfiles.iteritems():
+            k.close()

@@ -10,7 +10,6 @@ if CHOPSHOP_WD + '/shop' not in sys.path:
 
 from ChopUiStd import *
 import ChopShopDebug as CSD
-CSD.enable_debug()
 
 
 class ChopUi(Thread):
@@ -158,9 +157,9 @@ class ChopUi(Thread):
             jsonclass = self.options['jsonout'](format_string = self.options['jsondir'])
 
         if self.options['savefiles'] == True:
-            filesclass = ChopFilesave()
+            filesclass = ChopFilesave(format_string = self.options['savedir'])
         elif self.options['savefiles'] != False:
-            filesclass = self.options['savefiles']()
+            filesclass = self.options['savefiles'](format_string = self.options['savedir'])
 
         while not self.stopped:
 
