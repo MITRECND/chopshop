@@ -150,7 +150,7 @@ class chops:
                                 'finalize': finalize
                               }
 
-        self.dataq.put(message)
+            self.dataq.put(message)
 
     def finalizefile(self, filename):
         if self.to_outs['savefiles']:
