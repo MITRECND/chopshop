@@ -1,3 +1,28 @@
+#! /usr/bin/env python
+
+# Copyright (c) 2012 The MITRE Corporation. All rights reserved.
+#
+# Redistribution and use in source and binary forms, with or without
+# modification, are permitted provided that the following conditions
+# are met:
+# 1. Redistributions of source code must retain the above copyright
+#    notice, this list of conditions and the following disclaimer.
+# 2. Redistributions in binary form must reproduce the above copyright
+#    notice, this list of conditions and the following disclaimer in the
+#    documentation and/or other materials provided with the distribution.
+#
+# THIS SOFTWARE IS PROVIDED BY THE AUTHOR AND CONTRIBUTORS ``AS IS'' AND
+# ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+# IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+# ARE DISCLAIMED.  IN NO EVENT SHALL THE AUTHOR OR CONTRIBUTORS BE LIABLE
+# FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+# DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS
+# OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION)
+# HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
+# LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY
+# OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
+# SUCH DAMAGE.
+
 import sys
 import os
 from threading import Thread, Lock
@@ -8,6 +33,7 @@ CHOPSHOP_WD = os.path.realpath(os.path.dirname(sys.argv[0]))
 if CHOPSHOP_WD + '/shop' not in sys.path:
     sys.path.append(CHOPSHOP_WD + '/shop')
 
+from ChopException import ChopUiException
 from ChopUiStd import *
 import ChopShopDebug as CSD
 
@@ -125,9 +151,6 @@ class ChopUi(Thread):
         #    self.lib_stop_fn()
 
     def run(self):
-        self.isrunning = True
-        #Check to see what has been enabled on the 'text' side
-
         stdclass = None
         uiclass = None
         fileoclass = None
@@ -169,41 +192,47 @@ class ChopUi(Thread):
                 continue
 
 
-            if message['type'] == 'ctrl':
-                if stdclass is not None:
-                    stdclass.handle_ctrl(message)
-                if uiclass is not None:
-                    uiclass.handle_ctrl(message)
-                if fileoclass is not None:
-                    fileoclass.handle_ctrl(message)
-                if jsonclass is not None:
-                    jsonclass.handle_ctrl(message)
-                if filesclass is not None:
-                    filesclass.handle_ctrl(message)
+            try:
+                if message['type'] == 'ctrl':
+                    if stdclass is not None:
+                        stdclass.handle_ctrl(message)
+                    if uiclass is not None:
+                        uiclass.handle_ctrl(message)
+                    if fileoclass is not None:
+                        fileoclass.handle_ctrl(message)
+                    if jsonclass is not None:
+                        jsonclass.handle_ctrl(message)
+                    if filesclass is not None:
+                        filesclass.handle_ctrl(message)
 
-                #The GUI is the only thing that doesn't care if the core is no
-                #longer running
-                if message['data']['msg'] == 'finished' and uiclass is None:
-                    self.stop()
-                    continue
+                    #The GUI is the only thing that doesn't care if the core is no
+                    #longer running
+                    if message['data']['msg'] == 'finished' and uiclass is None:
+                        self.stop()
+                        continue
 
-            if message['type'] == 'text':
-                if stdclass is not None:
-                    stdclass.handle_message(message)
-                if uiclass is not None:
-                    uiclass.handle_message(message)
-                if fileoclass is not None:
-                    fileoclass.handle_message(message)
+            except Exception, e:
+                raise ChopUiException(e)
 
-            if message['type'] == 'json':
-                if jsonclass is not None:  
-                    jsonclass.handle_message(message)
-            
-            if message['type'] == 'filedata':
-                if filesclass is not None:
-                    filesclass.handle_message(message) 
+            try:
+                if message['type'] == 'text':
+                    if stdclass is not None:
+                        stdclass.handle_message(message)
+                    if uiclass is not None:
+                        uiclass.handle_message(message)
+                    if fileoclass is not None:
+                        fileoclass.handle_message(message)
 
-        CSD.debug_out("Sending Stop Messages\n")
+                if message['type'] == 'json':
+                    if jsonclass is not None:  
+                        jsonclass.handle_message(message)
+                
+                if message['type'] == 'filedata':
+                    if filesclass is not None:
+                        filesclass.handle_message(message) 
+            except Exception, e:
+                raise ChopUiException(e)
+
         if stdclass is not None:
             stdclass.stop()
         if uiclass is not None:
@@ -215,5 +244,3 @@ class ChopUi(Thread):
         if filesclass is not None:
             filesclass.stop()
 
-        self.isrunning = False
-        return
