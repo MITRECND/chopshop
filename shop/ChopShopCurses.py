@@ -357,17 +357,14 @@ class ChopCurses(Thread):
             else:
                 self.__current_panel__().autoscroll = True
         elif (c == ord('q')):
-            CSD.debug_out("q pressed, stopping\n")
             try:
                 self.lib_stop_fn()
             except Exception, e:
-                CSD.debug_out("Exception: %s\n" % e)
                 pass
 
             try:
                 self.ui_stop_fn()
             except Exception, e:
-                CSD.debug_out("Exception: %s\n" % e)
                 #TODO
                 pass
             return False
@@ -403,7 +400,8 @@ class ChopCurses(Thread):
                     self.current_win = i
         
 
-        self.update_navigation()
+        #self.update_navigation()
+        #self.update_windows()
        
         #if self.started:
         #    self.update_navigation() 
@@ -475,8 +473,8 @@ class ChopCurses(Thread):
         self.update_title()
             
         #Reset autoscroll on all panels
-        for (key,panel) in self.panels:
-            panel.autoscroll = True
+        for key in self.panel_id_list:
+            self.panels[key].autoscroll = True
 
         #Attempt to refresh the windows
         #if it fails, retry up to 5 times -- haven't seen it make it higher than 3
@@ -535,15 +533,6 @@ class ChopCurses(Thread):
 
             self.nav_window.addstr(" " + self.panels[self.panel_id_list[i]].windowname + "\n", standout)
         
-        #counter = 0
-        #for pan in self.panels:
-        #    standout = curses.A_NORMAL
-        #    if counter == self.current_win and self.colors:
-        #        standout = curses.A_STANDOUT
-
-        #    self.nav_window.addstr(" " + pan.windowname + "\n", standout )
-        #    counter += 1
-
         self.nav_window.border()
 
         try:
