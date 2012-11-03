@@ -82,8 +82,9 @@ def multibyte_xor(data, key):
 
 def sanitize_filename(inf):
     fname = ""
+    bad = [ '/', '\\', ':', '~', '*' ]
     for c in inf:
-        if c == '/':
+        if c in bad:
             fname += '_'
         else:
             fname += c
