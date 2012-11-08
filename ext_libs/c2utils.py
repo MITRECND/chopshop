@@ -30,6 +30,16 @@ import math
 
 #### UTILITIES #########################
 
+def parse_addr(tcp):
+    if tcp.server.count_new > 0:
+        return tcp.addr
+    elif tcp.client.count_new > 0:
+        ((src, sport), (dst, dport)) = tcp.addr
+        return ((dst, dport), (src, sport))
+
+def winsizeize(hsize, lsize):
+    return (hsize * (0xFFFFFFFF + 1)) + lsize
+
 def pad_string(str, align=8, char=' '):
     new_str = str
     pad_chars = align - (len(str) % align)
