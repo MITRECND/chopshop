@@ -213,7 +213,8 @@ class chops:
 
 
 """
-     ChopHelper
+     ChopHelper keeps track of all of the "chops" instances and provides an easy to use interface to obtain an instance.
+     It also informs the caller that a new module has been added
 """
 
 class ChopHelper:

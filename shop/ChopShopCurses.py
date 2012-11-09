@@ -98,8 +98,6 @@ Colors = Color()
     vpanel is a "virtual" data panel and stores the data for a given window, it also keeps
     track of where the panel is.
 
-    add_data -- will set the data in the buffer to what was received
-
 """
 
 class vpanel:
@@ -142,23 +140,9 @@ class vpanel:
 
 
 """
-    ChopUI is an abstracted interface to the curses-based ui -- it is the "public" interface
-    that is used by the output capability used by ChopShop. The following functions *must* exist for compatibility
-    with ChopShop's Ouput Helpers:
+    ChopShopCurses is an abstracted interface to the curses-based ui -- it is the class that is used by ChopUiStd
+    and its corresponding gui function. This class exists to abstract out the threaded nature of the curses class
 
-    new_panel -- given a name will setup a window/panel and return a reference to that panel
-                 as mentioned above 
-
-    setup_core_ref -- a queue that can be given array commands such as ['stop']
-
-    go -- will start the UI
-
-    join -- wait for UI to finish
-
-    stop -- stop the UI - only needs to be used in an instance where the UI is being forcefully shut down (Ctrl-c)
-
-    Any other function can be internal only and the actual UI implementation can be done in any way as long as the frontend
-    conforms to these requirements
 """
 
 class ChopShopCurses:

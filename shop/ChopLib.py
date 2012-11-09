@@ -42,6 +42,11 @@ from ChopHelper import ChopHelper
 from ChopSurgeon import Surgeon
 from ChopException import ChopLibException
 
+"""
+    ChopLib is the core functionality of ChopShop. It provides a library interface to the processing side of chopshop
+    Any output/UI functionality has been extracted and is not done by this class. ChopLib will output all output onto queue
+    which can be used by the calling party to display information to the user
+"""
 
 class ChopLib(Thread):
     def __init__(self):

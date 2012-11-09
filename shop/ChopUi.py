@@ -37,6 +37,14 @@ from ChopException import ChopUiException
 from ChopUiStd import *
 import ChopShopDebug as CSD
 
+"""
+    ChopUi is the ui library interface to allow for automated data output from ChopLib
+    It relies on a queue of information that it can use and parse to determine where output needs to go
+    ChopUi instatiates a class for every output capability. For example, output to stdout is handled by ChopStdout
+    which is located in ChopUiStd. This allows for the usage of output capabilites to be modular. If for example,
+    you would like to replace the Stdout functionality, but do not want to rewrite this library, you can pass in the class
+    you would like to replace stdout with and ChopUi will use that instead
+"""
 
 class ChopUi(Thread):
     def __init__(self):
