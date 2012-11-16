@@ -31,24 +31,5 @@ zlib payload (starts with 0x789c).
 
 Once a gh0st message has been found it is buffered until the entire message
 is available. Once buffering is complete the message is decompressed.
-The first byte of most messages is a command. Known command values are:
-
-0x00: Keepalive
-0x01: List drives
-0x02: Browse (rest of the message is what to browse)
-0x03: Print (rest of the message is what to print)
-0x04: Download (has 8 bytes between the command and data)
-0x05: Data transfer (has 8 bytes between the command and data)
-0x07: Ack?
-0x09: Unknown
-0x1e: Shell
-
-0x66: System info
-0x67: Drive info
-0x68: ???
-0x69: Unknown
-0x6a: Response to 0x03 (print)
-0x70: Ack?
-0x71: Print drive information
-0x72: Print directory listing
-0x7a: Unknown
+The first byte of most messages is a command or token. The list of commands
+and tokens are documented in the code.
