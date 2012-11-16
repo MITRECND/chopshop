@@ -21,7 +21,7 @@
 # OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
 # SUCH DAMAGE.
 
-from c2utils import packet_timedate
+from c2utils import packet_timedate, sanitize_filename
 from optparse import OptionParser
 import json
 import htpy
@@ -79,6 +79,16 @@ def dump(module_data, d):
     if module_data['json']:
         chop.json(d)
 
+    if module_data['carve_request'] and 'body' in d['request']:
+        chop.prnt("DUMPING REQUEST: %s (%i)" % (sanitize_filename(d['request']['uri']['path'][1:] + '.request.' + str(module_data['counter'])), len(d['request']['body'])))
+        chop.savefile(sanitize_filename(d['request']['uri']['path'][1:] + '.request.' + str(module_data['counter'])), d['request']['body'])
+        module_data['counter'] += 1
+
+    if module_data['carve_response'] and 'body' in d['response']:
+        chop.prnt("DUMPING RESPONSE: %s (%i)" % (sanitize_filename(d['request']['uri']['path'][1:] + '.response.' + str(module_data['counter'])), len(d['response']['body'])))
+        chop.savefile(sanitize_filename(d['request']['uri']['path'][1:] + '.response.' + str(module_data['counter'])), d['response']['body'])
+        module_data['counter'] += 1
+
     # In case pipelining is going on remove these.
     d['request'] = { 'headers': {} }
     d['response'] = { 'headers': {} }
@@ -86,7 +96,7 @@ def dump(module_data, d):
 def request_headers(cp, obj):
     d = obj['stream_data']['d']
     d['request'] = { 'headers': {} }
-    if obj['module_data']['fields'] == None:
+    if not obj['module_data']['fields']:
         d['request']['headers'] = cp.get_all_request_headers()
         d['request']['uri'] = cp.get_uri()
     else:
@@ -135,8 +145,12 @@ def init(module_data):
     module_options = { 'proto': 'tcp' }
     parser = OptionParser()
 
+    parser.add_option("-s", "--carve_response_body", action="store_true",
+        dest="carve_response", default=False, help="Save response body")
+    parser.add_option("-S", "--carve_request_body", action="store_true",
+        dest="carve_request", default=False, help="Save request body")
     parser.add_option("-f", "--fields", action="store", dest="fields",
-        default=None, help="Comma separated list of fields to extract")
+        default=[], help="Comma separated list of fields to extract")
     parser.add_option("-p", "--print", action="store_true", dest="prnt",
         default=False, help="Send output to stdout")
     parser.add_option("-M", "--mongo", action="store_true", dest="mongo",
@@ -154,13 +168,15 @@ def init(module_data):
 
     (options,lo) = parser.parse_args(module_data['args'])
 
+    module_data['counter'] = 0
     module_data['prnt'] = options.prnt
     module_data['mongo'] = options.mongo
     module_data['json'] = options.json
+    module_data['carve_request'] = options.carve_request
+    module_data['carve_response'] = options.carve_response
 
     if not options.prnt and not options.mongo and not options.json:
-        module_options['error'] = "Select one output method."
-        return module_options
+        chop.prnt("WARNING: No output method selected.")
 
     if module_data['mongo']:
         try:
@@ -186,6 +202,15 @@ def init(module_data):
             else:
                 chop.prnt("Extracting field: %s" % field)
         module_data['fields'] = fields
+
+    if module_data['carve_request'] or module_data['carve_response']:
+        chop.prnt("Adding URI to fields for carving.")
+        module_data['fields'].append('uri')
+        if 'blen' not in module_data:
+            chop.prnt("Defaulting to carving entire body.")
+            module_data['blen'] = 0
+        else:
+            chop.prnt("Carving %i bytes of bodies." % module_data['blen'])
 
     return module_options
 
