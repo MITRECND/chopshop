@@ -25,8 +25,6 @@
 A module to dump raw packet payloads from a watchlist of IPs.
 Meant to be used to watch netcat reverse shells and other plaintext
 backdoors.
-
-Usage: payloads --ips 192.168.1.254,172.16.1.254
 """
 
 import sys
@@ -51,9 +49,6 @@ def parse_args(module_data):
         dest="hexlify", default=False, help="print hexlified output")
     parser.add_option("-o", "--xor", action="store",
         dest="xor_key", default=None, help="XOR packet payloads with this key")
-    parser.add_option("-i", "--ips", action="store", dest="ips",
-                      default=None,
-                      help="comma separated list of IP addresses to watch")
 
     (opts,lo) = parser.parse_args(module_data['args'])
 
@@ -71,14 +66,6 @@ def parse_args(module_data):
     if opts.xor_key:
         module_data['xor_key'] = opts.xor_key[2:]
 
-    if opts.ips:
-        ips = opts.ips.split(',')
-        for ip in ips:
-            chop.prnt("watching host: %s" % ip)
-        module_data['ips'] = ips
-    else:
-        return "you must specify a list of hosts to watch"
-
 def init(module_data):
     module_data['commands'] = True
     module_data['responses'] = True
@@ -94,12 +81,9 @@ def init(module_data):
 
 def taste(tcp):
     ((src, sport), (dst, dport)) = tcp.addr
-    if dst in tcp.module_data['ips'] or src in tcp.module_data['ips']:
-        if tcp.module_data['verbose']:
-            chop.tsprnt("Start Session %s:%s -> %s:%s"  % (src, sport, dst, dport))
-        return True
-    else:
-        return False
+    if tcp.module_data['verbose']:
+        chop.tsprnt("Start Session %s:%s -> %s:%s"  % (src, sport, dst, dport))
+    return True
 
 def handleStream(tcp):
 	# collect time and IP metadata
