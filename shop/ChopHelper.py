@@ -156,6 +156,22 @@ class chops:
         if self.to_outs['savefiles']:
             self.appendfile(filename, "", True)
 
+    def tsjson(self, obj, key = 'timestamp'):
+        if self.core is not None:
+            ptime = ""
+            ts = self.core.getptime()
+            if self.GMT:
+                fmt = "%Y-%m-%d %H:%M:%S +0000"
+                ts = time.gmtime(ts)
+            else:
+                fmt = "%Y-%m-%d %H:%M:%S %Z"
+                ts = time.localtime(ts)
+
+            ptime = time.strftime(fmt, ts).rstrip()
+            obj[key] = ptime
+
+        self.json(obj)
+        
     def json(self, obj):
         if self.to_outs['json']:
 
