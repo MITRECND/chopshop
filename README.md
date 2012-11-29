@@ -22,12 +22,10 @@ modules to do so.
 Chopshop provides the following arguments:
 
 <pre>
-usage: chopshop [options] "list ; of ; modules"
+usage: chopshop [options] ["bpf filter"] "list ; of ; modules"
 
 options:
   -h, --help            show this help message and exit
-  -b PCAP_FILTER, --bpf=PCAP_FILTER
-                        BPF filter to apply
   -B BASE_DIR, --base_dir=BASE_DIR
                         Base directory to load modules and external libraries from
   -E EXT_DIR, --ext_dir=EXT_DIR
@@ -42,9 +40,10 @@ options:
   -i INTERFACE, --interface=INTERFACE
                         interface to listen on
   -m, --module_info     print information about module(s) and exit
+  -G, --GMT             timestamps in GMT (tsprnt and tsprettyprnt only)
   -v, --version         print version and exit
   -g, --gui             Enable ChopShop Gui
-  -D, --debug           Enable Debug
+  -D, --debug           Enable Debug -- DEPRECATED -- OPTION IS IGNORED
   -S, --stdout          Explicitly enable output to stdout
   -F FILEOUT, --fileout=FILEOUT
                         Enable File Output
