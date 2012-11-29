@@ -43,7 +43,6 @@ options:
   -G, --GMT             timestamps in GMT (tsprnt and tsprettyprnt only)
   -v, --version         print version and exit
   -g, --gui             Enable ChopShop Gui
-  -D, --debug           Enable Debug -- DEPRECATED -- OPTION IS IGNORED
   -S, --stdout          Explicitly enable output to stdout
   -F FILEOUT, --fileout=FILEOUT
                         Enable File Output

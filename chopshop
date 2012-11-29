@@ -120,8 +120,6 @@ def main():
         default=False,help="print version and exit")
     optparser.add_option("-g", "--gui", action="store_true", dest="gui",
         default=False, help="Enable ChopShop Gui")
-    optparser.add_option("-D", "--debug", action="store_true", dest="debug",
-        default=False, help="Enable Debug DEPRECATED -- OPTION IS IGNORED")
     optparser.add_option("-S", "--stdout", action="store_true", dest="stdout",
         default=True, help="Explicitly enable output to stdout")
     optparser.add_option("-F", "--fileout", action="store", dest="fileout",
