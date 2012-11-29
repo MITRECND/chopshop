@@ -176,10 +176,12 @@ def main():
     choplib.longrun = options.longrun
     choplib.modinfo = options.modinfo
     choplib.GMT = options.GMT
-    choplib.modules = args[0]
 
     if len(args) > 1:
-        choplib.bpf = args[1]
+        choplib.bpf = args[0]
+        choplib.modules = args[1]
+    else:
+        choplib.modules = args[0]
 
     if options.stdout or options.gui or options.fileout is not None:
         choplib.text = True
