@@ -14,10 +14,17 @@ majority of its underlying functionality.
 Using Chopshop
 ==============
 Chopshop consists of a python script that is run on the command line. It
-requires Python 2.6+ and pynids to be installed. It also requires "modules" to
-be created that do the processing of network data. Chopshop, by itself, does
+requires Python 2.6+ and pynids to be installed[1]. It also requires "modules"
+to be created that do the processing of network data. Chopshop, by itself, does
 not do any processing of pcap data -- it provides the facilities for the
 modules to do so.
+
+[1]: There is a known issue when running chopshop on Ubuntu where the version
+of pynids obtained via apt causes an ImportError.  Per
+https://bugs.launchpad.net/ubuntu/+source/python-nids/+bug/795991, this issue
+affects some variants of at least 11.10 and 12.04.  A workaround is to
+compile pynids from source which can be obtained from
+http://jon.oberheide.org/pynids/.
 
 Chopshop provides the following arguments:
 
