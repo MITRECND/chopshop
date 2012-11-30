@@ -609,7 +609,7 @@ def token_file_list(msg, tcp):
     chop.prnt("TYPE\tNAME\tSIZE\tWRITE TIME")
     while len(msg) >= 1:
         d = struct.unpack('B', msg[1])[0]
-        if d:
+        if d & 0x10:
             d = "DIR"
         else:
             d = "FILE"
