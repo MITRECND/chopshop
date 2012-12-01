@@ -133,7 +133,7 @@ quite sure which one it is and would like to try both.  Someone trying to
 analyze this data with chopshop would do:
 
 <code>
-chopshop -f /pcaps/data.pcap "payloads -c -r; gh0st_decode -c -r"
+chopshop -f /pcaps/data.pcap "payloads -c -r; gh0st_decode"
 </code>
 
 The above invocation would run chopshop, load both the payloads and
@@ -148,7 +148,7 @@ like to output all data to the output directory in our current working
 directory:
 
 <code>
-chopshop -F "output/%N.txt" -f /pcaps/data.pcap "payloads -c -r; gh0st_decode -c -r"
+chopshop -F "output/%N.txt" -f /pcaps/data.pcap "payloads -c -r; gh0st_decode"
 </code>
 
 The above invocation would run chopshop, load both the payloads and
@@ -163,7 +163,7 @@ Building upon the last example let's output the modules output to their own
 directories and name each of the files after the module name and timestamp:
 
 <code>
-chopshop -F "output/%N/%N-%T.txt" -f /pcaps/data.pcap "payloads -c -r; gh0st_decode -c -r"
+chopshop -F "output/%N/%N-%T.txt" -f /pcaps/data.pcap "payloads -c -r; gh0st_decode"
 </code>
 
 The above invocation would do the same thing as the above example but would
@@ -512,7 +512,7 @@ Note that as a module author you only provide the filename, <b>not</b> the full
 path to the file you want created on disk. The full path is handled by the -s
 argument to chopshop. For example:
 <pre>
-chopshop -f foo.pcap -s "/tmp/%N" "gh0st_decode -c -r -s; awesome_carver -s"
+chopshop -f foo.pcap -s "/tmp/%N" "gh0st_decode -s; awesome_carver -s"
 </pre>
 
 This will make sure each carved file from gh0st_decode go into
