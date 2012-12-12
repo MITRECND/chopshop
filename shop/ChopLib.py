@@ -30,6 +30,7 @@ import sys
 import os
 import imp
 import traceback
+import time
 from threading import Thread, Lock
 
 CHOPSHOP_WD = os.path.realpath(os.path.dirname(sys.argv[0]))
@@ -373,6 +374,7 @@ class ChopLib(Thread):
             self.tonids.close()
             self.fromnids.close()
             self.tocaller.close()
+            time.sleep(.1)
         except:
             pass 
 
