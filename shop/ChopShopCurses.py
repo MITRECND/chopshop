@@ -62,6 +62,7 @@ class Color:
         curses.init_pair(4, 2, 0) #Green on Black
         curses.init_pair(5, 1, 0) #Red on Black
         curses.init_pair(6, 4, 0) #Blue on Black
+        curses.init_pair(7, 0, 7) #Black on White
 
         self.YELLOW = curses.color_pair(1)
         self.CYAN = curses.color_pair(2)
@@ -69,7 +70,7 @@ class Color:
         self.GREEN = curses.color_pair(4)
         self.RED = curses.color_pair(5)
         self.BLUE = curses.color_pair(6)
-        self.BLACK = curses.A_STANDOUT
+        self.BLACK = curses.color_pair(7)
         self.WHITE = curses.color_pair(0)
 
     def get_color(self, color):
@@ -513,7 +514,7 @@ class ChopCurses(Thread):
         for i in range(len(self.panel_id_list)):
             standout = curses.A_NORMAL
             if i == self.current_win and self.colors:
-                standout = curses.A_STANDOUT
+                standout = Colors.BLACK
 
             self.nav_window.addstr(" " + self.panels[self.panel_id_list[i]].windowname + "\n", standout)
         
