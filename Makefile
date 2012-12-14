@@ -27,7 +27,7 @@ SED_ARGS=	-i '' -Ee
 INSTALL=	/usr/bin/install
 INSTALLDATA=	/usr/bin/install -m 644
 
-VERSION=	2.3
+VERSION=	3.0-BETA
 RELEASE_NAME=	chopshop-${VERSION}
 RELEASE_DIR=	release
 RELEASE_FILE=	${RELEASE_DIR}/${RELEASE_NAME}.tbz2
