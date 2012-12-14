@@ -53,7 +53,7 @@ def response_body(data, length, obj):
     return body(data, length, obj, 'response')
 
 def body(data, length, obj, direction):
-    d = obj['stream_data']['d']
+    d = obj['d']
 
     if length == 0:
         if 'body' not in d[direction]:
@@ -94,7 +94,7 @@ def dump(module_data, d):
     d['response'] = { 'headers': {} }
 
 def request_headers(cp, obj):
-    d = obj['stream_data']['d']
+    d = obj['d']
     d['request'] = { 'headers': {} }
     if not obj['module_data']['fields']:
         d['request']['headers'] = cp.get_all_request_headers()
@@ -114,9 +114,9 @@ def request_headers(cp, obj):
     return htpy.HOOK_OK
 
 def response_headers(cp, obj):
-    d = obj['stream_data']['d']
+    d = obj['d']
     d['response'] = { 'headers': {} }
-    if obj['module_data']['fields'] == None:
+    if not obj['module_data']['fields']:
         d['response']['headers'] = cp.get_all_response_headers()
         d['response']['status'] = cp.get_response_status()
     else:
@@ -219,21 +219,21 @@ def taste(tcp):
     if sport != 80 and dport != 80:
         return False
 
+    d = {
+          'timestamp': packet_timedate(tcp.timestamp),
+          'src': src,
+          'sport': sport,
+          'dst': dst,
+          'dport': dport,
+        }
     tcp.stream_data['cp'] = htpy.init()
-    tcp.stream_data['cp'].set_obj({'stream_data': tcp.stream_data, 'module_data': tcp.module_data})
+    tcp.stream_data['cp'].set_obj({'module_data': tcp.module_data, 'd': d})
     tcp.stream_data['cp'].register_log(log)
     tcp.stream_data['cp'].register_request_headers(request_headers)
     tcp.stream_data['cp'].register_response_headers(response_headers)
     if 'blen' in tcp.module_data:
         tcp.stream_data['cp'].register_request_body_data(request_body)
         tcp.stream_data['cp'].register_response_body_data(response_body)
-    tcp.stream_data['d'] = {
-                             'timestamp': packet_timedate(tcp.timestamp),
-                             'src': src,
-                             'sport': sport,
-                             'dst': dst,
-                             'dport': dport,
-                           }
     return True
 
 def handleStream(tcp):
