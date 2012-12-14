@@ -5,28 +5,28 @@ Protocol Analysis/Decoder Framework
 
 Description
 ===========
-Chopshop is a MITRE developed framework to aid analysts in the creation and
+ChopShop is a MITRE developed framework to aid analysts in the creation and
 execution of pynids based decoders and detectors of APT tradecraft.
 
-Note that chopshop is still in beta and is dependant on libnids/pynids for the
+Note that ChopShop is still in beta and is dependant on libnids/pynids for the
 majority of its underlying functionality.
 
-Using Chopshop
+Using ChopShop
 ==============
-Chopshop consists of a python script that is run on the command line. It
+ChopShop consists of a python script that is run on the command line. It
 requires Python 2.6+ and pynids to be installed[1]. It also requires "modules"
-to be created that do the processing of network data. Chopshop, by itself, does
+to be created that do the processing of network data. ChopShop, by itself, does
 not do any processing of pcap data -- it provides the facilities for the
 modules to do so.
 
-[1]: There is a known issue when running chopshop on Ubuntu where the version
+[1]: There is a known issue when running ChopShop on Ubuntu where the version
 of pynids obtained via apt causes an ImportError.  Per
 https://bugs.launchpad.net/ubuntu/+source/python-nids/+bug/795991, this issue
 affects some variants of at least 11.10 and 12.04.  A workaround is to
 compile pynids from source which can be obtained from
 http://jon.oberheide.org/pynids/.
 
-Chopshop provides the following arguments:
+ChopShop provides the following arguments:
 
 <pre>
 usage: chopshop [options] ["bpf filter"] "list ; of ; modules"
@@ -77,7 +77,7 @@ choosing, more info can be found below in the examples.
 
 User Interface
 ==============
-When invoked with the -g flag, Chopshop starts with a gui enabled. The GUI,
+When invoked with the -g flag, ChopShop starts with a gui enabled. The GUI,
 written in curses, will take over the entire screen and display information in
 different windows. The following keys are recognized by the GUI:
 
@@ -100,7 +100,7 @@ the window will return to the end of the data shortly.
 
 Modules
 =======
-As mentioned, chopshop requires modules to do the bulk of its work. Modules
+As mentioned, ChopShop requires modules to do the bulk of its work. Modules
 are, in essence, mini programs that do all of the grunt work to decode or
 analyze traffic. More information on the creation of modules can be found
 later.
@@ -115,7 +115,7 @@ Example Use Cases
 Example 1
 ---------
 As an example let's assume we have a pcap (/pcaps/netcat.pcap) which has
-traffic that uses the netcat to access a remote shell. We can use the chopshop
+traffic that uses the netcat to access a remote shell. We can use the ChopShop 
 module called "payloads" to dump the traffic. Someone trying to run chopshop
 against this pcap would type:
 
@@ -173,7 +173,7 @@ output data to "output/payloads/payloads-[timestamp].txt" and
 Processing multiple pcaps
 =========================
 All examples and use cases so far have only shown chopshop processing one pcap
-at a time. Chopshop has the capability to process multiple pcaps in a few ways.
+at a time. ChopShop has the capability to process multiple pcaps in a few ways.
 The easiest of which is to pipe their names into chopshop from the command
 line:
 
@@ -181,12 +181,12 @@ line:
 find /pcaps -name "*.pcap" | sort | chopshop "host 192.168.1.10" "payloads -c -r"
 </code>
 
-Chopshop by default, if given no input information (-f or -i), will assume
+ChopShop by default, if given no input information (-f or -i), will assume
 there is a list of filenames being passed via stdin.
 
 Example 5
 ---------
-Chopshop can be used in a long running mode by using the -l and -L flags. These
+ChopShop can be used in a long running mode by using the -l and -L flags. These
 flags make chopshop assume that the input file is a list of files it should
 process and that it should continuously run until told to cancel (via Ctrl-C or
 'Q' in the gui).
@@ -202,13 +202,13 @@ Module Development
 ==================
 Introduction
 ------------
-Creating chopshop modules consists of creating a python file with a unique name
+Creating ChopShop modules consists of creating a python file with a unique name
 and placing it in the modules directory. This file must have a .py extension in
 order to be recognized by the framework.
 
 newmod.sh
 ---------
-Chopshop provides a shell script to setup a module stub for you. You can use
+ChopShop provides a shell script to setup a module stub for you. You can use
 'newmod.sh' to create this stub and open an editor for you to get right to
 work. The newmod.sh script takes two arguments. The first is the name of the
 module you want to create and the second is a string (either 'tcp' or 'udp')
@@ -244,10 +244,10 @@ data across the lifetime of a stream
 
 Along with the following functions
 
-<b>discard(integer)</b> -- tells chopshop that this module wants to discard
+<b>discard(integer)</b> -- tells ChopShop that this module wants to discard
 "integer" bytes of the stream, same as in nids
 
-<b>stop()</b> -- tells chopshop that this module no longer cares about
+<b>stop()</b> -- tells ChopShop that this module no longer cares about
 collecting on this stream -- only useful in handleStream
 
 Both the client and server objects contain the following fields:
@@ -292,7 +292,7 @@ versions, do not rely upon it
 
 The udp_data structure has the following functions:
 
-<b>stop()</b> -- tells chopshop that this quad-tuple should be ignored for the
+<b>stop()</b> -- tells ChopShop that this quad-tuple should be ignored for the
 lifetime of the module
 
 Variables
@@ -304,12 +304,12 @@ requirement for every module.
 Required Functions
 ------------------
 ###ALL MODULES
-Modules must define the following functions to be used with chopshop:
+Modules must define the following functions to be used with ChopShop:
 
 <b>module_info()</b> -- invoked when a chopshop user uses the -m/--module_info
-flag, module may print out any information it wants to inform the user of its
-functionality/usage -- this is the only function that should use the standard
-Python "print" command
+flag, module may write out any information it wants to inform the user of its
+functionality/usage by returning a string. The usage of 'print' in this function
+has been deprecated and will be removed in a future release
 
 <b>init(module_data)</b> -- Initialize the module, before processing any
 packets.
@@ -322,7 +322,7 @@ packets.
     'proto': must be set to 'tcp' or 'udp'.
     Optional: the return dictionary may also include:
         'error': indicates an error in the module has occured
-                 set to a friendly string so that chopshop can
+                 set to a friendly string so that ChopShop can
                  inform the user
 
 ###TCP MODULES
@@ -341,7 +341,7 @@ nids.register_tcp().
 
 ###UDP MODULES
 <b>handleDatagram(udp_data)</b> -- Called once per UDP datagram. Calling
-udp.stop() tells chopshop to ignore this quad-tuple for the lifetime of the
+udp.stop() tells ChopShop to ignore this quad-tuple for the lifetime of the
 module. This is very different from TCP behavior, so be aware!
 
 Optional Functions
@@ -349,7 +349,7 @@ Optional Functions
 Modules do not need to define the following functions but doing so provides
 extra functionality or information.
 
-<b>shutdown(module_data)</b> -- Called when the chopshop is shutting down;
+<b>shutdown(module_data)</b> -- Called when ChopShop is shutting down;
 gives the module one last chance to do what it needs to.
 
 <b>teardown(tcp_data)</b> -- Called when a stream is closed (RST, etc.)
@@ -404,7 +404,7 @@ chop.tsprettyprnt:
 </pre>
 
 Note that if a gui is not available or colors are not supported in the terminal
-running chopshop, chop.prettyprnt's functionality is equivalent to chop.prnt.
+running ChopShop, chop.prettyprnt's functionality is equivalent to chop.prnt.
 
 Examples
 --------
@@ -525,9 +525,9 @@ Best Practices for Module Writing
 =================================
 Module writers should follow the best practices outlined below:
 
-* Never use function calls that can adversely affect chopshop or any other
+* Never use function calls that can adversely affect ChopShop or any other
   module.
-* Calls like sys.exit() should not be used as your module might kill chopshop
+* Calls like sys.exit() should not be used as your module might kill ChopShop
   or affect another module.
 * Teardown your module so that other modules may continue processing.
 * If it is possible to determine early on if a flow is useful, do so.
@@ -545,7 +545,6 @@ Module writers should follow the best practices outlined below:
   function (or a function unconditionally called from init) to do so. This
   allows the -m argument to chopshop to print the appropriate usage for your
   module.
-* Never use any output functions like print or sys.stdout.write(). The
- <b>only</b> exception is in module_info().
+* Never use any output functions like print or sys.stdout.write().
 * If you can, use chop.prettyprnt to stylize the data so it's easier to see and
   keep track of in the gui.
