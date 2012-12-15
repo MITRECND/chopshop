@@ -8,7 +8,7 @@ Description
 ChopShop is a MITRE developed framework to aid analysts in the creation and
 execution of pynids based decoders and detectors of APT tradecraft.
 
-Note that ChopShop is still in beta and is dependant on libnids/pynids for the
+Note that ChopShop is still in beta and is dependent on libnids/pynids for the
 majority of its underlying functionality.
 
 Using ChopShop
