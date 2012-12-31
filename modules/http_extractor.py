@@ -21,7 +21,7 @@
 # OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
 # SUCH DAMAGE.
 
-from c2utils import packet_timedate, sanitize_filename
+from c2utils import packet_timedate, sanitize_filename, parse_addr
 from optparse import OptionParser
 import json
 import htpy
@@ -165,6 +165,8 @@ def init(module_data):
         default='pcaps', help="Database to use")
     parser.add_option("-C", "--collection", action="store", dest="col",
         default='http', help="Collection to use")
+    parser.add_option("-v", "--verbose", action="store_true", dest="verbose",
+        default=False, help="Be verbose about incoming packets")
 
     (options,lo) = parser.parse_args(module_data['args'])
 
@@ -174,6 +176,7 @@ def init(module_data):
     module_data['json'] = options.json
     module_data['carve_request'] = options.carve_request
     module_data['carve_response'] = options.carve_response
+    module_data['verbose'] = options.verbose
 
     if not options.prnt and not options.mongo and not options.json:
         chop.prnt("WARNING: No output method selected.")
@@ -219,6 +222,9 @@ def taste(tcp):
     if sport != 80 and dport != 80:
         return False
 
+    if tcp.module_data['verbose']:
+        chop.tsprnt("New session: %s:%s->%s:%s" % (src, sport, dst, dport))
+
     d = {
           'timestamp': packet_timedate(tcp.timestamp),
           'src': src,
@@ -237,12 +243,16 @@ def taste(tcp):
     return True
 
 def handleStream(tcp):
-    ((src, sport), (dst, dport)) = tcp.addr
+    ((src, sport), (dst, dport)) = parse_addr(tcp)
     try:
         if tcp.server.count_new > 0:
+            if tcp.module_data['verbose']:
+                chop.tsprnt("%s:%s->%s:%s (%i)" % (src, sport, dst, dport, tcp.server.count_new))
             tcp.stream_data['cp'].req_data(tcp.server.data[:tcp.server.count_new])
             tcp.discard(tcp.server.count_new)
         elif tcp.client.count_new > 0:
+            if tcp.module_data['verbose']:
+                chop.tsprnt("%s:%s->%s:%s (%i)" % (src, sport, dst, dport, tcp.client.count_new))
             tcp.stream_data['cp'].res_data(tcp.client.data[:tcp.client.count_new])
             tcp.discard(tcp.client.count_new)
     except htpy.stop:
