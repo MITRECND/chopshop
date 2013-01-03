@@ -97,7 +97,7 @@ def main():
     chopui = ChopUi()
 
 
-    optparser = OptionParser(usage='usage: %prog [options] [bpf] "list; of; modules"')
+    optparser = OptionParser(usage='usage: %prog [options] ["bpf filter"] "list ; of ; modules"')
     optparser.add_option("-B", "--base_dir", dest = "base_dir", default=None,
         help = "Base directory to load modules and external libraries from")
     optparser.add_option("-E", "--ext_dir", dest = "ext_dir",
