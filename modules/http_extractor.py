@@ -244,19 +244,22 @@ def taste(tcp):
 
 def handleStream(tcp):
     ((src, sport), (dst, dport)) = parse_addr(tcp)
-    try:
-        if tcp.server.count_new > 0:
-            if tcp.module_data['verbose']:
-                chop.tsprnt("%s:%s->%s:%s (%i)" % (src, sport, dst, dport, tcp.server.count_new))
+    if tcp.server.count_new > 0:
+        if tcp.module_data['verbose']:
+            chop.tsprnt("%s:%s->%s:%s (%i)" % (src, sport, dst, dport, tcp.server.count_new))
+        try:
             tcp.stream_data['cp'].req_data(tcp.server.data[:tcp.server.count_new])
-            tcp.discard(tcp.server.count_new)
-        elif tcp.client.count_new > 0:
-            if tcp.module_data['verbose']:
-                chop.tsprnt("%s:%s->%s:%s (%i)" % (src, sport, dst, dport, tcp.client.count_new))
+        except htpy.stop:
+            tcp.stop()
+        tcp.discard(tcp.server.count_new)
+    elif tcp.client.count_new > 0:
+        if tcp.module_data['verbose']:
+            chop.tsprnt("%s:%s->%s:%s (%i)" % (src, sport, dst, dport, tcp.client.count_new))
+        try:
             tcp.stream_data['cp'].res_data(tcp.client.data[:tcp.client.count_new])
-            tcp.discard(tcp.client.count_new)
-    except htpy.stop:
-        tcp.stop()
+        except htpy.stop:
+            tcp.stop()
+        tcp.discard(tcp.client.count_new)
     return
 
 def shutdown(module_data):
