@@ -90,6 +90,8 @@ HTPY_MODULES=	http_extractor
 MONGO_MODULES=	dns_extractor \
 		http_extractor
 
+YARA_MODULES=	yarashop
+
 dependency-check:
 	@echo "Checking dependencies..."
 	@echo "Checking python..."
@@ -127,6 +129,14 @@ endif
 		echo "dnslib BAD"; \
 		echo "These modules will not work:"; \
 		echo "${DNSLIB_MODULES}"; \
+	fi
+	@echo "Checking YARA dependencies..."
+	@if ${PYTHON} -c 'import yaraprocessor'; then \
+		echo "YARA ok"; \
+    else \
+		echo "YARA dependencies BAD"; \
+		echo "These modules will not work:"; \
+		echo "${YARA_MODULES}"; \
 	fi
 
 # When installing we need to modify the chopshop working directory
