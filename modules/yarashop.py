@@ -29,7 +29,7 @@ Usage: yara_shop ...
 
 import argparse
 
-import c2utils
+from c2utils parse_addr
 import chopring
 import yaraprocessor
 
@@ -168,7 +168,7 @@ def handleStream(tcp):
     handled inside of handleStream.
 
     """
-    ((src, sport), (dst, dport)) = tcp.addr
+    ((src, sport), (dst, dport)) = parse_addr(tcp)
 
     # Check for new packets received by the server
     if tcp.server.count_new:
