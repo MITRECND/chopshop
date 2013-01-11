@@ -130,11 +130,11 @@ endif
 		echo "These modules will not work:"; \
 		echo "${DNSLIB_MODULES}"; \
 	fi
-	@echo "Checking YARA dependencies..."
+	@echo "Checking yaraprocessor..."
 	@if ${PYTHON} -c 'import yaraprocessor'; then \
-		echo "YARA ok"; \
+		echo "yaraprocessor OK"; \
     else \
-		echo "YARA dependencies BAD"; \
+		echo "yaraprocessor BAD"; \
 		echo "These modules will not work:"; \
 		echo "${YARA_MODULES}"; \
 	fi
