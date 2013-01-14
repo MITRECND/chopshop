@@ -24,16 +24,16 @@
 """
 A module to scan TCP session data with Yara.
 
-Usage: yara_shop ...
+Usage: yarashop ...
 """
 
 import argparse
 
-from c2utils parse_addr
+from c2utils import parse_addr
 import chopring
 import yaraprocessor
 
-moduleName = "yara_shop"
+moduleName = "yarashop"
 
 
 def module_info():
