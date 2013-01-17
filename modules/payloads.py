@@ -29,10 +29,9 @@ backdoors.
 
 import sys
 import struct
-import binascii
 import time
 from optparse import OptionParser
-from c2utils import multibyte_xor
+from c2utils import multibyte_xor, hexdump
 
 moduleName = 'payloads'
 
@@ -45,8 +44,8 @@ def parse_args(module_data):
         dest="responses", default=False, help="print responses")
     parser.add_option("-v", "--verbose", action="store_true",
         dest="verbose", default=False, help="print all information")
-    parser.add_option("-x", "--hexlify", action="store_true",
-        dest="hexlify", default=False, help="print hexlified output")
+    parser.add_option("-x", "--hexdump", action="store_true",
+        dest="hexdump", default=False, help="print hexdump output")
     parser.add_option("-o", "--xor", action="store",
         dest="xor_key", default=None, help="XOR packet payloads with this key")
 
@@ -61,7 +60,7 @@ def parse_args(module_data):
     if opts.verbose:
         module_data['verbose'] = True
 
-    module_data['hexlify'] = opts.hexlify
+    module_data['hexdump'] = opts.hexdump
 
     if opts.xor_key:
         module_data['xor_key'] = opts.xor_key[2:]
@@ -95,8 +94,8 @@ def handleStream(tcp):
             data = tcp.server.data[:tcp.server.count_new]
             if 'xor_key' in tcp.module_data:
                 data = multibyte_xor(data, tcp.module_data['xor_key'])
-            if tcp.module_data['hexlify']:
-                data = binascii.hexlify(data)
+            if tcp.module_data['hexdump']:
+                data = hexdump(data)
             chop.prettyprnt("RED", data)
             tcp.discard(tcp.server.count_new)
 	# handle server system packets
@@ -106,8 +105,8 @@ def handleStream(tcp):
             data = tcp.client.data[:tcp.client.count_new]
             if 'xor_key' in tcp.module_data:
                 data = multibyte_xor(data, tcp.module_data['xor_key'])
-            if tcp.module_data['hexlify']:
-                data = binascii.hexlify(data)
+            if tcp.module_data['hexdump']:
+                data = hexdump(data)
             chop.prettyprnt("GREEN", data)
             tcp.discard(tcp.client.count_new)
 
