@@ -36,11 +36,11 @@ def log(cp, msg, level, obj):
     if level == htpy.HTP_LOG_ERROR:
         elog = cp.get_last_error()
         if elog == None:
-            return htpy.HOOK_ERROR
+            return htpy.HTP_ERROR
         chop.prnt("%s:%i - %s (%i)" % (elog['file'], elog['line'], elog['msg'], elog['level']))
     else:
         chop.prnt("%i - %s" % (level, msg))
-    return htpy.HOOK_OK
+    return htpy.HTP_OK
 
 # The request and response body callbacks are treated identical with one
 # exception: the location in the output dictionary where the data is stored.
@@ -57,10 +57,10 @@ def body(data, length, obj, direction):
 
     if length == 0:
         if 'body' not in d[direction]:
-            return htpy.HOOK_OK
+            return htpy.HTP_OK
 
         dump(obj['module_data'], d)
-        return htpy.HOOK_OK
+        return htpy.HTP_OK
 
     if 'body' in d[direction]:
         d[direction]['body'] += data
@@ -69,7 +69,7 @@ def body(data, length, obj, direction):
 
     if obj['module_data']['blen'] != 0 and len(d[direction]['body']) >= obj['module_data']['blen']:
         d[direction]['body'] = d[direction]['body'][:obj['module_data']['blen']]
-    return htpy.HOOK_OK
+    return htpy.HTP_OK
 
 def dump(module_data, d):
     if module_data['prnt']:
@@ -111,7 +111,7 @@ def request_headers(cp, obj):
     if not d['request']['headers']:
         del d['request']['headers']
 
-    return htpy.HOOK_OK
+    return htpy.HTP_OK
 
 def response_headers(cp, obj):
     d = obj['d']
@@ -136,7 +136,7 @@ def response_headers(cp, obj):
     # enter teardown.
     if 'blen' not in obj['module_data']:
         dump(obj['module_data'], d)
-    return htpy.HOOK_OK
+    return htpy.HTP_OK
 
 def module_info():
     print "Parse HTTP. Print, generate JSON or send to mongo"
