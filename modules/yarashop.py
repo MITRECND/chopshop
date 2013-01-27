@@ -29,7 +29,7 @@ Usage: yarashop ...
 
 import argparse
 
-from c2utils import parse_addr
+from c2utils import parse_addr, hexdump
 import chopring
 import yaraprocessor
 
@@ -248,7 +248,7 @@ def handle_results(tcp):
             output = 'Match found in server stream; src=%s; sport=%s; dst=%s; dport=%s\n' \
                       % (src, sport, dst, dport)
             output += str(match) + '\n\n'
-            output += c2utils.hexdump(tcp.stream_data['server_buffer']) + '\n'
+            output += hexdump(tcp.stream_data['server_buffer']) + '\n'
             chop.appendfile(tcp.module_data['save'], output)
 
         if tcp.module_data['json']:
@@ -265,7 +265,7 @@ def handle_results(tcp):
             output = 'Match found in client stream; src=%s; sport=%s; dst=%s; dport=%s\n' \
                       % (dst, dport, src, sport)
             output += str(match) + '\n\n'
-            output += c2utils.hexdump(tcp.stream_data['client_buffer']) + '\n'
+            output += hexdump(tcp.stream_data['client_buffer']) + '\n'
             chop.appendfile(tcp.module_data['save'], output)
 
         if tcp.module_data['json']:
