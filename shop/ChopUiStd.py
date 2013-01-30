@@ -34,7 +34,6 @@ if CHOPSHOP_WD + '/shop' not in sys.path:
     sys.path.append(CHOPSHOP_WD + '/shop')
 
 
-from ChopException import ChopUiException
 import ChopShopDebug as CSD
 
 
@@ -172,7 +171,8 @@ class ChopStdout:
             print outstring
 
     def handle_ctrl(self, message):
-        pass
+        if message['data']['msg'] == 'finished' and message['data']['status'] == 'error':
+            raise Exception(message['data']['errors'])
 
     def stop(self):
         pass
@@ -180,7 +180,7 @@ class ChopStdout:
 class ChopGui:
     def __init__(self, ui_stop_fn = None, lib_stop_fn = None):
         from ChopShopCurses import ChopShopCurses
-        
+
         self.cui = ChopShopCurses(ui_stop_fn, lib_stop_fn)
         self.cui.go()
 
@@ -195,7 +195,10 @@ class ChopGui:
     def handle_ctrl(self, message):
         if message['data']['msg'] == 'addmod':
             self.cui.add_panel(message['data']['id'],message['data']['name'])
-    #We'll ignore the finished message, since we don't stop when the library does
+
+        if message['data']['msg'] == 'finished' and message['data']['status'] == 'error':
+            self.stop()
+            raise Exception(message['data']['errors'])
     
     def stop(self):
         CSD.debug_out("ChopGui stop called\n")
@@ -212,10 +215,10 @@ class ChopFileout:
             self.format_string = format_string
 
         if format_string[0] == '-':
-            raise ChopUiException("Ambiguous file format: '" + format_string + "' -- please fix and run again\n")
+            raise Exception("Ambiguous file format: '" + format_string + "' -- please fix and run again\n")
         
         if __parse_filepath__(format_string, "placeholder") is None:
-            raise ChopUiException("Invald syntax for file output\n")
+            raise Exception("Invald syntax for file output\n")
         
          
     def handle_message(self, message):
@@ -248,10 +251,10 @@ class ChopJson:
             self.format_string = format_string
 
         if format_string[0] == '-':
-            raise ChopUiException("Ambiguous file format: '" + format_string + "' -- please fix and run again\n")
+            raise Exception("Ambiguous file format: '" + format_string + "' -- please fix and run again\n")
         
         if __parse_filepath__(format_string, "placeholder") is None:
-            raise ChopUiException("Invald syntax for json output\n")
+            raise Exception("Invald syntax for json output\n")
 
         pass
 
@@ -281,10 +284,10 @@ class ChopFilesave:
         self.savedfiles = {}
         
         if format_string[0] == '-':
-            raise ChopUiException("Ambiguous file format: '" + format_string + "' -- please fix and run again\n")
+            raise Exception("Ambiguous file format: '" + format_string + "' -- please fix and run again\n")
         
         if __parse_filepath__(format_string, "placeholder") is None:
-            raise ChopUiException("Invald syntax for savedir\n")
+            raise Exception("Invald syntax for savedir\n")
 
         pass
    

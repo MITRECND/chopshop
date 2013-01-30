@@ -165,32 +165,35 @@ class ChopUi(Thread):
         jsonclass = None
         filesclass = None
 
-        if self.options['stdout'] == True:
-            stdclass = ChopStdout()
-            #Assign the default stdout handler 
-        elif self.options['stdout'] != False:
-            stdclass = self.options['stdout']()
-            #Override the default handler with this one 
+        try:
+            if self.options['stdout'] == True:
+                stdclass = ChopStdout()
+                #Assign the default stdout handler 
+            elif self.options['stdout'] != False:
+                stdclass = self.options['stdout']()
+                #Override the default handler with this one 
 
-        if self.options['gui'] == True:
-            uiclass = ChopGui(self.stop, self.lib_stop_fn)
-        elif self.options['gui'] != False:
-            uiclass = self.options['gui'](self.stop, self.lib_stop_fn)
+            if self.options['gui'] == True:
+                uiclass = ChopGui(self.stop, self.lib_stop_fn)
+            elif self.options['gui'] != False:
+                uiclass = self.options['gui'](self.stop, self.lib_stop_fn)
 
-        if self.options['fileout'] == True:
-            fileoclass = ChopFileout(format_string = self.options['filedir'])
-        elif self.options['fileout'] != False:
-            fileoclass = self.options['fileout'](format_string = self.options['filedir'])
+            if self.options['fileout'] == True:
+                fileoclass = ChopFileout(format_string = self.options['filedir'])
+            elif self.options['fileout'] != False:
+                fileoclass = self.options['fileout'](format_string = self.options['filedir'])
 
-        if self.options['jsonout'] == True:
-            jsonclass = ChopJson(format_string = self.options['jsondir'])
-        elif self.options['jsonout'] != False:
-            jsonclass = self.options['jsonout'](format_string = self.options['jsondir'])
+            if self.options['jsonout'] == True:
+                jsonclass = ChopJson(format_string = self.options['jsondir'])
+            elif self.options['jsonout'] != False:
+                jsonclass = self.options['jsonout'](format_string = self.options['jsondir'])
 
-        if self.options['savefiles'] == True:
-            filesclass = ChopFilesave(format_string = self.options['savedir'])
-        elif self.options['savefiles'] != False:
-            filesclass = self.options['savefiles'](format_string = self.options['savedir'])
+            if self.options['savefiles'] == True:
+                filesclass = ChopFilesave(format_string = self.options['savedir'])
+            elif self.options['savefiles'] != False:
+                filesclass = self.options['savefiles'](format_string = self.options['savedir'])
+        except Exception, e:
+            raise ChopUiException(e)
 
         while not self.stopped:
 

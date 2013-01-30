@@ -264,7 +264,21 @@ class ChopLib(Thread):
         chophelper = ChopHelper(self.tocaller, self.options)
         self.chop = chophelper.setup_module(name, pid)
         
+    def send_finished_msg(self, data = {}, stop_seq = False):
+        message = { 'type' : 'ctrl',
+                    'data' : {'msg' : 'finished',
+                              'status': 'ok' #default to ok
+                            }
+                  }
 
+        for key,val in data.iteritems():
+            message['data'][key] = val
+
+        self.tocaller.put(message)
+
+        if stop_seq:
+            self.tonids.put(['stop'])
+            self.nidsp.join()
 
     def run(self):
         surgeon = None
@@ -274,16 +288,16 @@ class ChopLib(Thread):
             if not self.options['interface']:
                 if not self.options['filename']:
                     if not self.options['filelist']:
-                        raise ChopLibException("No input specified")
+                        self.send_finished_msg({'status':'error','errors': 'No input Specified'}, True)
+                        return
                     else:
                         surgeon = Surgeon(self.options['filelist'])
                         self.options['filename'] = surgeon.create_fifo()
                         surgeon.operate()
                 else:
                     if not os.path.exists(self.options['filename']):
-                        #print "Unable to find file '%s'" % self.options['filename']
-                        raise ChopLibException("Unable to find file '%s'" % self.options['filename'])
-                        #sys.exit(-1)
+                        self.send_finished_msg({'status':'error','errors':"Unable to find file '%s'" & self.options['filename']}, True)
+                        return
 
                     if self.options['aslist']:
                         #input file is a listing of files to process
@@ -297,7 +311,8 @@ class ChopLib(Thread):
         #Wait for a reponse
         resp = self.fromnids.get()
         if resp != 'ok':
-            raise ChopLibException(resp)
+            self.send_finished_msg({'status':'error','errors':resp}, True)
+            return
 
         if self.options['modinfo']:
             self.tonids.put(['mod_info'])
@@ -305,13 +320,8 @@ class ChopLib(Thread):
             #Process 2 will quit after doing its job
 
             #Inform caller that the process is done
-            message = { 'type' : 'ctrl',
-                        'data' : {'msg'  : 'finished'}
-                      }
-            
-            self.tocaller.put(message)
-
-            #Surgeon should not be invoked son only need
+            self.send_finished_msg()
+            #Surgeon should not be invoked so only need
             #to cleanup nidsp
             self.nidsp.join()
             return
@@ -357,11 +367,7 @@ class ChopLib(Thread):
         self.nidsp.join()
 
         #Inform caller that we are now finished
-        message = { 'type' : 'ctrl',
-                    'data' : {'msg'  : 'finished'}
-                  }
-        
-        self.tocaller.put(message)
+        self.send_finished_msg()
 
 
     #This must be torn down safely after who need it have cleaned up
@@ -513,6 +519,8 @@ class ChopLib(Thread):
 
             elif data[0] == 'cont':
                 break
+            elif data[0] == 'stop': #Some error must have occurred
+                sys.exit(0)
             else: 
                 #FIXME custom exception?
                 raise Exception("Unknown message")
