@@ -1,0 +1,59 @@
+<!--
+# Copyright (c) 2013 The MITRE Corporation. All rights reserved.
+#
+# Redistribution and use in source and binary forms, with or without
+# modification, are permitted provided that the following conditions
+# are met:
+# 1. Redistributions of source code must retain the above copyright
+#    notice, this list of conditions and the following disclaimer.
+# 2. Redistributions in binary form must reproduce the above copyright
+#    notice, this list of conditions and the following disclaimer in the
+#    documentation and/or other materials provided with the distribution.
+#
+# THIS SOFTWARE IS PROVIDED BY THE AUTHOR AND CONTRIBUTORS ``AS IS'' AND
+# ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+# IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+# ARE DISCLAIMED.  IN NO EVENT SHALL THE AUTHOR OR CONTRIBUTORS BE LIABLE
+# FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+# DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS
+# OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION)
+# HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
+# LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY
+# OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
+# SUCH DAMAGE.
+#
+-->
+
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta charset="UTF-8">
+        <title>ChopShop</title>
+        <link href="/jquery-ui-1.10.0.custom/css/ui-lightness/jquery-ui-1.10.0.custom.css" media="screen" rel="stylesheet" type="text/css" />
+        <link href="/controller.css" media="screen" rel="stylesheet" type="text/css" />
+        <script src="/jquery-ui-1.10.0.custom/js/jquery-1.9.0.js" type="text/javascript"></script>
+        <script src="/jquery-ui-1.10.0.custom/js/jquery-ui-1.10.0.custom.js" type="text/javascript"></script>
+        <script src="/controller.js" type="text/javascript"></script>
+    </head>
+
+    <body>
+        <div id="control_bar">
+            <button type="button" id= 'control_button'>Open Console</button>
+        </div>
+
+        <div id='console' title="Chopshop Console">
+            <textarea id="console_box" readonly></textarea>
+
+            <input id='console_cmd' type="text" size="40">
+            <input class= 'button' id='console_send' type="submit" value="send">
+            <input class= 'button' id='console_reconnect' type="button" value="reconnect">
+            
+        </div>
+
+        <div id='data_window'>
+            <ul id='data_window_list'>
+            </ul>
+        </div>
+
+    </body>
+</html>
