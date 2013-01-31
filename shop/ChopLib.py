@@ -296,7 +296,7 @@ class ChopLib(Thread):
                         surgeon.operate()
                 else:
                     if not os.path.exists(self.options['filename']):
-                        self.send_finished_msg({'status':'error','errors':"Unable to find file '%s'" & self.options['filename']}, True)
+                        self.send_finished_msg({'status':'error','errors':"Unable to find file '%s'" % self.options['filename']}, True)
                         return
 
                     if self.options['aslist']:
