@@ -22,7 +22,7 @@
 # SUCH DAMAGE.
 
 """
-A module to dump raw packet payloads from a watchlist of IPs.
+A module to dump raw packet payloads from a stream.
 Meant to be used to watch netcat reverse shells and other plaintext
 backdoors.
 """
@@ -114,6 +114,6 @@ def teardown(tcp):
     pass
 
 def module_info():
-    print "A module to dump raw packet payloads from a watchlist of IPs."
+    print "A module to dump raw packet payloads from a stream."
     print "Meant to be used to watch netcat reverse shells and other plaintext"
     print "backdoors."
