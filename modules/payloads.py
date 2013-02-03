@@ -31,7 +31,7 @@ import sys
 import struct
 import time
 from optparse import OptionParser
-from c2utils import multibyte_xor, hexdump
+from c2utils import multibyte_xor, hexdump, parse_addr
 
 moduleName = 'payloads'
 
@@ -84,7 +84,7 @@ def taste(tcp):
 
 def handleStream(tcp):
 	# collect time and IP metadata
-	((src, sport), (dst, dport)) = tcp.addr
+	((src, sport), (dst, dport)) = parse_addr(tcp)
 	# handle client system packets
 	if tcp.server.count_new > 0:
             if tcp.module_data['verbose']:
@@ -99,7 +99,7 @@ def handleStream(tcp):
 	# handle server system packets
 	if tcp.client.count_new > 0:
             if tcp.module_data['verbose']:
-                chop.tsprettyprnt("GREEN", "%s:%s -> %s:%s 0x%04X bytes" % (dst, dport, src, sport, tcp.client.count_new))
+                chop.tsprettyprnt("GREEN", "%s:%s -> %s:%s 0x%04X bytes" % (src, sport, dst, dport, tcp.client.count_new))
             data = tcp.client.data[:tcp.client.count_new]
             if 'xor_key' in tcp.module_data:
                 data = multibyte_xor(data, tcp.module_data['xor_key'])
