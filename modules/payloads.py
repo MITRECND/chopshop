@@ -72,9 +72,7 @@ def init(module_data):
 
     module_options = {'proto':'tcp'}
 
-    error = parse_args(module_data)
-    if error:
-        module_options['error'] = error
+    parse_args(module_data)
     
     return module_options
 
