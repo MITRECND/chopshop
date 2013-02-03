@@ -83,7 +83,6 @@ def taste(tcp):
     return True
 
 def handleStream(tcp):
-	# collect time and IP metadata
 	((src, sport), (dst, dport)) = parse_addr(tcp)
 	# handle client system packets
 	if tcp.server.count_new > 0:
