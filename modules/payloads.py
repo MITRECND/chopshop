@@ -88,7 +88,7 @@ def handleStream(tcp):
 	# handle client system packets
 	if tcp.server.count_new > 0:
             if tcp.module_data['verbose']:
-                chop.tsprettyprnt("RED", "%s:%s -> %s:%s 0x%04X bytes" % (src, sport, dst, dport, tcp.server.count_new))
+                chop.tsprettyprnt("RED", "%s:%s -> %s:%s %i bytes" % (src, sport, dst, dport, tcp.server.count_new))
             data = tcp.server.data[:tcp.server.count_new]
             if 'xor_key' in tcp.module_data:
                 data = multibyte_xor(data, tcp.module_data['xor_key'])
@@ -99,7 +99,7 @@ def handleStream(tcp):
 	# handle server system packets
 	if tcp.client.count_new > 0:
             if tcp.module_data['verbose']:
-                chop.tsprettyprnt("GREEN", "%s:%s -> %s:%s 0x%04X bytes" % (src, sport, dst, dport, tcp.client.count_new))
+                chop.tsprettyprnt("GREEN", "%s:%s -> %s:%s %i bytes" % (src, sport, dst, dport, tcp.client.count_new))
             data = tcp.client.data[:tcp.client.count_new]
             if 'xor_key' in tcp.module_data:
                 data = multibyte_xor(data, tcp.module_data['xor_key'])
