@@ -33,7 +33,8 @@ $(function() {
     var data_socket = null;
     var console = document.getElementById('console_box');
     var $command_box = $("#console_cmd") 
-
+    var zen_window = null;
+    var zen_window_parent = null;
 
     //AJAX/Style
     $( "#console" ).dialog({
@@ -75,6 +76,42 @@ $(function() {
     $("#console_cmd").keyup(function(event){
         if(event.keyCode == 13){//Enter key
             $("#console_send").click();
+        }
+    });
+
+
+    $("#console").keyup(function(event){
+        if(event.keyCode == 90){
+            event.stopPropagation();
+        }
+
+    });
+
+
+    $(document).keyup(function(event){
+        if(event.keyCode == 90){//z
+
+            if (zen_window != null){
+                zen_window.removeClass('zen').addClass('ui-corner-bottom')
+                    .addClass('ui-widget-content').addClass('ui-tabs-panel');
+                zen_window_parent.append(zen_window);
+
+                zen_window = null;
+                zen_window_parent = null;
+            }else{
+                var id = $("#data_window").tabs('option','active');
+                var $active_window = $("#data_window_list li:eq(" + id + ")"); 
+
+                if ($active_window.length > 0) {
+                    win_id = $active_window.attr('window_id');
+                    zen_window = $("#data_window_" + win_id);
+                    zen_window_parent = zen_window.parent();
+                    $("body").append(zen_window.addClass('zen')
+                        .removeClass('ui-tabs-panel')
+                        .removeClass('ui-widget-content')
+                        .removeClass('ui-corner-bottom'));
+                }
+            }
         }
     });
 
