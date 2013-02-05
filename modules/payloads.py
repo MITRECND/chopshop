@@ -99,7 +99,7 @@ def handleStream(tcp):
         data = multibyte_xor(data, tcp.module_data['xor_key'])
     if tcp.module_data['hexdump']:
         data = hexdump(data)
-    chop.prettyprnt("GREEN", data)
+    chop.prettyprnt(color, data)
     tcp.discard(count)
 
 def teardown(tcp):
