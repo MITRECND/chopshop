@@ -83,29 +83,26 @@ def taste(tcp):
     return True
 
 def handleStream(tcp):
-	((src, sport), (dst, dport)) = parse_addr(tcp)
-	# handle client system packets
-	if tcp.server.count_new > 0:
-            if tcp.module_data['verbose']:
-                chop.tsprettyprnt("RED", "%s:%s -> %s:%s %i bytes" % (src, sport, dst, dport, tcp.server.count_new))
-            data = tcp.server.data[:tcp.server.count_new]
-            if 'xor_key' in tcp.module_data:
-                data = multibyte_xor(data, tcp.module_data['xor_key'])
-            if tcp.module_data['hexdump']:
-                data = hexdump(data)
-            chop.prettyprnt("RED", data)
-            tcp.discard(tcp.server.count_new)
-	# handle server system packets
-	if tcp.client.count_new > 0:
-            if tcp.module_data['verbose']:
-                chop.tsprettyprnt("GREEN", "%s:%s -> %s:%s %i bytes" % (src, sport, dst, dport, tcp.client.count_new))
-            data = tcp.client.data[:tcp.client.count_new]
-            if 'xor_key' in tcp.module_data:
-                data = multibyte_xor(data, tcp.module_data['xor_key'])
-            if tcp.module_data['hexdump']:
-                data = hexdump(data)
-            chop.prettyprnt("GREEN", data)
-            tcp.discard(tcp.client.count_new)
+    ((src, sport), (dst, dport)) = parse_addr(tcp)
+    # handle client system packets
+    if tcp.server.count_new > 0:
+        data = tcp.server.data[:tcp.server.count_new]
+        count = tcp.server.count_new
+        color = "RED"
+    # handle server system packets
+    elif tcp.client.count_new > 0:
+        data = tcp.client.data[:tcp.client.count_new]
+        count = tcp.client.count_new
+        color = "GREEN"
+
+    if tcp.module_data['verbose']:
+        chop.tsprettyprnt(color, "%s:%s -> %s:%s %i bytes" % (src, sport, dst, dport, count))
+    if 'xor_key' in tcp.module_data:
+        data = multibyte_xor(data, tcp.module_data['xor_key'])
+    if tcp.module_data['hexdump']:
+        data = hexdump(data)
+    chop.prettyprnt("GREEN", data)
+    tcp.discard(count)
 
 def teardown(tcp):
     pass
