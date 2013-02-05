@@ -84,13 +84,11 @@ def taste(tcp):
 
 def handleStream(tcp):
     ((src, sport), (dst, dport)) = parse_addr(tcp)
-    # handle client system packets
     if tcp.server.count_new > 0:
         data = tcp.server.data[:tcp.server.count_new]
         count = tcp.server.count_new
         color = "RED"
-    # handle server system packets
-    elif tcp.client.count_new > 0:
+    else:
         data = tcp.client.data[:tcp.client.count_new]
         count = tcp.client.count_new
         color = "GREEN"
