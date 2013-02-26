@@ -38,7 +38,7 @@ def init(module_data):
         dest="isodate", default=False, help="convert dates to ISODate")
     parser.add_option("-s", "--stream", action="store_true",
         dest="stream", default=False,
-        help="output finished session data in real time")
+        help="output finished stream data in real time")
 
     (opts,lo) = parser.parse_args(module_data['args'])
 
