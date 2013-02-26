@@ -136,6 +136,9 @@ def b2a_printable(s):
             result = result + '.'
     return result
 
+def packet_isodate(t):
+    return packet_time(t, date=True, isodate=True)
+
 def packet_timedate(t):
     return packet_time(t, date=True)
 
@@ -145,7 +148,7 @@ def packet_gmttimedate(t):
 def packet_gmttime(t):
     return packet_time(t, utc=True)
 
-def packet_time(t, date=False, utc=False):
+def packet_time(t, date=False, utc=False, isodate=False):
     """Given a unixtime (seconds since epoch) value, return a
     human-readable string describing that time.  if DATE is
     True, then also include the year, month, day, and timezone.
@@ -158,7 +161,10 @@ def packet_time(t, date=False, utc=False):
         fmt = "%Y-%m-%d %H:%M:%S %z"
         ts = time.localtime(t)
     if date:
-        return time.strftime(fmt, ts).rstrip()
+        if isodate:
+            return datetime.fromtimestamp(time.mktime(ts))
+        else:
+            return time.strftime(fmt, ts).rstrip()
     return "%02d:%02d:%02d" % (ts[3], ts[4], ts[5])
 
 def hexdump(data, tabs=0, spaces=0, show_offset=True):
