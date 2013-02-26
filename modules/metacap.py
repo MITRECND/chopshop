@@ -36,10 +36,14 @@ def init(module_data):
 
     parser.add_option("-i", "--isodate", action="store_true",
         dest="isodate", default=False, help="convert dates to ISODate")
+    parser.add_option("-s", "--stream", action="store_true",
+        dest="stream", default=False,
+        help="output finished session data in real time")
 
     (opts,lo) = parser.parse_args(module_data['args'])
 
     module_data['isodate'] = opts.isodate
+    module_data['stream'] = opts.stream
 
     module_data['pcap_summary'] = { 'total_packets': 0,
                                     'total_streams': 0,
@@ -100,6 +104,12 @@ def handleStream(tcp):
     return
 
 def teardown(tcp):
+    if tcp.module_data['stream']:
+        key = str(tcp.addr)
+        my_stream = tcp.module_data['pcap_summary']['streams'][key]
+        chop.json(my_stream)
+        chop.prnt(my_stream)
+        del tcp.module_data['pcap_summary']['streams'][key]
     return
 
 def shutdown(module_data):
