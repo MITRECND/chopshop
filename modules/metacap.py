@@ -27,6 +27,7 @@ A module to extract metadata from a PCAP.
 
 from optparse import OptionParser
 from c2utils import parse_addr, packet_isodate, packet_timedate
+from jsonutils import jsonOrReprEncoder
 
 moduleName = 'metacap'
 
@@ -36,21 +37,32 @@ def init(module_data):
 
     parser.add_option("-i", "--isodate", action="store_true",
         dest="isodate", default=False, help="convert dates to ISODate")
-    parser.add_option("-s", "--stream", action="store_true",
-        dest="stream", default=False,
-        help="output finished stream data in real time")
+    parser.add_option("-b", "--bulk", action="store_true",
+        dest="bulk", default=False, 
+        help="output only after all input has been processed")
+    parser.add_option("-q", "--quiet", action="store_true",
+        dest="quiet", default=False,
+        help="only print summary information (json not affected)")
 
     (opts,lo) = parser.parse_args(module_data['args'])
 
     module_data['isodate'] = opts.isodate
-    module_data['stream'] = opts.stream
+    module_data['bulk'] = opts.bulk
+    module_data['quiet'] = opts.quiet
 
-    module_data['pcap_summary'] = { 'total_packets': 0,
-                                    'total_streams': 0,
-                                    'end_time': '',
-                                    'total_data_transfer': 0,
-                                    'streams': {}
+    module_data['pcap_summary'] = { 
+                                    'type': 'pcap',
+                                    'data': {
+                                        'total_packets': 0,
+                                        'total_streams': 0,
+                                        'end_time': '',
+                                        'total_data_transfer': 0,
+                                    }
                                   }
+    module_data['streams'] = {}
+
+    #This allows json to handle datetime
+    chop.set_custom_json_encoder(jsonOrReprEncoder)
 
     return module_options
 
@@ -60,21 +72,26 @@ def taste(tcp):
         timestamp = packet_isodate(tcp.timestamp)
     else:
         timestamp = packet_timedate(tcp.timestamp)
-    tcp.module_data['pcap_summary']['streams'][str(tcp.addr)] = {
-                                   'comm_order': [],
-                                   'start_time': timestamp,
-                                   'end_time': '',
-                                   'src': src,
-                                   'sport': sport,
-                                   'dst': dst,
-                                   'dport': dport,
-                                   'client_data_transfer': 0,
-                                   'server_data_transfer': 0,
+
+    tcp.module_data['streams'][str(tcp.addr)] = {
+                                   'type' : 'stream',
+                                   'data' : {
+                                       'comm_order': [],
+                                       'start_time': timestamp,
+                                       'end_time': timestamp,
+                                       'src': src,
+                                       'sport': sport,
+                                       'dst': dst,
+                                       'dport': dport,
+                                       'client_data_transfer': 0,
+                                       'server_data_transfer': 0,
+                                       'total_packets': 0
+                                   }
                                 }
 
-    if 'start_time' not in tcp.module_data['pcap_summary']:
-        tcp.module_data['pcap_summary']['start_time'] = timestamp
-    tcp.module_data['pcap_summary']['total_streams'] += 1
+    if 'start_time' not in tcp.module_data['pcap_summary']['data']:
+        tcp.module_data['pcap_summary']['data']['start_time'] = timestamp
+    tcp.module_data['pcap_summary']['data']['total_streams'] += 1
 
     return True
 
@@ -85,8 +102,9 @@ def handleStream(tcp):
         timestamp = packet_isodate(tcp.timestamp)
     else:
         timestamp = packet_timedate(tcp.timestamp)
-    ps = tcp.module_data['pcap_summary']
-    cs = ps['streams'][key]
+
+    ps = tcp.module_data['pcap_summary']['data']
+    cs = tcp.module_data['streams'][key]['data']
     if tcp.server.count_new > 0:
         cs['comm_order'].append(('S', tcp.server.count_new))
         cs['server_data_transfer'] += tcp.server.count_new
@@ -98,23 +116,78 @@ def handleStream(tcp):
         ps['total_data_transfer'] += tcp.client.count_new
         tcp.discard(tcp.client.count_new)
     cs['end_time'] = timestamp
+    cs['total_packets'] += 1
     ps['total_packets'] += 1
     ps['end_time'] = timestamp
 
     return
 
 def teardown(tcp):
-    if tcp.module_data['stream']:
+    if not tcp.module_data['bulk']:
         key = str(tcp.addr)
-        my_stream = tcp.module_data['pcap_summary']['streams'][key]
+        my_stream = tcp.module_data['streams'][key]
         chop.json(my_stream)
-        chop.prnt(my_stream)
-        del tcp.module_data['pcap_summary']['streams'][key]
+
+        if not tcp.module_data['quiet']: __print_stream_data(my_stream['data'])
+
+        del tcp.module_data['streams'][key]
     return
 
 def shutdown(module_data):
-    chop.json(module_data['pcap_summary'])
-    chop.prnt(module_data['pcap_summary'])
+    if not module_data['bulk']:
+        #Any Streams that didn't teardown remove them now
+        for stream, metadata in module_data['streams'].iteritems():
+            chop.json(metadata)
+
+            if not module_data['quiet']: __print_stream_data(metadata['data'])
+
+        chop.json(module_data['pcap_summary'])
+
+    else:
+        output = []
+        for stream, metadata in module_data['streams'].iteritems():
+            output.append(metadata)
+            if not module_data['quiet']: __print_stream_data(metadata['data'])
+
+        output.append(module_data['pcap_summary'])
+        chop.json(output)
+
+    chop.prettyprnt("YELLOW", "Summary:")
+    chop.prettyprnt("CYAN", "\tStart Time: %s  -> End Time: %s" %
+                (module_data['pcap_summary']['data']['start_time'],
+                 module_data['pcap_summary']['data']['end_time']))
+    chop.prettyprnt("CYAN", "\tTotal Packets: %s\n\tTotal Streams: %s" % 
+                (module_data['pcap_summary']['data']['total_packets'],
+                 module_data['pcap_summary']['data']['total_streams']))
+    chop.prettyprnt("CYAN", "\tTotal Data Transfered: %s " % 
+                (module_data['pcap_summary']['data']['total_data_transfer']))
+    chop.prnt("")
+
 
 def module_info():
     return "A module to extract metadata from a PCAP."
+
+
+def __print_stream_data(data):
+    chop.prettyprnt("YELLOW", "%s:%s -> %s:%s -- %s -> %s" %    
+                (data['src'], 
+                 data['sport'],
+                 data['dst'],
+                 data['dport'],
+                 data['start_time'],
+                 data['end_time']
+                )
+             )
+    chop.prettyprnt("CYAN", "\tTotal Packets: %s" % data['total_packets'])
+    chop.prettyprnt("CYAN", "\tClient Data: %s : Server Data %s " % 
+            (data['client_data_transfer'], data['server_data_transfer']))
+
+    if len(data['comm_order']) > 0:
+        chop.prettyprnt("MAGENTA", "\tComm Order: ",None)
+    for comm_tuple in data['comm_order']:
+        (direction, size) = comm_tuple
+        chop.prettyprnt("MAGENTA", '%s: %s  ' % ( direction, size), None)
+    if len(data['comm_order']) > 0:
+        chop.prnt("")
+
+    chop.prnt("")
