@@ -526,7 +526,7 @@ class ChopLib(Thread):
                 raise Exception("Unknown message")
 
 
-        chop.prettyprnt("RED", "Starting the ChopShop")
+        chop.prettyprnt("RED", "Starting ChopShop")
 
         #Initialize the ChopShop Core
         ccore = ChopCore(options, module_list, chop, chophelper)
