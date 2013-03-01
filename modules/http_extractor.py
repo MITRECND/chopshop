@@ -25,6 +25,7 @@ from c2utils import packet_timedate, sanitize_filename, parse_addr
 from optparse import OptionParser
 import json
 import htpy
+import hashlib
 
 moduleName="http_extractor"
 
@@ -58,6 +59,10 @@ def body(data, length, obj, direction):
     if length == 0:
         if 'body' not in d[direction]:
             return htpy.HTP_OK
+
+        if obj['module_data']['md5_body']:
+            d[direction]['body_md5'] = hashlib.md5(d[direction]['body']).hexdigest()
+            del d[direction]['body']
 
         dump(obj['module_data'], d)
         return htpy.HTP_OK
@@ -151,6 +156,8 @@ def init(module_data):
         dest="carve_request", default=False, help="Save request body")
     parser.add_option("-f", "--fields", action="store", dest="fields",
         default=[], help="Comma separated list of fields to extract")
+    parser.add_option("-m", "--md5_body", action="store_true", dest="md5_body",
+        default=False, help="Generate MD5 of body, and throw contents away")
     parser.add_option("-p", "--print", action="store_true", dest="prnt",
         default=False, help="Send output to stdout")
     parser.add_option("-M", "--mongo", action="store_true", dest="mongo",
@@ -177,6 +184,7 @@ def init(module_data):
     module_data['carve_request'] = options.carve_request
     module_data['carve_response'] = options.carve_response
     module_data['verbose'] = options.verbose
+    module_data['md5_body'] = options.md5_body
 
     if not options.prnt and not options.mongo and not options.json:
         chop.prnt("WARNING: No output method selected.")
@@ -214,6 +222,11 @@ def init(module_data):
             module_data['blen'] = 0
         else:
             chop.prnt("Carving %i bytes of bodies." % module_data['blen'])
+
+    if module_data['md5_body']:
+        if 'blen' not in module_data:
+            chop.prnt("Defaulting to MD5 entire body.")
+            module_data['blen'] = 0
 
     return module_options
 
