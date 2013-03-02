@@ -64,7 +64,10 @@ def body(data, length, obj, direction):
             d[direction]['body_md5'] = hashlib.md5(d[direction]['body']).hexdigest()
             del d[direction]['body']
 
-        dump(obj['module_data'], d)
+        # Only dump if direction is 'response', otherwise POST causes
+        # one dump for request and another for response.
+        if direction == 'response':
+            dump(obj['module_data'], d)
         return htpy.HTP_OK
 
     if 'body' in d[direction]:
