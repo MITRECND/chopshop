@@ -107,10 +107,13 @@ def request_headers(cp, obj):
     if not obj['module_data']['fields']:
         d['request']['headers'] = cp.get_all_request_headers()
         d['request']['uri'] = cp.get_uri()
+        d['request']['method'] = cp.get_method()
     else:
         for field in obj['module_data']['fields']:
             if field == 'uri':
                 d['request']['uri'] = cp.get_uri()
+            if field == 'method':
+                d['request']['method'] = cp.get_method()
             else:
                 value = cp.get_request_header(field)
                 if value != None:
