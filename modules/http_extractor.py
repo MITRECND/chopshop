@@ -29,7 +29,7 @@ import hashlib
 
 moduleName="http_extractor"
 
-class dns_to_dict(json.JSONEncoder):
+class http_to_dict(json.JSONEncoder):
     def default(self, d):
         return json.JSONEncoder().encode(d)
 
@@ -201,7 +201,7 @@ def init(module_data):
         module_data['db'] = mongo_connector(options.host, options.port, options.db, options.col)
 
     if module_data['json']:
-        chop.set_custom_json_encoder(dns_to_dict)
+        chop.set_custom_json_encoder(http_to_dict)
 
     module_data['fields'] = options.fields
     if options.fields:
