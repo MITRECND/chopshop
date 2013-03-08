@@ -207,7 +207,7 @@ class chops:
                     'addr'   : { 'src' : '',
                                  'dst' : '',
                                  'sport': '',
-                                 'doprt': ''
+                                 'dport': ''
                                },
                     'proto'  : ''
                   }
