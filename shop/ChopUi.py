@@ -48,7 +48,7 @@ import ChopShopDebug as CSD
 
 class ChopUi(Thread):
     def __init__(self):
-        Thread.__init__(self)
+        Thread.__init__(self, name = 'ChopUi')
 
 
         self.options = { 'stdout'   : False,
@@ -58,7 +58,8 @@ class ChopUi(Thread):
                          'savedir'  : None,
                          'savefiles': False,
                          'jsonout'  : False,
-                         'jsondir'  : None
+                         'jsondir'  : None,
+                         'pyobjout' : False
                        }
 
         self.stopped = False 
@@ -70,6 +71,7 @@ class ChopUi(Thread):
         self.fileoclass = None
         self.jsonclass = None
         self.filesclass = None
+        self.pyobjclass = None
 
     @property
     def stdout(self):
@@ -79,6 +81,14 @@ class ChopUi(Thread):
     @stdout.setter
     def stdout(self, v):
         self.options['stdout'] = v
+
+    @property
+    def pyobjout(self):
+        return self.options['pyobjout']
+    
+    @pyobjout.setter
+    def pyobjout(self, v):
+        self.options['pyobjout'] = v
 
     @property
     def gui(self):
@@ -190,6 +200,12 @@ class ChopUi(Thread):
                 self.filesclass = ChopFilesave(format_string = self.options['savedir'])
             elif self.options['savefiles'] != False:
                 self.filesclass = self.options['savefiles'](format_string = self.options['savedir'])
+
+            if self.options['pyobjout'] == True:
+                self.pyobjclass = None #No default handler Should throw exception
+            elif self.options['pyobjout'] != False:
+                self.pyobjclass = self.options['pyobjout']()
+    
         except Exception, e:
             raise ChopUiException(e)
 
@@ -213,6 +229,8 @@ class ChopUi(Thread):
                         self.jsonclass.handle_ctrl(message)
                     if self.filesclass is not None:
                         self.filesclass.handle_ctrl(message)
+                    if self.pyobjclass is not None:
+                        self.pyobjclass.handle_ctrl(message)
 
                     #The GUI is the only thing that doesn't care if the core is no
                     #longer running
@@ -239,6 +257,11 @@ class ChopUi(Thread):
                 if message['type'] == 'filedata':
                     if self.filesclass is not None:
                         self.filesclass.handle_message(message) 
+
+                if message['type'] == 'pyobj':
+                    if self.pyobjclass is not None:
+                        self.pyobjclass.handle_message(message)
+
             except Exception, e:
                 raise ChopUiException(e)
 
@@ -252,4 +275,6 @@ class ChopUi(Thread):
             self.jsonclass.stop()
         if self.filesclass is not None:
             self.filesclass.stop()
+        if self.pyobjclass is not None:
+            self.pyobjclass.stop()
 

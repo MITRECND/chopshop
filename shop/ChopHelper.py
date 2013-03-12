@@ -192,6 +192,21 @@ class chops:
 
             self.dataq.put(message)
 
+    def pyobj(self, obj):
+        if self.to_outs['pyobj']:
+            message = self.__get_message_template__()
+            message['type'] = 'pyobj'
+            message['data'] = obj
+
+            try:
+                self.dataq.put(message)
+            except Exception, e:
+                msg = "FATAL ERROR in chop.pyobj"
+                self.prettyprnt("RED", msg, e)
+
+    def pyjson(self, obj):
+        self.pyobj(obj)
+        self.json(obj)
 
     def set_custom_json_encoder(self, cls):
         self.cls = cls
@@ -239,6 +254,7 @@ class ChopHelper:
         self.to_outs = {'text': False,
                         'json': False,
                         'savefiles': False,
+                        'pyobj': False
                        }
         self.choplist = []
         self.core = None
@@ -252,6 +268,9 @@ class ChopHelper:
 
         if options['savefiles']:
             self.to_outs['savefiles'] = True
+
+        if options['pyobjout']:
+            self.to_outs['pyobj'] = True
 
         chops.GMT = options['GMT']
         chops.to_outs = self.to_outs
