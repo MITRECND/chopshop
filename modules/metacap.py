@@ -26,7 +26,7 @@ A module to extract metadata from a PCAP.
 """
 
 from optparse import OptionParser
-from c2utils import parse_addr, packet_isodate, packet_timedate
+from c2utils import parse_addr, packet_isodate, packet_timedate, entropy
 from jsonutils import jsonOrReprEncoder
 
 moduleName = 'metacap'
@@ -38,7 +38,7 @@ def init(module_data):
     parser.add_option("-i", "--isodate", action="store_true",
         dest="isodate", default=False, help="convert dates to ISODate")
     parser.add_option("-b", "--bulk", action="store_true",
-        dest="bulk", default=False, 
+        dest="bulk", default=False,
         help="output only after all input has been processed")
     parser.add_option("-q", "--quiet", action="store_true",
         dest="quiet", default=False,
@@ -50,7 +50,7 @@ def init(module_data):
     module_data['bulk'] = opts.bulk
     module_data['quiet'] = opts.quiet
 
-    module_data['pcap_summary'] = { 
+    module_data['pcap_summary'] = {
                                     'type': 'pcap',
                                     'data': {
                                         'total_packets': 0,
@@ -106,12 +106,20 @@ def handleStream(tcp):
     ps = tcp.module_data['pcap_summary']['data']
     cs = tcp.module_data['streams'][key]['data']
     if tcp.server.count_new > 0:
-        cs['comm_order'].append(('S', tcp.server.count_new))
+        comm = { 'data_to': 'S',
+                 'data_len': tcp.server.count_new,
+                 'entropy': entropy(tcp.server.data[:tcp.server.count_new])
+               }
+        cs['comm_order'].append(comm)
         cs['server_data_transfer'] += tcp.server.count_new
         ps['total_data_transfer'] += tcp.server.count_new
         tcp.discard(tcp.server.count_new)
     else:
-        cs['comm_order'].append(('C', tcp.client.count_new))
+        comm = { 'data_to': 'C',
+                 'data_len': tcp.client.count_new,
+                 'entropy': entropy(tcp.client.data[:tcp.client.count_new])
+               }
+        cs['comm_order'].append(comm)
         cs['client_data_transfer'] += tcp.client.count_new
         ps['total_data_transfer'] += tcp.client.count_new
         tcp.discard(tcp.client.count_new)
@@ -156,10 +164,10 @@ def shutdown(module_data):
     chop.prettyprnt("CYAN", "\tStart Time: %s  -> End Time: %s" %
                 (module_data['pcap_summary']['data']['start_time'],
                  module_data['pcap_summary']['data']['end_time']))
-    chop.prettyprnt("CYAN", "\tTotal Packets: %s\n\tTotal Streams: %s" % 
+    chop.prettyprnt("CYAN", "\tTotal Packets: %s\n\tTotal Streams: %s" %
                 (module_data['pcap_summary']['data']['total_packets'],
                  module_data['pcap_summary']['data']['total_streams']))
-    chop.prettyprnt("CYAN", "\tTotal Data Transfered: %s " % 
+    chop.prettyprnt("CYAN", "\tTotal Data Transfered: %s " %
                 (module_data['pcap_summary']['data']['total_data_transfer']))
     chop.prnt("")
 
@@ -169,8 +177,8 @@ def module_info():
 
 
 def __print_stream_data(data):
-    chop.prettyprnt("YELLOW", "%s:%s -> %s:%s -- %s -> %s" %    
-                (data['src'], 
+    chop.prettyprnt("YELLOW", "%s:%s -> %s:%s -- %s -> %s" %
+                (data['src'],
                  data['sport'],
                  data['dst'],
                  data['dport'],
@@ -179,14 +187,23 @@ def __print_stream_data(data):
                 )
              )
     chop.prettyprnt("CYAN", "\tTotal Packets: %s" % data['total_packets'])
-    chop.prettyprnt("CYAN", "\tClient Data: %s : Server Data %s " % 
-            (data['client_data_transfer'], data['server_data_transfer']))
+    chop.prettyprnt("CYAN", "\tClient Data: %s" % data['client_data_transfer'])
+    chop.prettyprnt("CYAN", "\tServer Data: %s" % data['server_data_transfer'])
 
     if len(data['comm_order']) > 0:
-        chop.prettyprnt("MAGENTA", "\tComm Order: ",None)
-    for comm_tuple in data['comm_order']:
-        (direction, size) = comm_tuple
-        chop.prettyprnt("MAGENTA", '%s: %s  ' % ( direction, size), None)
+        chop.prettyprnt("MAGENTA",
+                        "\tComm Order:\tTo\tLength\tEntropy\n",
+                        None)
+    for comm_dict in data['comm_order']:
+        chop.prettyprnt("MAGENTA",
+                        '\t\t\t%s' % comm_dict['data_to'],
+                        None)
+        chop.prettyprnt("MAGENTA",
+                        '\t%s' % comm_dict['data_len'],
+                        None)
+        chop.prettyprnt("MAGENTA",
+                        '\t%s\n' % comm_dict['entropy'],
+                        None)
     if len(data['comm_order']) > 0:
         chop.prnt("")
 

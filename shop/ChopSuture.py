@@ -76,6 +76,7 @@ class Suture:
             if self.verbose:
                 vstring = "Skipping file " + file + " due to small header\n"
                 sys.stderr.write(vstring)
+            infile.close()
             return
         #Figure out what endian this file's headers are in
         #Try out little endian
@@ -89,6 +90,7 @@ class Suture:
             if self.verbose:
                 vstring = "Skipping file " + file + ". Appears to not be pcap\n"
                 sys.stderr.write(vstring)
+            infile.close()
             return
 
         if self.native == None: #first file
@@ -110,6 +112,7 @@ class Suture:
                 if self.verbose:
                     vstring = "Skipping file " + file + " due to link type\n"
                     sys.stderr.write(vstring)
+                infile.close()
                 return 
 
         #For Reference
@@ -169,6 +172,7 @@ class Suture:
                 if self.verbose:
                     vstring = "Exception writing header: %s\n" % str(e)
                     sys.stderr.write(vstring)
+                infile.close()
                 sys.exit(-1)
 
         infile.close()

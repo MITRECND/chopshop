@@ -39,12 +39,8 @@ def init(module_data):
     module_options = { 'proto': 'udp' }
     parser = OptionParser()
 
-    parser.add_option("-p", "--print", action="store_true", dest="prnt",
-        default=False, help="Send output to stdout")
     parser.add_option("-M", "--mongo", action="store_true", dest="mongo",
         default=False, help="Send output to mongodb")
-    parser.add_option("-J", "--json", action="store_true", dest="json",
-        default=False, help="Send output to json file (use -J to chosphop)")
     parser.add_option("-H", "--host", action="store", dest="host",
         default="localhost", help="Host to connect to")
     parser.add_option("-P", "--port", action="store", dest="port",
@@ -56,13 +52,8 @@ def init(module_data):
 
     (options,lo) = parser.parse_args(module_data['args'])
 
-    module_data['prnt'] = options.prnt
     module_data['mongo'] = options.mongo
-    module_data['json'] = options.json
 
-    if not options.prnt and not options.mongo and not options.json:
-        module_options['error'] = "Select one output method."
-        return module_options
     if module_data['mongo']:
         try:
             from dbtools import mongo_connector
@@ -72,8 +63,7 @@ def init(module_data):
 
         module_data['db'] = mongo_connector(options.host, options.port, options.db, options.col)
 
-    if module_data['json']:
-        chop.set_custom_json_encoder(dns_to_dict)
+    chop.set_custom_json_encoder(dns_to_dict)
 
     return module_options
 
@@ -144,12 +134,10 @@ def handleDatagram(udp):
     d['dst'] = dst
     d['dport'] = dport
 
-    if module_data['prnt']:
-        chop.prnt(d)
     if module_data['mongo']:
         module_data['db'].insert(d)
-    if module_data['json']:
-        chop.json(d)
+    chop.prnt(d)
+    chop.json(d)
 
 def shutdown(module_data):
     return
