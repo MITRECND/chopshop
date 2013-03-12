@@ -258,6 +258,9 @@ def handleStream(tcp):
             tcp.stream_data['cp'].req_data(tcp.server.data[:tcp.server.count_new])
         except htpy.stop:
             tcp.stop()
+        except htpy.error:
+            chop.prnt("Stream error in htpy.")
+            tcp.stop()
         tcp.discard(tcp.server.count_new)
     elif tcp.client.count_new > 0:
         if tcp.module_data['verbose']:
@@ -265,6 +268,9 @@ def handleStream(tcp):
         try:
             tcp.stream_data['cp'].res_data(tcp.client.data[:tcp.client.count_new])
         except htpy.stop:
+            tcp.stop()
+        except htpy.error:
+            chop.prnt("Stream error in htpy.")
             tcp.stop()
         tcp.discard(tcp.client.count_new)
     return
