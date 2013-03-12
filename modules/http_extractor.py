@@ -80,12 +80,10 @@ def body(data, length, obj, direction):
     return htpy.HTP_OK
 
 def dump(module_data, d):
-    if module_data['prnt']:
-        chop.prnt(d)
     if module_data['mongo']:
         module_data['db'].insert(d)
-    if module_data['json']:
-        chop.json(d)
+    chop.prnt(d)
+    chop.json(d)
 
     if module_data['carve_request'] and 'body' in d['request']:
         chop.prnt("DUMPING REQUEST: %s (%i)" % (sanitize_filename(d['request']['uri']['path'][1:] + '.request.' + str(module_data['counter'])), len(d['request']['body'])))
@@ -164,12 +162,8 @@ def init(module_data):
         default=[], help="Comma separated list of fields to extract")
     parser.add_option("-m", "--md5_body", action="store_true", dest="md5_body",
         default=False, help="Generate MD5 of body, and throw contents away")
-    parser.add_option("-p", "--print", action="store_true", dest="prnt",
-        default=False, help="Send output to stdout")
     parser.add_option("-M", "--mongo", action="store_true", dest="mongo",
         default=False, help="Send output to mongodb")
-    parser.add_option("-J", "--json", action="store_true", dest="json",
-        default=False, help="Send output to json file (use -J to chosphop)")
     parser.add_option("-H", "--host", action="store", dest="host",
         default="localhost", help="Host to connect to")
     parser.add_option("-P", "--port", action="store", dest="port",
@@ -184,16 +178,11 @@ def init(module_data):
     (options,lo) = parser.parse_args(module_data['args'])
 
     module_data['counter'] = 0
-    module_data['prnt'] = options.prnt
     module_data['mongo'] = options.mongo
-    module_data['json'] = options.json
     module_data['carve_request'] = options.carve_request
     module_data['carve_response'] = options.carve_response
     module_data['verbose'] = options.verbose
     module_data['md5_body'] = options.md5_body
-
-    if not options.prnt and not options.mongo and not options.json:
-        chop.prnt("WARNING: No output method selected.")
 
     if module_data['mongo']:
         try:
@@ -203,8 +192,7 @@ def init(module_data):
             return module_options
         module_data['db'] = mongo_connector(options.host, options.port, options.db, options.col)
 
-    if module_data['json']:
-        chop.set_custom_json_encoder(http_to_dict)
+    chop.set_custom_json_encoder(http_to_dict)
 
     module_data['fields'] = options.fields
     if options.fields:
