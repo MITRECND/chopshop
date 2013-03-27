@@ -284,9 +284,6 @@ a call to nids.get_pkt_ts()
 <b>module_data</b> - dictionary that is passed back and forth and persists data
 across the lifetime of a module
 
-<b>stream_data</b> - dictionary that is passed back and forther and persists
-data across the lifetime of a stream
-
 <b>ip</b> - array of IP layer and payload. This may be removed in future
 versions, do not rely upon it
 
