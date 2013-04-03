@@ -80,14 +80,6 @@ def init(module_data):
         help='If Yara matches are found, save the stream to file.')
 
     parser.add_argument(
-        '-j', '--json',
-        action='store_true',
-        dest='json',
-        default=False,
-        help='Print Yara matches as JSON.'
-        )
-
-    parser.add_argument(
         '-v', '--verbose',
         action='store_true',
         dest='verbose',
@@ -108,7 +100,6 @@ def init(module_data):
     module_data['size'] = args.size
     module_data['step'] = args.step
     module_data['save'] = args.save
-    module_data['json'] = args.json
     module_data['verbose'] = args.verbose
     module_data['quiet'] = args.quiet
 
@@ -251,8 +242,7 @@ def handle_results(tcp):
             output += hexdump(tcp.stream_data['server_buffer']) + '\n'
             chop.appendfile(tcp.module_data['save'], output)
 
-        if tcp.module_data['json']:
-            chop.json(match)
+        chop.json(match)
 
     # print results
     for match in tcp.stream_data['client_processor'].results:
@@ -268,5 +258,4 @@ def handle_results(tcp):
             output += hexdump(tcp.stream_data['client_buffer']) + '\n'
             chop.appendfile(tcp.module_data['save'], output)
 
-        if tcp.module_data['json']:
-            chop.json(match)
+        chop.json(match)
