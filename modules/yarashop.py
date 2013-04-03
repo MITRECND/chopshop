@@ -227,7 +227,7 @@ def teardown(tcp):
 
 def handle_results(tcp):
     """Print and save results."""
-    ((src, sport), (dst, dport)) = tcp.addr
+    ((src, sport), (dst, dport)) = parse_addr(tcp)
     # print results
     for match in tcp.stream_data['server_processor'].results:
         if not module_data['quiet']:
@@ -243,6 +243,7 @@ def handle_results(tcp):
             chop.appendfile(tcp.module_data['save'], output)
 
         chop.json(match)
+    tcp.stream_data['server_processor'].clear_results()
 
     # print results
     for match in tcp.stream_data['client_processor'].results:
@@ -259,3 +260,4 @@ def handle_results(tcp):
             chop.appendfile(tcp.module_data['save'], output)
 
         chop.json(match)
+    tcp.stream_data['client_processor'].clear_results()
