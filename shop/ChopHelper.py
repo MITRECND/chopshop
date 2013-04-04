@@ -185,6 +185,7 @@ class chops:
                 if self.cls is not None:
                     msg = msg + " with custom json encoder"
                 self.prettyprnt("RED", msg, e)
+                return #don't put anything onto the queue
            
             message = self.__get_message_template__()
             message['type'] = 'json'
