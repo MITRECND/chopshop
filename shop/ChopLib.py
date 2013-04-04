@@ -24,7 +24,7 @@
 # SUCH DAMAGE.
 
 
-VERSION = 3.0
+VERSION = 3.1
 
 import sys
 import os
