@@ -80,13 +80,13 @@ class ChopLib(Thread):
                          'GMT': False,
                          'savefiles': False, #Should ChopShop handle the saving of files?
                          'text': False,
+                         'pyobjout': False,
                          'jsonout': False,
                          'savedir': '/tmp/',
                          'modules': ''
                        }
 
         self.stopped = False
-
 
         #Setup Interaction Queues
         self.tocaller = Queue() #output directly to caller
@@ -209,6 +209,15 @@ class ChopLib(Thread):
     @text.setter
     def text(self, v):
         self.options['text'] = v
+
+    @property
+    def pyobjout(self):
+        """Handle raw python objects"""
+        return self.options['pyobjout']
+
+    @pyobjout.setter
+    def pyobjout(self, v):
+        self.options['pyobjout'] = v
 
     @property
     def jsonout(self):

@@ -23,7 +23,9 @@
 # OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
 # SUCH DAMAGE.
 
-from threading import Lock
+from threading import Lock, Thread
+import threading
+import time
 
 """ 
     ChopShop Debug Helper DO NOT MODIFY -- DO NOT TOUCH -- DO NOT USE
@@ -61,3 +63,18 @@ def debug_out(output):
             df.flush()
         finally:
             dbglock.release()
+
+class ThreadWatcher(Thread):
+    daemon = True
+    def __init__(self, interval):
+        Thread.__init__(self, name="Watcher")
+        self.interval = interval
+
+    def run(self):
+        while True:
+            thread_list = []
+            for thread in threading.enumerate():
+                thread_list.append(thread.name)
+            print("%d active threads: %s" % (threading.active_count(), ', '.join(thread_list)))
+            time.sleep(self.interval)
+         
