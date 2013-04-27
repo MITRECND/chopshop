@@ -5,6 +5,10 @@ import time
 from optparse import OptionParser
 from c2utils import multibyte_xor
 
+from struct import *
+from ctypes import *
+
+
 moduleName="plugx_tcp_decode"
 
 def module_info():
@@ -96,22 +100,43 @@ def handleStream(tcp):
     ((src, sport), (dst, dport)) = tcp.addr
     # handle client system packets
     if tcp.server.count_new > 0:
-            if tcp.module_data['verbose']:
-                chop.tsprettyprnt("RED", "%s:%s -> %s:%s 0x%04X bytes" % (src, sport, dst, dport, tcp.server.count_new))
             data = tcp.server.data[:tcp.server.count_new]
-            data = binascii.hexlify(data)
-            chop.prettyprnt("RED", data)
+            flags = decrypt_packed_string(data)
+            chop.tsprettyprnt("RED", "%s:%s -> %s:%s %s 0x%04X bytes" % (src, sport, dst, dport, hex(flags), tcp.server.count_new))
+            if tcp.module_data['verbose']:
+                 data = binascii.hexlify(data)
+                 chop.prettyprnt("RED", data)
             tcp.discard(tcp.server.count_new)
     # handle server system packets
-    if tcp.client.count_new > 0:
-            if tcp.module_data['verbose']:
-                chop.tsprettyprnt("GREEN", "%s:%s -> %s:%s 0x%04X bytes" % (dst, dport, src, sport, tcp.client.count_new))
+    elif tcp.client.count_new > 0:
+            chop.tsprettyprnt("GREEN", "%s:%s -> %s:%s 0x%04X bytes" % (dst, dport, src, sport, tcp.client.count_new))
             data = tcp.client.data[:tcp.client.count_new]
-            data = binascii.hexlify(data)
-            chop.prettyprnt("GREEN", data)
+            if tcp.module_data['verbose']:
+                data = binascii.hexlify(data)
+                chop.prettyprnt("GREEN", data)
             tcp.discard(tcp.client.count_new)
 
+    if tcp.stream_data['flag']:
+        while data:
+
+
+    else:
+        #chop.tsprnt("Finding flag: %s:%i->%s:%i (%i)" % (src, sport, dst, dport, len(data)))
+        # The first gh0st message fits in a single TCP payload,
+        # unless you have MTU problems.
+        tcp.stream_data['flag'] = decrypt(data, tcp)
+        # Sometimes our data isn't all in one packet? I'm not sure why I am fighting this bug
+        #if not tcp.stream_data['flag']:
+            #chop.tsprnt("No flag found, skipping stream.")
+            #tcp.stop()
     return
+
+def decrypt_packed_string(src):
+    key = unpack("<I", src[0:4])[0]
+    size = 16
+    stage1 = decrypt(key, src, size)
+    flags = unpack("<I", stage1[4:8])[0]
+    return flags
 
 def decrypt(key, src, size):
     key0 = key
@@ -138,6 +163,9 @@ def shutdown(module_data):
 
 def taste(tcp):
     ((src, sport), (dst, dport)) = tcp.addr
+    tcp.stream_data['client_buf'] = ''
+    tcp.stream_data['server_buf'] = ''
+    tcp.stream_data['flag'] = ''
     if tcp.module_data['verbose']:
         chop.tsprnt("Start Session %s:%s -> %s:%s"  % (src, sport, dst, dport))
     return True
