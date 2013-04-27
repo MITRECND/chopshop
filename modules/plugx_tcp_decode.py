@@ -142,5 +142,5 @@ def taste(tcp):
     return True
 
 def teardown(tcp):
-    print hexlify(module_data['server_buf']
+    chop.tsprint(hexlify(module_data['server_buf']))
     return
