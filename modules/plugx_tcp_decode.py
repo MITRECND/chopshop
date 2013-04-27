@@ -7,6 +7,7 @@ import lznt1
 
 from optparse import OptionParser
 from c2utils import multibyte_xor
+from c2utils import sanitize_filename, parse_addr, winsizeize, hexdump
 
 from struct import *
 from ctypes import *
@@ -16,6 +17,16 @@ moduleName="plugx_tcp_decode"
 
 def module_info():
     pass
+
+def taste(tcp):
+    ((src, sport), (dst, dport)) = tcp.addr
+    tcp.stream_data['client_buf'] = ''
+    tcp.stream_data['server_buf'] = ''
+    tcp.stream_data['flag'] = ''
+    if tcp.module_data['verbose']:
+        chop.tsprnt("Start Session %s:%s -> %s:%s"  % (src, sport, dst, dport))
+    return True
+
 
 def init(module_data):
     parser = OptionParser()
@@ -104,23 +115,24 @@ def handleStream(tcp):
     # handle client system packets
     if tcp.server.count_new > 0:
         data = tcp.server.data[:tcp.server.count_new]
-        module_data['server_buf'] += data
+        tcp.stream_data['server_buf'] += data
         tcp.discard(tcp.server.count_new)
     # handle server system packets
     if tcp.client.count_new > 0:
         data = tcp.client.data[:tcp.client.count_new]
-        module_data['client_buf'] += data
+        tcp.stream_data['client_buf'] += data
         tcp.discard(tcp.client.count_new)
 
     if tcp.stream_data['flag']:
         while data:
             #stuff!
+            break
 
     else:
         #chop.tsprnt("Finding flag: %s:%i->%s:%i (%i)" % (src, sport, dst, dport, len(data)))
         # The first gh0st message fits in a single TCP payload,
         # unless you have MTU problems.
-        tcp.stream_data['flag'] = decrypt(data, tcp)
+        tcp.stream_data['flag'] = decrypt_packed_string(data)
         # Sometimes our data isn't all in one packet? I'm not sure why I am fighting this bug
         #if not tcp.stream_data['flag']:
             #chop.tsprnt("No flag found, skipping stream.")
@@ -157,15 +169,6 @@ def decrypt(key, src, size):
 def shutdown(module_data):
     return
 
-def taste(tcp):
-    ((src, sport), (dst, dport)) = tcp.addr
-    tcp.stream_data['client_buf'] = ''
-    tcp.stream_data['server_buf'] = ''
-    tcp.stream_data['flag'] = ''
-    if tcp.module_data['verbose']:
-        chop.tsprnt("Start Session %s:%s -> %s:%s"  % (src, sport, dst, dport))
-    return True
-
 def teardown(tcp):
-    chop.tsprint(hexlify(module_data['server_buf']))
+    chop.tsprnt(hexlify(module_data['server_buf']))
     return
