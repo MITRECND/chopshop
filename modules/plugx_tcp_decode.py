@@ -2,6 +2,9 @@ import sys
 import struct
 import binascii
 import time
+
+import lznt1
+
 from optparse import OptionParser
 from c2utils import multibyte_xor
 
@@ -29,8 +32,6 @@ def init(module_data):
     if opts.verbose:
         module_data['verbose'] = True
 
-    module_data['hexlify'] = opts.hexlify
-
     module_data['savefiles'] = opts.savefiles
     module_data['verbose'] = opts.verbose
     module_data['flags'] = {
@@ -50,8 +51,10 @@ def init(module_data):
         0x3000 : "GET_ATTACHED_DISKS_FLAG",
         0x3001 : "SEARCH_DIR_FOR_FILES_FLAG",
         0x3002 : "SEARCH_DIR_RECURSING_FLAG",
-        0x3004 : "READ_FILE_FLAG",
-        0x3007 : "WRITE_FILE_FLAG",
+        0x3004 : "READ_FILE_NAME_FLAG",
+        0x3005 : "READ_FILE_DATA_FLAG",
+        0x3007 : "WRITE_FILE_NAME_FLAG",
+        0x3008 : "WRITE_FILE_DATA_FLAG",
         0x300A : "CREATE_DIRECTORY_FLAG",
         0x300C : "CREATE_DESKTOP_EXEC_FILE_FLAG",
         0x300D : "DO_FILE_OPERATION_FLAG",
@@ -100,25 +103,18 @@ def handleStream(tcp):
     ((src, sport), (dst, dport)) = tcp.addr
     # handle client system packets
     if tcp.server.count_new > 0:
-            data = tcp.server.data[:tcp.server.count_new]
-            flags = decrypt_packed_string(data)
-            chop.tsprettyprnt("RED", "%s:%s -> %s:%s %s 0x%04X bytes" % (src, sport, dst, dport, hex(flags), tcp.server.count_new))
-            if tcp.module_data['verbose']:
-                 data = binascii.hexlify(data)
-                 chop.prettyprnt("RED", data)
-            tcp.discard(tcp.server.count_new)
+        data = tcp.server.data[:tcp.server.count_new]
+        module_data['server_buf'] += data
+        tcp.discard(tcp.server.count_new)
     # handle server system packets
-    elif tcp.client.count_new > 0:
-            chop.tsprettyprnt("GREEN", "%s:%s -> %s:%s 0x%04X bytes" % (dst, dport, src, sport, tcp.client.count_new))
-            data = tcp.client.data[:tcp.client.count_new]
-            if tcp.module_data['verbose']:
-                data = binascii.hexlify(data)
-                chop.prettyprnt("GREEN", data)
-            tcp.discard(tcp.client.count_new)
+    if tcp.client.count_new > 0:
+        data = tcp.client.data[:tcp.client.count_new]
+        module_data['client_buf'] += data
+        tcp.discard(tcp.client.count_new)
 
     if tcp.stream_data['flag']:
         while data:
-
+            #stuff!
 
     else:
         #chop.tsprnt("Finding flag: %s:%i->%s:%i (%i)" % (src, sport, dst, dport, len(data)))
@@ -171,4 +167,5 @@ def taste(tcp):
     return True
 
 def teardown(tcp):
+    chop.tsprint(hexlify(module_data['server_buf']))
     return
