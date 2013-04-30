@@ -2,6 +2,9 @@ import sys
 import struct
 import binascii
 import time
+import re
+
+import pdb
 
 import lznt1
 
@@ -10,10 +13,10 @@ from c2utils import multibyte_xor
 from c2utils import sanitize_filename, parse_addr, winsizeize, hexdump
 
 from struct import *
-from ctypes import *
 
 
 moduleName="plugx_tcp_decode"
+hexlify = binascii.hexlify
 
 def module_info():
     pass
@@ -115,12 +118,37 @@ def handleStream(tcp):
     # handle client system packets
     if tcp.server.count_new > 0:
         data = tcp.server.data[:tcp.server.count_new]
-        tcp.stream_data['server_buf'] += data
+        if not data[:6] == 'POST /' and not data[:6] == 'HTTP/1':
+            chop.tsprnt(repr(data[:16]))
+        if len(data) < 16:
+            #wtf, but it happens
+            tcp.stream_data['server_buf'] += data
+            return
+
+        (decrypted,flags, comp) = decrypt_packed_string(data)
+        if flags != 0xffff:
+            chop.tsprnt(repr(decrypted),hex(flags))
+            if comp: 
+                chop.tsprnt("see here server",repr(re.sub(r'[^\w]', '', lznt1.dCompressBuf(comp))),module_data['flags'][flags])
+                chop.tsprnt("see here client",repr(lznt1.dCompressBuf(comp)))
+
         tcp.discard(tcp.server.count_new)
     # handle server system packets
     if tcp.client.count_new > 0:
         data = tcp.client.data[:tcp.client.count_new]
-        tcp.stream_data['client_buf'] += data
+        if not data[:6] == 'POST /'  and not data[:6] == 'HTTP/1':
+            chop.tsprnt(repr(data[:16]))
+        if len(data) < 16:
+            #wtf, but it happens
+            tcp.stream_data['server_buf'] += data
+            return
+
+        (decrypted,flags,comp) = decrypt_packed_string(data)
+        if flags != 0xffff:
+            chop.tsprnt(repr(decrypted),hex(flags))
+            if comp: 
+                chop.tsprnt("see here client",repr(re.sub(r'[^\w]', '', lznt1.dCompressBuf(comp))),module_data['flags'][flags])
+                chop.tsprnt("see here client",repr(lznt1.dCompressBuf(comp)))
         tcp.discard(tcp.client.count_new)
 
     if tcp.stream_data['flag']:
@@ -128,25 +156,64 @@ def handleStream(tcp):
             #stuff!
             break
 
-    else:
         #chop.tsprnt("Finding flag: %s:%i->%s:%i (%i)" % (src, sport, dst, dport, len(data)))
-        # The first gh0st message fits in a single TCP payload,
-        # unless you have MTU problems.
-        tcp.stream_data['flag'] = decrypt_packed_string(data)
         # Sometimes our data isn't all in one packet? I'm not sure why I am fighting this bug
         #if not tcp.stream_data['flag']:
             #chop.tsprnt("No flag found, skipping stream.")
             #tcp.stop()
     return
 
-def decrypt_packed_string(src):
-    key = unpack("<I", src[0:4])[0]
+def decrypt_packed_string(__src):
+    global key
+    global src
+    global size
+    src = __src
+    key = unpack("<I", __src[0:4])[0]
+    if key == 0x54534f50 or key == 0x50545448:
+        return src, 0xffff, ''
+    #chop.tsprnt(hex(key))
     size = 16
-    stage1 = decrypt(key, src, size)
+    stage1 = decrypt()
     flags = unpack("<I", stage1[4:8])[0]
-    return flags
+    #chop.tsprnt(hex(flags))
+    stage1[8:10]
 
-def decrypt(key, src, size):
+    if flags & 0x2000000:      #do not decrypt payload separately
+        size = len(src)
+        stage1 = decrypt()
+    else:
+        size = len(src[16:])
+        src = __src[16:]
+        stage1 = stage1 + decrypt()
+    
+    if flags & 0x1000000:      #do not decompress payload
+        return stage1, flags, ''
+    else:
+        if flags in module_data['flags'].keys():
+            comp = stage1[16:] 
+            chop.tsprnt("len of payload: %d   len in header: %d" % (len(comp), unpack("H",stage1[8:10])[0]))
+            if len(comp) == unpack("H",stage1[8:10]):
+                return stage1[:16], flags, comp
+            else:
+                return stage1[:16], flags, comp[:unpack("H",stage1[8:10])[0]]
+
+        decomp = ''
+        chop.tsprnt(repr(stage1[:16]),repr(stage1[16:]))
+
+    return stage1[:16]+decomp, flags, ''
+
+def decrypt():
+    global key
+    global new_key
+    global key0
+    global key1
+    global key2
+    global key3
+    global src
+    global dst
+    global res
+    global i
+    global size
     key0 = key
     key1 = key
     key2 = key
@@ -161,14 +228,16 @@ def decrypt(key, src, size):
             key3 = (key3 + (0x33333333 - ((key3 << 7)&0xFFFFFFFF))&0xFFFFFFFF)&0xFFFFFFFF
             new_key = (((key2&0xFF) + (key3&0xFF) + (key1&0xFF) + (key0&0xFF))&0xFF)
             res = unpack("<B", src[i:i+1])[0] ^ new_key
-            dst += pack("<B", res)
+            dst = dst + pack("<B", res)
             i = i + 1
     
     return dst
+
 
 def shutdown(module_data):
     return
 
 def teardown(tcp):
-    chop.tsprnt(hexlify(module_data['server_buf']))
+#    chop.tsprnt(hex(tcp.stream_data['flag']))
+#    chop.tsprnt(hexlify(tcp.stream_data['server_buf']))
     return
