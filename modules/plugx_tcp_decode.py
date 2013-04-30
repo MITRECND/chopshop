@@ -4,12 +4,9 @@ import binascii
 import time
 import re
 
-import pdb
-
 import lznt1
 
 from optparse import OptionParser
-from c2utils import multibyte_xor
 from c2utils import sanitize_filename, parse_addr, winsizeize, hexdump
 
 from struct import *
