@@ -74,12 +74,19 @@ def init(module_data):
         0x300D : "DO_FILE_OPERATION_FLAG",
         0x300E : "GET_ENV_STRINGS_FLAG",
         0x4000 : "SCREEN_START_CAP_THREAD_FLAG",
+        0x4004 : "SEND_MOUSE_EVENT_FLAG",
+        0x4005 : "SEND_KBD_EVENT_FLAG",
+        0x4006 : "SEND_CTRL_ALT_DEL_FLAG",
         0x4100 : "SCREEN_CAPTURE_FLAG",
         0x4101 : "SCREEN_CAPTURE_FRAME_FLAG",
         0x5000 : "ENUM_RUNNING_PROCS_FLAG",
         0x5001 : "ENUM_RUNNING_PROC_MODULES_FLAG",
         0x5002 : "KILL_PROCESS_FLAG",
         0x6000 : "ENUM_SERVICES_FLAG",
+        0x6001 : "CHANGE_SERVICE_FLAG",
+        0x6002 : "START_SERVICE_FLAG",
+        0x6003 : "CONTROL_SERVICE_FLAG",
+        0x6004 : "DELETE_SERVICE_FLAG",
         0x7002 : "START_SHELL_FLAG",
         0x7003 : "SHELL_INTERACT_FLAG",
         0x7100 : "START_TELNET_FLAG",
@@ -93,13 +100,15 @@ def init(module_data):
         0x9006 : "REG_DEL_VALUE_FLAG",
         0x9007 : "REG_GET_OR_CREATE_VALUE_FLAG",
         0xA000 : "NETHOOD_FLAG",
-        0xB000 : "UNKNOWN_FLAG",
-        0xC000 : "SQL_FLAG",
+        0xB000 : "PORTMAP_FLAG",
+        0xC000 : "SQL_GET_DATA_SOURCE_FLAG",
+        0xC001 : "SQL_GET_DRIVER_DESC_FLAG",
+        0xC002 : "SQL_EXECUTE_STATEMENT_FLAG",
         0xD000 : "TCPSTATE_FLAG",
         0xD001 : "UDPSTATE_FLAG",
         0xD002 : "ADD_TCPSTATE_FLAG",
         0xE000 : "KEYLOGGER_FLAG",
-        }
+}
 
     if module_data['savefiles']:
         chop.prnt("Carving enabled.")
