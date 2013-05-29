@@ -48,10 +48,10 @@ TYPE=$1
 # the docs file for them.
 touch "${DOCSDIR}/${DOCNAME}"
 
-if [ ${TYPE} == "tcp" ]; then
+if [ ${TYPE} = "tcp" ]; then
 	HANDLE='handleStream'
 	ARG='tcp'
-elif [ ${TYPE} == "udp" ]; then
+elif [ ${TYPE} = "udp" ]; then
 	HANDLE='handleDatagram'
 	ARG='udp'
 else
