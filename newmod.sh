@@ -77,7 +77,7 @@ def shutdown(module_data):
 _EOF
 
 # TCP gets teardown() and taste(), UDP does not.
-if [ ${TYPE} == "tcp" ]; then
+if [ ${TYPE} = "tcp" ]; then
 cat << _EOF >> "${MODDIR}/${MODFILE}" || exit 1
 
 def taste(${ARG}):
