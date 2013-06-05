@@ -219,7 +219,7 @@ class ChopCore(Thread):
             try:
                 nids.init()
             except Exception, e:
-                chop.prnt("Error initting: ", e) 
+                chop.prnt("Error initting on interface: ", e)
                 self.complete = True
                 return
 
