@@ -23,15 +23,12 @@
 
 from c2utils import packet_timedate, sanitize_filename, parse_addr
 from optparse import OptionParser
+from base64 import b64encode
 import json
 import htpy
 import hashlib
 
 moduleName="http_extractor"
-
-class http_to_dict(json.JSONEncoder):
-    def default(self, d):
-        return json.JSONEncoder().encode(d)
 
 def log(cp, msg, level, obj):
     if level == htpy.HTP_LOG_ERROR:
@@ -82,8 +79,6 @@ def body(data, length, obj, direction):
 def dump(module_data, d):
     if module_data['mongo']:
         module_data['db'].insert(d)
-    chop.prnt(d)
-    chop.json(d)
 
     if module_data['carve_request'] and 'body' in d['request']:
         chop.prnt("DUMPING REQUEST: %s (%i)" % (sanitize_filename(d['request']['uri']['path'][1:] + '.request.' + str(module_data['counter'])), len(d['request']['body'])))
@@ -94,6 +89,17 @@ def dump(module_data, d):
         chop.prnt("DUMPING RESPONSE: %s (%i)" % (sanitize_filename(d['request']['uri']['path'][1:] + '.response.' + str(module_data['counter'])), len(d['response']['body'])))
         chop.savefile(sanitize_filename(d['request']['uri']['path'][1:] + '.response.' + str(module_data['counter'])), d['response']['body'])
         module_data['counter'] += 1
+
+    # Convert the body to base64 encoded data, if it exists.
+    if 'body' in d['request']:
+        d['request']['body'] = b64encode(d['request']['body'])
+        d['request']['body_encoding'] = 'base64'
+    if 'body' in d['response']:
+        d['response']['body'] = b64encode(d['response']['body'])
+        d['response']['body_encoding'] = 'base64'
+
+    chop.prnt(d)
+    chop.json(d)
 
     # In case pipelining is going on remove these.
     d['request'] = { 'headers': {} }
@@ -191,8 +197,6 @@ def init(module_data):
             module_options['error'] = str(e)
             return module_options
         module_data['db'] = mongo_connector(options.host, options.port, options.db, options.col)
-
-    chop.set_custom_json_encoder(http_to_dict)
 
     module_data['fields'] = options.fields
     if options.fields:
