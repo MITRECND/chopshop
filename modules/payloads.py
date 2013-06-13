@@ -30,6 +30,7 @@ backdoors.
 import sys
 import struct
 import time
+from base64 import b64encode
 from optparse import OptionParser
 from c2utils import multibyte_xor, hexdump, parse_addr
 
@@ -38,38 +39,30 @@ moduleName = 'payloads'
 def parse_args(module_data):
     parser = OptionParser()
 
-    parser.add_option("-c", "--command", action="store_true",
-        dest="commands", default=False, help="print commands")
-    parser.add_option("-r", "--response", action="store_true",
-        dest="responses", default=False, help="print responses")
+    parser.add_option("-b", "--base64", action="store_true",
+        dest="base64", default=False,
+        help="Base64 encode payloads (useful for JSON handling)")
     parser.add_option("-v", "--verbose", action="store_true",
         dest="verbose", default=False, help="print all information")
     parser.add_option("-x", "--hexdump", action="store_true",
         dest="hexdump", default=False, help="print hexdump output")
     parser.add_option("-o", "--xor", action="store",
         dest="xor_key", default=None, help="XOR packet payloads with this key")
+    parser.add_option("-O", "--oneshot", action="store_true",
+        dest="oneshot", default=False, help="Buffer entire flow until teardown")
 
     (opts,lo) = parser.parse_args(module_data['args'])
 
-    if opts.commands:
-        module_data['commands'] = True
-
-    if opts.responses:
-        module_data['responses'] = True
-
-    if opts.verbose:
-        module_data['verbose'] = True
-
+    module_data['base64'] = opts.base64
+    module_data['verbose'] = opts.verbose
     module_data['hexdump'] = opts.hexdump
 
     if opts.xor_key:
         module_data['xor_key'] = opts.xor_key[2:]
 
-def init(module_data):
-    module_data['commands'] = True
-    module_data['responses'] = True
-    module_data['verbose'] = False
+    module_data['oneshot'] = opts.oneshot
 
+def init(module_data):
     module_options = {'proto':'tcp'}
 
     parse_args(module_data)
@@ -78,8 +71,12 @@ def init(module_data):
 
 def taste(tcp):
     ((src, sport), (dst, dport)) = tcp.addr
+
     if tcp.module_data['verbose']:
         chop.tsprnt("Start Session %s:%s -> %s:%s"  % (src, sport, dst, dport))
+
+    tcp.stream_data['data'] = ''
+
     return True
 
 def handleStream(tcp):
@@ -95,15 +92,38 @@ def handleStream(tcp):
 
     if tcp.module_data['verbose']:
         chop.tsprettyprnt(color, "%s:%s -> %s:%s %i bytes" % (src, sport, dst, dport, count))
+
+    if tcp.module_data['oneshot']:
+        tcp.stream_data['data'] += data
+        return
+
     if 'xor_key' in tcp.module_data:
         data = multibyte_xor(data, tcp.module_data['xor_key'])
+
     if tcp.module_data['hexdump']:
         data = hexdump(data)
+
     chop.prettyprnt(color, data)
+
     tcp.discard(count)
 
 def teardown(tcp):
-    pass
+    if not tcp.module_data['oneshot']:
+        return
+
+    data = tcp.stream_data['data']
+
+    if 'xor_key' in tcp.module_data:
+        data = multibyte_xor(data, tcp.module_data['xor_key'])
+
+    if tcp.module_data['hexdump']:
+        data = hexdump(data)
+
+    if tcp.module_data['base64']:
+        data = b64encode(data)
+
+    chop.prnt(data)
+    chop.json({'payload': data})
 
 def module_info():
     print "A module to dump raw packet payloads from a stream."
