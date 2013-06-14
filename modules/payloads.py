@@ -50,17 +50,20 @@ def parse_args(module_data):
         dest="xor_key", default=None, help="XOR packet payloads with this key")
     parser.add_option("-O", "--oneshot", action="store_true",
         dest="oneshot", default=False, help="Buffer entire flow until teardown")
+    parser.add_option("-S", "--oneshot_split", action="store_true",
+        dest="oneshot_split", default=False,
+        help="Buffer each side of flow until teardown")
 
     (opts,lo) = parser.parse_args(module_data['args'])
 
     module_data['base64'] = opts.base64
     module_data['verbose'] = opts.verbose
     module_data['hexdump'] = opts.hexdump
+    module_data['oneshot'] = opts.oneshot
+    module_data['oneshot_split'] = opts.oneshot_split
 
     if opts.xor_key:
         module_data['xor_key'] = opts.xor_key[2:]
-
-    module_data['oneshot'] = opts.oneshot
 
 def init(module_data):
     module_options = {'proto':'tcp'}
@@ -75,7 +78,11 @@ def taste(tcp):
     if tcp.module_data['verbose']:
         chop.tsprnt("Start Session %s:%s -> %s:%s"  % (src, sport, dst, dport))
 
+    # Used for oneshot, just concat both directions into a giant blob.
     tcp.stream_data['data'] = ''
+    # Used for oneshot_split, concat each direction into it's own blob.
+    tcp.stream_data['to_server'] = ''
+    tcp.stream_data['to_client'] = ''
 
     return True
 
@@ -84,10 +91,12 @@ def handleStream(tcp):
     if tcp.server.count_new > 0:
         data = tcp.server.data[:tcp.server.count_new]
         count = tcp.server.count_new
+        direction = 'to_server'
         color = "RED"
     else:
         data = tcp.client.data[:tcp.client.count_new]
         count = tcp.client.count_new
+        direction = 'to_client'
         color = "GREEN"
 
     if tcp.module_data['verbose']:
@@ -95,6 +104,11 @@ def handleStream(tcp):
 
     if tcp.module_data['oneshot']:
         tcp.stream_data['data'] += data
+
+    if tcp.module_data['oneshot_split']:
+        tcp.stream_data[direction] += data
+
+    if tcp.module_data['oneshot'] or tcp.module_data['oneshot_split']:
         return
 
     if 'xor_key' in tcp.module_data:
@@ -104,26 +118,36 @@ def handleStream(tcp):
         data = hexdump(data)
 
     chop.prettyprnt(color, data)
+    chop.json({'payload': data, 'direction': direction})
 
     tcp.discard(count)
 
 def teardown(tcp):
-    if not tcp.module_data['oneshot']:
+    if not tcp.module_data['oneshot'] and not tcp.module_data['oneshot_split']:
         return
 
-    data = tcp.stream_data['data']
+    if tcp.module_data['oneshot']:
+        data = (alert_data, tcp.module_data, tcp.stream_data['data'])
+        chop.prnt(data)
+        chop.json({'payload': data, 'direction': 'combined'})
 
-    if 'xor_key' in tcp.module_data:
-        data = multibyte_xor(data, tcp.module_data['xor_key'])
+    if tcp.module_data['oneshot_split']:
+        for direction in ['to_client', 'to_server']:
+            data = alter_data(tcp.module_data, tcp.stream_data[direction])
+            chop.prnt(data)
+            chop.json({'payload': data, 'direction': direction})
 
-    if tcp.module_data['hexdump']:
+def alter_data(module_data, data):
+    if 'xor_key' in module_data:
+        data = multibyte_xor(data, module_data['xor_key'])
+
+    if module_data['hexdump']:
         data = hexdump(data)
 
-    if tcp.module_data['base64']:
+    if module_data['base64']:
         data = b64encode(data)
 
-    chop.prnt(data)
-    chop.json({'payload': data})
+    return data
 
 def module_info():
     print "A module to dump raw packet payloads from a stream."
