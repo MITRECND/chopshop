@@ -117,6 +117,9 @@ def handleStream(tcp):
     if tcp.module_data['hexdump']:
         data = hexdump(data)
 
+    if module_data['base64']:
+        data = b64encode(data)
+
     chop.prettyprnt(color, data)
     chop.json({'payload': data, 'direction': direction})
 
