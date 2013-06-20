@@ -133,15 +133,23 @@ class chops:
 
             self.dataq.put(message)
 
-    def savefile(self, filename, data, finalize = True):
-        self.appendfile(filename,data,finalize,'w')
+    def savefile(self, filename, data, finalize = True, prepend_timestamp = False):
+        return self.appendfile(filename,data,finalize,'w', prepend_timestamp)
 
 
     #mode should not be used by chop users -- 
     #it is meant to be used by savefile
-    def appendfile(self, filename, data, finalize = False, mode = 'a'):
+    def appendfile(self, filename, data, finalize = False, mode = 'a', prepend_timestamp = False):
         if self.to_outs['savefiles']:
-
+            if prepend_timestamp:
+                ts = self.core.getptime()
+                if self.GMT:
+                    fmt = "%Y%m%d%H%M%SZ"
+                    ts = time.gmtime(ts)
+                else:
+                    fmt = "%Y%m%d%H%M%S%Z"
+                    ts = time.localtime(ts)
+                filename = "%s-%s" % (time.strftime(fmt, ts).strip(), filename)
             message = self.__get_message_template__()
             message['type'] = 'filedata'
             message['data'] = { 'filename': filename, 
@@ -151,6 +159,7 @@ class chops:
                               }
 
             self.dataq.put(message)
+            return filename
 
     def finalizefile(self, filename):
         if self.to_outs['savefiles']:
