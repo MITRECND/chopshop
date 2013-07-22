@@ -32,7 +32,7 @@ import struct
 import time
 from base64 import b64encode
 from optparse import OptionParser
-from c2utils import multibyte_xor, hexdump, parse_addr
+from c2utils import multibyte_xor, hexdump, parse_addr, entropy
 
 moduleName = 'payloads'
 
@@ -100,7 +100,7 @@ def handleStream(tcp):
         color = "GREEN"
 
     if tcp.module_data['verbose']:
-        chop.tsprettyprnt(color, "%s:%s -> %s:%s %i bytes" % (src, sport, dst, dport, count))
+        chop.tsprettyprnt(color, "%s:%s -> %s:%s %i bytes (H = %0.2f)" % (src, sport, dst, dport, count, entropy(data)))
 
     if tcp.module_data['oneshot']:
         tcp.stream_data['data'] += data
