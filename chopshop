@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/env python
 
 # Copyright (c) 2013 The MITRE Corporation. All rights reserved.
 #
@@ -56,7 +56,7 @@ import Queue
 import time
 
 #Chopshop Working Directory -- defaults to where script exists
-CHOPSHOP_WD = os.path.realpath("/usr/local/libexec/chopshop")
+CHOPSHOP_WD = os.path.realpath(os.path.dirname(sys.argv[0]))
 
 sys.path.append(CHOPSHOP_WD + '/shop')
 
