@@ -28,8 +28,8 @@ options:
   -i INTERFACE, --interface=INTERFACE
                         interface to listen on
   -m, --module_info     print information about module(s) and exit
-  -m, --all_module_list 
-  						print list of modules available and exit. Works with -M option.
+  -a, --all_module_list 
+  						print list of modules available and exit.
   -G, --GMT             timestamps in GMT (tsprnt and tsprettyprnt only)
   -v, --version         print version and exit
   -g, --gui             Enable ChopShop Gui
