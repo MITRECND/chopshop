@@ -77,6 +77,7 @@ class ChopLib(Thread):
                          'longrun': False,
                          'interface': '',
                          'modinfo': False,
+                         'modlist': False,
                          'GMT': False,
                          'savefiles': False, #Should ChopShop handle the saving of files?
                          'text': False,
@@ -182,6 +183,15 @@ class ChopLib(Thread):
     @modinfo.setter
     def modinfo(self, v):
         self.options['modinfo'] = v
+
+    @property
+    def modlist(self):
+        """print information about available module(s) and exit."""
+        return self.options['modlist']
+
+    @modlist.setter
+    def modlist(self, v):
+        self.options['modlist'] = v
 
     @property
     def GMT(self):
@@ -301,7 +311,7 @@ class ChopLib(Thread):
     def run(self):
         surgeon = None
 
-        if not self.options['modinfo']: #No point in doing surgery if it's modinfo
+        if not self.options['modinfo'] and not self.options['modlist']: #No point in doing surgery if it's modinfo or modlist
             # Figure out where we're reading packets from
             if not self.options['interface']:
                 if not self.options['filename']:
@@ -371,6 +381,23 @@ class ChopLib(Thread):
             self.nidsp.join()
             return
 
+        if self.options['modlist']:
+            self.kill_lock.acquire();
+            try:
+                self.tonids.put(['mod_list'])
+                resp = self.fromnids.get() #really just to make sure the functions finish
+            except Exception, e:
+                raise ChopLibException(e)
+            finally:
+                self.kill_lock.release()
+
+            #Process 2 will quit after doing its job
+
+            #Inform caller that the process is done
+            self.send_finished_msg()
+            #Surgeon should not be invoked so only need
+            #to cleanup nidsp
+            self.nidsp.join()
         else:
             self.kill_lock.acquire()
             try:
@@ -519,27 +546,28 @@ class ChopLib(Thread):
                 #Setup the modules
                 args = options['modules']
                 mods = args.split(';')
-                try:
-                    for mod in mods:
-                        mod = mod.strip()
-                        sindex = mod.find(' ')
-                        if sindex != -1:
-                            modl = []
-                            modl.append(self.__loadModules_(mod[0:sindex],mod_dir))
-                            modl.append(mod[sindex + 1:])
-                            modl.append(mod[0:sindex])
-                            module_list.append(modl)
-                        else:
-                            modl = []
-                            modl.append(self.__loadModules_(mod,mod_dir))
-                            modl.append("")
-                            modl.append(mod)
-                            module_list.append(modl)
-                except Exception, e:
-                    outq.put(e)
-                    sys.exit(-1)
+                if not args == '':
+                    try:
+                        for mod in mods:
+                            mod = mod.strip()
+                            sindex = mod.find(' ')
+                            if sindex != -1:
+                                modl = []
+                                modl.append(self.__loadModules_(mod[0:sindex],mod_dir))
+                                modl.append(mod[sindex + 1:])
+                                modl.append(mod[0:sindex])
+                                module_list.append(modl)
+                            else:
+                                modl = []
+                                modl.append(self.__loadModules_(mod,mod_dir))
+                                modl.append("")
+                                modl.append(mod)
+                                module_list.append(modl)
+                    except Exception, e:
+                        outq.put(e)
+                        sys.exit(-1)
 
-                if len(module_list) == 0:
+                if len(module_list) == 0 and not options['modlist']:
                     outq.put('Zero Length Module List')
                     sys.exit(-1)
 
@@ -584,7 +612,26 @@ class ChopLib(Thread):
 
                 outq.put('fini')
                 sys.exit(0) 
-
+            elif data[0] == 'mod_list':
+                all_mods = []
+                for dirname, dirnames, filenames in os.walk(mod_dir):
+                    for filename in filenames:
+                        try:
+                            nxt_mod_name = os.path.splitext(filename)[0]
+                            mod_found = self.__loadModules_(nxt_mod_name, dirname)
+                            if not nxt_mod_name in all_mods:
+                                all_mods.append(nxt_mod_name);
+                        except Exception, e:
+#                            raise e
+                            pass
+                if not all_mods:
+                    chop.prnt("No modules found in directory")
+                else:
+                    chop.prnt("Modules found in directory:")
+                    chop.prnt(", ".join(all_mods))
+                    
+                outq.put('fini')
+                sys.exit(0)
             elif data[0] == 'cont':
                 break
             elif data[0] == 'stop': #Some error must have occurred
