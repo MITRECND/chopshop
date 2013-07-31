@@ -624,6 +624,7 @@ class ChopLib(Thread):
                         except Exception, e:
 #                            raise e
                             pass
+                    break # only search mod_dir - no any subdirs - as modules are not available recursively
                 if not all_mods:
                     chop.prnt("No modules found in directory")
                 else:
