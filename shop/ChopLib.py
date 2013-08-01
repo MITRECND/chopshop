@@ -35,11 +35,11 @@ from threading import Thread, Lock
 
 CHOPSHOP_WD = os.path.realpath(os.path.dirname(sys.argv[0]))
 
-if CHOPSHOP_WD + '/shop' not in sys.path: 
+if CHOPSHOP_WD + '/shop' not in sys.path:
     sys.path.append(CHOPSHOP_WD + '/shop')
 
 from ChopNids import ChopCore
-from ChopHelper import ChopHelper 
+from ChopHelper import ChopHelper
 from ChopSurgeon import Surgeon
 from ChopException import ChopLibException
 
@@ -260,13 +260,99 @@ class ChopLib(Thread):
 
     def get_stop_fn(self):
         return self.stop
-       
+
     def version(self):
         global VERSION
-        return VERSION 
+        return VERSION
 
     def stop(self):
         self.stopped = True
+
+    def parse_config(self, options):
+        if hasattr(options, 'mod_dir'):
+            self.mod_dir = options.mod_dir
+        if hasattr(options, 'ext_dir'):
+            self.ext_dir = options.ext_dir
+        if hasattr(options, 'base_dir'):
+            self.base_dir = options.base_dir
+        if hasattr(options, 'filename'):
+            self.filename = options.filename
+        if hasattr(options, 'filelist'):
+            self.filelist = options.filelist
+        if hasattr(options, 'bpf'):
+            self.bpf = options.bpf
+        if hasattr(options, 'aslist'):
+            self.aslist = options.aslist
+        if hasattr(options, 'longrun'):
+            self.longrun = options.longrun
+        if hasattr(options, 'interface'):
+            self.interface = options.interface
+        if hasattr(options, 'modinfo'):
+            self.modinfo = options.modinfo
+        if hasattr(options, 'GMT'):
+            self.GMT = options.GMT
+        if hasattr(options, 'savefiles'):
+            self.savefiles = options.savefiles
+        if hasattr(options, 'text'):
+            self.text = options.text
+        if hasattr(options, 'pyobjout'):
+            self.pyobjout = options.pyobjout
+        if hasattr(options, 'jsonout'):
+            self.jsonout = options.jsonout
+        if hasattr(options, 'savedir'):
+            self.savedir = options.savedir
+        if hasattr(options, 'modules'):
+            self.modules = options.modules
+
+
+    def save_config(self, filepath):
+        fp = open(filepath, 'w')
+        if isinstance(self.base_dir, basestring):
+            fp.write("base_dir = \"%s\"\n" % (self.base_dir))
+        else:
+            fp.write("base_dir = %s\n" % (self.base_dir))
+        if isinstance(self.bpf, basestring):
+            fp.write("bpf = \"%s\"\n" % (self.bpf))
+        else:
+            fp.write("bpf = %s\n" % (self.bpf))
+        if isinstance(self.ext_dir, basestring):
+            fp.write("ext_dir = \"%s\"\n" % (self.ext_dir))
+        else:
+            fp.write("ext_dir = %s\n" % (self.ext_dir))
+        if isinstance(self.filelist, basestring):
+            fp.write("filelist = \"%s\"\n" % (self.filelist))
+        else:
+            fp.write("filelist = %s\n" % (self.filelist))
+        if isinstance(self.filename, basestring):
+            fp.write("filename = \"%s\"\n" % (self.filename))
+        else:
+            fp.write("filename = %s\n" % (self.filename))
+        if isinstance(self.interface, basestring):
+            fp.write("interface = \"%s\"\n" % (self.interface))
+        else:
+            fp.write("interface = %s\n" % (self.interface))
+        if isinstance(self.mod_dir, basestring):
+            fp.write("mod_dir = \"%s\"\n" % (self.mod_dir))
+        else:
+            fp.write("mod_dir = %s\n" % (self.mod_dir))
+        if isinstance(self.modules, basestring):
+            fp.write("modules = \"%s\"\n" % (self.modules))
+        else:
+            fp.write("modules = %s\n" % (self.modules))
+        if isinstance(self.savedir, basestring):
+            fp.write("savedir = \"%s\"\n" % (self.savedir))
+        else:
+            fp.write("savedir = %s\n" % (self.savedir))
+        fp.write("aslist = %s\n" % (self.aslist))
+        fp.write("GMT = %s\n" % (self.GMT))
+        fp.write("jsonout = %s\n" % (self.jsonout))
+        fp.write("longrun = %s\n" % (self.longrun))
+        fp.write("modinfo = %s\n" % (self.modinfo))
+        fp.write("pyobjout = %s\n" % (self.pyobjout))
+        fp.write("savefiles = %s\n" % (self.savefiles))
+        fp.write("text = %s\n" % (self.text))
+        fp.close()
+
 
     def setup_local_chop(self, name = "ChopShop", pid = -1):
         #This allows Process 1 to access Chops, note that it has
@@ -275,7 +361,7 @@ class ChopLib(Thread):
         #what you're doing
         chophelper = ChopHelper(self.tocaller, self.options)
         self.chop = chophelper.setup_module(name, pid)
-        
+
     def send_finished_msg(self, data = {}, stop_seq = False):
         message = { 'type' : 'ctrl',
                     'data' : {'msg' : 'finished',
@@ -391,14 +477,14 @@ class ChopLib(Thread):
                 if not self.nidsp.is_alive():
                     break
                 #if self.stopped:
-                #    self.nidsp.terminate()                
+                #    self.nidsp.terminate()
                 continue
             except AttributeError:
                 break
             finally:
                 self.kill_lock.release()
 
-            if data[0] == "stop": 
+            if data[0] == "stop":
                 #Send the message to caller that we need to stop
                 message = { 'type' : 'ctrl',
                             'data' : {'msg'  : 'stop'}
@@ -421,7 +507,7 @@ class ChopLib(Thread):
         #Join with Surgeon
         if surgeon is not None:
             surgeon.stop()
-    
+
         #Join with Nids Process
         self.nidsp.join()
 
@@ -448,7 +534,7 @@ class ChopLib(Thread):
                 time.sleep(.1)
 
             except:
-                pass 
+                pass
         finally:
             self.kill_lock.release()
 
@@ -504,15 +590,15 @@ class ChopLib(Thread):
                 #Set up the module directory and the external libraries directory
                 if options['base_dir'] is not None:
                     base_dir = os.path.realpath(options['base_dir'])
-                    mod_dir = base_dir + "/modules/" 
-                    ext_dir = base_dir + "/ext_libs" 
+                    mod_dir = base_dir + "/modules/"
+                    ext_dir = base_dir + "/ext_libs"
                 else:
-                    mod_dir = options['mod_dir'] 
+                    mod_dir = options['mod_dir']
                     ext_dir = options['ext_dir']
 
                 sys.path.append(os.path.realpath(ext_dir))
 
-                #Setup the chophelper 
+                #Setup the chophelper
                 chophelper = ChopHelper(dataq, options)
                 chop = chophelper.setup_main()
 
@@ -558,7 +644,7 @@ class ChopLib(Thread):
                     modinf = mod[0].moduleName + ":"
                     modtxt = None
                     try:
-                        modtxt = mod[0].module_info() 
+                        modtxt = mod[0].module_info()
                         if modtxt is not None:
                             modtxt = modtxt + "\n"
                         else:
@@ -579,17 +665,17 @@ class ChopLib(Thread):
                     chop.prnt(modinf, modtxt)
 
                 #Restore stdout
-                sys.stdout = orig_stdout 
-        
+                sys.stdout = orig_stdout
+
 
                 outq.put('fini')
-                sys.exit(0) 
+                sys.exit(0)
 
             elif data[0] == 'cont':
                 break
             elif data[0] == 'stop': #Some error must have occurred
                 sys.exit(0)
-            else: 
+            else:
                 #FIXME custom exception?
                 raise Exception("Unknown message")
 
@@ -602,7 +688,7 @@ class ChopLib(Thread):
         #Setup Core and its modules
         ccore.prep_modules()
 
-        
+
         if autostart:
             ccore.start()
 
