@@ -614,6 +614,7 @@ class ChopLib(Thread):
                 sys.exit(0) 
             elif data[0] == 'mod_list':
                 all_mods = []
+                chop.prnt("Searching for modules in '%s'" % mod_dir)
                 for dirname, dirnames, filenames in os.walk(mod_dir):
                     for filename in filenames:
                         try:
@@ -626,9 +627,9 @@ class ChopLib(Thread):
                             pass
                     break # only search mod_dir - no any subdirs - as modules are not available recursively
                 if not all_mods:
-                    chop.prnt("No modules found in '%s'" % mod_dir)
+                    chop.prnt("No modules found")
                 else:
-                    chop.prnt("Modules found in '%s'" % mod_dir)
+                    chop.prnt("Modules found: ")
                     chop.prnt(", ".join(all_mods))
                     
                 outq.put('fini')
