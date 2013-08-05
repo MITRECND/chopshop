@@ -626,9 +626,9 @@ class ChopLib(Thread):
                             pass
                     break # only search mod_dir - no any subdirs - as modules are not available recursively
                 if not all_mods:
-                    chop.prnt("No modules found in directory")
+                    chop.prnt("No modules found in '%s'" % mod_dir)
                 else:
-                    chop.prnt("Modules found in directory:")
+                    chop.prnt("Modules found in '%s'" % mod_dir)
                     chop.prnt(", ".join(all_mods))
                     
                 outq.put('fini')
