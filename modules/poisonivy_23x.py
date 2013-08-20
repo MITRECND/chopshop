@@ -72,17 +72,29 @@ def portlist(data):
             if remoteip == "0.0.0.0":
                 remoteport = "*"
                 remoteip = "*"
-        pid = unpack("<I",data[:4])[0]
-        data = data[4:]
-        proclen = ord(data[0])
-        data = data[1:]
+        (pid, proclen) = unpack("<IB",data[:5])[0]
+        data = data[5:]
         procname = data[:proclen]
         procname = string.strip(procname, "\x00")
         data = data[proclen:]
         if proto == "TCP":
-            chop.prnt("%s\t\t%s\t\t%s\t\t%s\t\t%s\t\t%s\t\t%s\t\t%s" % (proto,localip,localport,remoteip,remoteport,statuses.get(status,status),pid,procname))
+            chop.prnt("%s\t\t%s\t\t%s\t\t%s\t\t%s\t\t%s\t\t%s\t\t%s" % (proto,
+                       localip,
+                       localport,
+                       remoteip,
+                       remoteport,
+                       statuses.get(status, "UNKNOWN: 0x%x" % status),
+                       pid,
+                       procname))
         else:
-            chop.prnt("%s\t\t%s\t\t%s\t\t%s\t\t%s\t\t%s\t\t%s\t\t%s" % (proto,localip,localport,"*","*","*",pid,procname))
+            chop.prnt("%s\t\t%s\t\t%s\t\t%s\t\t%s\t\t%s\t\t%s\t\t%s" % (proto,
+                       localip,
+                       localport,
+                       "*",
+                       "*",
+                       "*",
+                       pid,
+                       procname))
 
 def dirEnt(data):
     # Print either the directory name (if) or it's contents (else)
