@@ -153,19 +153,14 @@ def hostinfo(data):
     i = i+1+ord(data[i])
     producttype = ord(data[i])
     i += 5
-    majorver = unpack("<I",data[i:i+4])[0]
-    i += 4
-    minorver = unpack("<I",data[i:i+4])[0]
-    i += 4
-    build = unpack("<I",data[i:i+4])[0]
-    i += 8
+    (majorver, minorver, build) = unpack("<III",data[i:i+12])
+    i += 16 # Not sure why skipping another 4 bytes
     csd = ""
     if (ord(data[i]) >= 32 and ord(data[i]) <= 126):
         for i in range(i, len(data[i:])):
             if ord(data[i]) == 0:
                 break
             csd += data[i]
-
 
     if majorver == 5 and minorver == 0:
         osver = "Windows 2000"
