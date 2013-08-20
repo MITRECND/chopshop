@@ -1292,7 +1292,7 @@ def teardown(tcp):
     pass
 
 def module_info():
-    print "Poison Ivy 2.3.X network protocol decoder"
+    return "Poison Ivy 2.3.X network protocol decoder"
 
 def shutdown(module_data):
     pass
