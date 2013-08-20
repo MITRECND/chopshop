@@ -856,7 +856,7 @@ def init(module_data):
             for i in range(32 - len(module_data['key'])):
                 module_data['key']+="\x00"
 
-        module_data['camcrypt'].keygen(256,module_data['key'])
+        module_data['camcrypt'].keygen(256, module_data['key'])
 
     elif not os.path.exists(module_data['pwlist']):
         module_options = { 'proto': 'tcp', 'error':  "Supplied password list does not exist.."}
@@ -864,17 +864,7 @@ def init(module_data):
 
     module_data['filecount'] = 1
 
-    if module_data['savefiles']:
-        chop.prnt("Transferred files will be saved..")
-
-    if module_data['savelistings']:
-        chop.prnt("Listings will be saved..")
-
-    if module_data['savecaptures']:
-        chop.prnt("Screen/Cam/Audio/Key captures will be saved..")
-
     module_options = { 'proto': 'tcp' }
-
     return module_options
 
 def handleStream(tcp):
