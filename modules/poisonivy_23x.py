@@ -253,15 +253,15 @@ def installedlist(data):
 def passwordlist(data):
     if len(data) == 0:
         chop.tsprnt("*** Password Listing Request - Nothing Found ***")
-    else:
-        chop.tsprnt("*** Password Listing Sent ***")
-        if module_data['savelistings']:
-            filename = "PI-password-listing-%d.txt" % module_data['filecount']
-            module_data['filecount'] += 1
-            chop.savefile(filename, data)
-            chop.prnt("%s saved.." % filename)
-    return
+        return
 
+    chop.tsprnt("*** Password Listing Sent ***")
+    if module_data['savelistings']:
+        filename = "PI-password-listing-%d.txt" % module_data['filecount']
+        module_data['filecount'] += 1
+        chop.savefile(filename, data)
+        chop.prnt("%s saved.." % filename)
+    return
 
 def nofilesearchresults(data):
     chop.tsprnt("*** End of File Search Results ***")
@@ -372,20 +372,7 @@ def audio(data, tcp):
         filename = "PI-extracted-file-%d-audio.raw" % module_data['filecount']
         module_data['filecount'] += 1
         chop.savefile(filename, data)
-        #cmd = ["sox", "-b", str(tcp.stream_data['audio-bits']), "-c", str(tcp.stream_data['audio-channels']), "-r", str(tcp.stream_data['audio-sample']), "-e", "unsigned-integer", filename, filename + ".wav"]
-
         chop.prnt("audio capture was saved in RAW format as %s" % filename)
-
-        #try:
-        #    ret = subprocess.call(cmd)
-        #except:
-        #    chop.prnt("sox not installed, audio was saved in RAW format as %s" % filename)
-
-        #if ret == 0:
-        #    os.remove(filename)
-        #    chop.prnt("audio was saved in WAV format as %s" % filename + ".wav")
-        #else:
-        #    chop.prnt("problem with conversion, audio was saved in RAW format as %s" % filename)
     return
 
 def screenshot(data):
@@ -400,60 +387,63 @@ def screenshot(data):
 def keylog(data):
     if len(data) == 0:
         chop.tsprnt("*** Keystroke Data Request - Nothing Found ***")
-    else:
-        chop.tsprnt("*** Keystroke Data Sent ***")
-        if module_data['savecaptures'] and len(data) > 0:
-            filename = "PI-extracted-file-%d-keystrokes.txt" % module_data['filecount']
-            module_data['filecount'] += 1
-            chop.savefile(filename, data)
-            chop.prnt("%s saved.." % filename)
+        return
+
+    chop.tsprnt("*** Keystroke Data Sent ***")
+    if module_data['savecaptures'] and len(data) > 0:
+        filename = "PI-extracted-file-%d-keystrokes.txt" % module_data['filecount']
+        module_data['filecount'] += 1
+        chop.savefile(filename, data)
+        chop.prnt("%s saved.." % filename)
     return
 
 def cachedpwlist(data):
     if len(data) == 0:
         chop.tsprnt("*** Cached Password Request - Nothing Found ***")
-    else:
-        chop.tsprnt("*** Cached Password Listing Sent ***")
-        if module_data['savelistings']:
-            filename = "PI-cachedpw-listing-%d.txt" % module_data['filecount']
-            module_data['filecount'] += 1
-            chop.savefile(filename, data)
-            chop.prnt("%s saved.." % filename)
+        return
+
+    chop.tsprnt("*** Cached Password Listing Sent ***")
+    if module_data['savelistings']:
+        filename = "PI-cachedpw-listing-%d.txt" % module_data['filecount']
+        module_data['filecount'] += 1
+        chop.savefile(filename, data)
+        chop.prnt("%s saved.." % filename)
     return
 
 def ntlmhashlist(data):
     if len(data) == 0:
         chop.tsprnt("*** NT/NTLM Hash Listing Request - Nothing Found ***")
-    else:
-        chop.tsprnt("*** NT/NTLM Hash Listing Sent ***")
-        while data != "":
-            nthash = binascii.hexlify(data[:16])
-            lmhash = binascii.hexlify(data[16:32])
-            userlen = unpack("<I", data[32:36])[0]
-            username = data[36:36+userlen]
-            chop.prnt("User Name: %s" % username)
-            chop.prnt("LM Hash: %s" % lmhash)
-            chop.prnt("NT Hash: %s" % nthash)
-            chop.prnt("*" * 41)
-            data = data[36+userlen:]
+        return
 
+    chop.tsprnt("*** NT/NTLM Hash Listing Sent ***")
+    while data != "":
+        nthash = binascii.hexlify(data[:16])
+        lmhash = binascii.hexlify(data[16:32])
+        userlen = unpack("<I", data[32:36])[0]
+        username = data[36:36+userlen]
+        chop.prnt("User Name: %s" % username)
+        chop.prnt("LM Hash: %s" % lmhash)
+        chop.prnt("NT Hash: %s" % nthash)
+        chop.prnt("*" * 41)
+        data = data[36+userlen:]
     return
 
 def wirelesspwlist(data):
     if len(data) == 0:
         chop.tsprnt("*** Wireless Listing Request - Nothing Found ***")
-    else:
-        chop.tsprnt("*** Wireless Listing Sent ***")
-        if module_data['savelistings']:
-            filename = "PI-wireless-listing-%d.txt" % module_data['filecount']
-            module_data['filecount'] += 1
-            chop.savefile(filename, data)
-            chop.prnt("%s saved.." % filename)
         return
+    chop.tsprnt("*** Wireless Listing Sent ***")
+    if module_data['savelistings']:
+        filename = "PI-wireless-listing-%d.txt" % module_data['filecount']
+        module_data['filecount'] += 1
+        chop.savefile(filename, data)
+        chop.prnt("%s saved.." % filename)
+    return
 
 def analyzeCode(code, type, tcp=None):
     if module_data['debug']:
         chop.tsprnt("code: %s" % hexdump(code))
+
     if type == 0x5c:
         #look for audio data parameters at the end of the code
         audioparams = code[-32:]
@@ -698,29 +688,6 @@ def analyzeCode(code, type, tcp=None):
         chop.prnt("Destination IP: %s" % dstip)
         chop.prnt("Destination Port: %d" % dstport)
     return
-
-def decompress(buf):
-    return lznt1.dCompressBuf(buf)
-
-    complen = len(buf)
-    lznt1header = buf[0:2]
-    if len(lznt1header) == 2:
-        lznt1header = unpack("<H",lznt1header)[0]
-        if lznt1header & 0x8000 != 0 and lznt1header & 0xFFF == complen - 3:
-
-            outsize = 0xFFFFFF
-            inbuf = create_string_buffer(buf)
-            outbuf = create_string_buffer(outsize)
-            size = module_data['nt'].lznt1_decompress(
-                        inbuf,
-                        complen,
-                        outbuf,
-                        outsize
-                         )
-            decompressed = outbuf[0:size]
-            return decompressed
-
-    return None
 
 #returns listid and bool for new PI stream
 def getHeaders(direction, buf, tcp):
@@ -1045,13 +1012,13 @@ def handleStream(tcp):
                         decrypted = CamelliaDecrypt(tcp.stream_data['client_buffer'][:tcp.stream_data['inbound_chunk_size'].get(listid)], module_data['camcrypt'], tcp.stream_data.get('xor', None))
                         tcp.stream_data['client_buffer'] = tcp.stream_data['client_buffer'][tcp.stream_data['inbound_chunk_size'].get(listid):]
                         if tcp.stream_data['inbound_unpadded_chunk_size'].get(listid) != tcp.stream_data['inbound_decompressed_chunk_size'].get(listid):
-                            buf = decompress(decrypted[:tcp.stream_data['inbound_unpadded_chunk_size'].get(listid)])
+                            buf = lznt1.dCompressBuf(decrypted[:tcp.stream_data['inbound_unpadded_chunk_size'].get(listid)])
                             if buf == None:
                                 chop.tsprnt("decompression error: %s" % hexdump(decrypted))
                                 tcp.stop()
                         else:
                             buf = decrypted[:tcp.stream_data['inbound_unpadded_chunk_size'].get(listid)]
-                        #decompressed = decompress(decrypted[:tcp.stream_data['inbound_unpadded_chunk_size']])
+                        #decompressed = lznt1.dCompressBuf(decrypted[:tcp.stream_data['inbound_unpadded_chunk_size']])
                         filename = string.strip(buf, "\x00")
                         tcp.stream_data['inbound_filename'][listid] = "PI-extracted-inbound-file-%d-%s" % (module_data['filecount'], filename[string.rfind(filename, "\\")+1:])
                         module_data['filecount'] += 1
@@ -1075,7 +1042,7 @@ def handleStream(tcp):
                 decrypted = decrypted[:tcp.stream_data['inbound_unpadded_chunk_size'].get(listid)]
                 buf = decrypted
                 if tcp.stream_data['inbound_unpadded_chunk_size'].get(listid) != tcp.stream_data['inbound_decompressed_chunk_size'].get(listid):
-                    buf = decompress(decrypted)
+                    buf = lznt1.dCompressBuf(decrypted)
                     if buf == None:
                         chop.tsprnt("decompression error: %s" % hexdump(decrypted))
                         tcp.stop()
@@ -1135,7 +1102,7 @@ def handleStream(tcp):
                         #handle file data
                         decrypted = CamelliaDecrypt(tcp.stream_data['server_buffer'][:tcp.stream_data['outbound_chunk_size'].get(listid)], module_data['camcrypt'], tcp.stream_data.get('xor', None))
                         if tcp.stream_data['outbound_unpadded_chunk_size'].get(listid) != tcp.stream_data['outbound_decompressed_chunk_size'].get(listid):
-                            buf = decompress(decrypted[:tcp.stream_data['outbound_unpadded_chunk_size'].get(listid)])
+                            buf = lznt1.dCompressBuf(decrypted[:tcp.stream_data['outbound_unpadded_chunk_size'].get(listid)])
                             if buf == None:
                                 chop.tsprnt("decompression error: %s" % hexdump(decrypted))
                                 tcp.stop()
@@ -1166,7 +1133,7 @@ def handleStream(tcp):
                 decrypted = decrypted[:tcp.stream_data['outbound_unpadded_chunk_size'].get(listid)]
                 buf = decrypted
                 if tcp.stream_data['outbound_unpadded_chunk_size'].get(listid) != tcp.stream_data['outbound_decompressed_chunk_size'].get(listid):
-                    buf = decompress(decrypted)
+                    buf = lznt1.dCompressBuf(decrypted)
                     if buf == None:
                         chop.tsprnt("decompression error: %s" % hexdump(decrypted))
                         tcp.stop()
