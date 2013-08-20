@@ -783,29 +783,6 @@ def pad(buf):
 
     return buf
 
-def getHexDump(dat, ascii=False):
-        hexdump = ""
-        nl = False
-        for i in range(len(dat)):
-            if i % 16 == 0:
-                nl = True
-                hexdump += "\n%08X    " % i
-            else:
-                nl = False
-
-            if not ascii:
-                hexdump += binascii.hexlify(dat[i]) + " "
-            else:
-                if (ord(dat[i]) >= 32 and ord(dat[i]) <= 126):
-                    hexdump += dat[i] + "  "
-                else:
-                    hexdump += binascii.hexlify(dat[i]) + " "
-
-            if not nl and (i+1) % 8 == 0:
-                hexdump += "   "
-
-        return hexdump
-
 def CamelliaEncrypt(buf, camobj, xor=None):
     out = ""
     for i in range(0, len(buf), 16):
