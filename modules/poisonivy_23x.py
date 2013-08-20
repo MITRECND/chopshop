@@ -832,10 +832,6 @@ def init(module_data):
     module_data['verbose'] = opts.verbose
     module_data['pwlist'] = opts.pwlist
     module_data['debug'] = opts.debug
-    if module_data['verbose']:
-        chop.prnt("Verbose output enabled.")
-    if module_data['debug']:
-        chop.prnt("Debug output enabled.")
 
     try:
         if opts.libpath != "":
