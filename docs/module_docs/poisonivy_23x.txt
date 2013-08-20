@@ -1,4 +1,5 @@
-# Copyright (c) 2013 FireEye, Inc. & The MITRE Corporation. All rights reserved.
+# Copyright (c) 2013 FireEye, Inc. All rights reserved.
+# Copyright (c) 2013 The MITRE Corporation. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
