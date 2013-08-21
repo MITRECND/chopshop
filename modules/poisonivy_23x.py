@@ -643,23 +643,23 @@ def analyzeCode(code, type, tcp=None):
         if ord(code[p]) == 1:
             p += 1
             userend = p + 1 + ord(code[p])
-            user = code[p+1:userend]
+            user = code[p + 1:userend]
             pwend = userend + 1 + ord(code[userend])
-            pw = code[userend+1:pwend]
+            pw = code[userend + 1:pwend]
             srcipend = pwend + 1 + ord(code[pwend])
-            srcip = code[pwend+1:srcipend]
+            srcip = code[pwend + 1:srcipend]
             dstipend = srcipend + 1 + ord(code[srcipend])
-            dstip = code[srcipend+1:dstipend]
-            dstport = unpack("<H", code[dstipend:dstipend+2])[0]
+            dstip = code[srcipend + 1:dstipend]
+            dstport = unpack("<H", code[dstipend:dstipend + 2])[0]
 
         elif ord(code[p]) != 0:
             userend = p + 1 + ord(code[p])
-            user = code[p+1:userend]
+            user = code[p + 1:userend]
             srcipend = userend + 1 + ord(code[userend])
-            srcip = code[userend+1:srcipend]
+            srcip = code[userend + 1:srcipend]
             dstipend = srcipend + 1 + ord(code[srcipend])
-            dstip = code[srcipend+1:dstipend]
-            dstport = unpack("<H", code[dstipend:dstipend+2])[0]
+            dstip = code[srcipend + 1:dstipend]
+            dstport = unpack("<H", code[dstipend:dstipend + 2])[0]
 
         chop.prnt("Relay Type: %s" % type)
         chop.prnt("Relay Port: %d" % relayport)
