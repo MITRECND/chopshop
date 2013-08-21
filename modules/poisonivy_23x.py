@@ -142,27 +142,27 @@ def hostinfo(data):
     for i in range(len(data)):
         if ord(data[i]) == 0:
             continue
-        match = re.match(str_regex,data[i+1:i+1+ord(data[i])])
+        match = re.match(str_regex,data[i + 1:i + 1 + ord(data[i])])
         if match is not None:
             profileid = match.group(1)
             #move past profile string
-            i = i+1+ord(data[i])
+            i = i + 1 + ord(data[i])
             break
 
     #check for profile group string
     if ord(data[i]) != 0:
         groupend = i + 1 + ord(data[i])
-        profilegroup = data[i+1:groupend]
+        profilegroup = data[i + 1:groupend]
         i = groupend
     else:
         i += 1
 
-    ip = socket.inet_ntoa(data[i:i+4])
+    ip = socket.inet_ntoa(data[i:i + 4])
     i += 4
-    hostname = data[i+1:i+1+ord(data[i])]
-    i = i+1+ord(data[i])
-    username = data[i+1:i+1+ord(data[i])]
-    i = i+1+ord(data[i])
+    hostname = data[i + 1:i + 1 + ord(data[i])]
+    i = i + 1 + ord(data[i])
+    username = data[i + 1:i + 1 + ord(data[i])]
+    i = i + 1 + ord(data[i])
     producttype = ord(data[i])
     i += 5
     (majorver, minorver, build) = unpack("<III",data[i:i+12])
@@ -497,7 +497,7 @@ def analyzeCode(code, type, tcp=None):
         else:
             p += 4
 
-        if code[p+ord(code[p])] == "\\":
+        if code[p + ord(code[p])] == "\\":
             dirend = p + 1 + ord(code[p])
             dirstart = p + 1
 
@@ -507,11 +507,11 @@ def analyzeCode(code, type, tcp=None):
         if code[p] == "\x00":
             p += 1
             type = "word in file"
-            termend = p+1+ord(code[p])
+            termend = p + 1 + ord(code[p])
             term = code[p+1:termend]
         else:
             type = "file name"
-            termend = p+1+ord(code[p])
+            termend = p + 1 + ord(code[p])
             term = code[p+1:termend]
             termend += 1
 
@@ -552,7 +552,7 @@ def analyzeCode(code, type, tcp=None):
             root = "??"
         p += 4
 
-        if code[p+ord(code[p])] == "\\":
+        if code[p + ord(code[p])] == "\\":
             keyend = p + 1 + ord(code[p])
             keystart = p + 1
         else:
@@ -560,9 +560,9 @@ def analyzeCode(code, type, tcp=None):
             return
 
         key = code[keystart:keyend]
-        p = keyend+4
+        p = keyend + 4
 
-        termend = p+1+ord(code[p])
+        termend = p + 1 + ord(code[p])
         term = code[p+1:termend]
 
         options = ""
