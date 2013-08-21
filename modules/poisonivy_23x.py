@@ -700,33 +700,35 @@ def analyzeCode(code, type, tcp=None):
 
 #returns listid and bool for new PI stream
 def getHeaders(direction, buf, tcp):
-    buf = CamelliaDecrypt(buf, module_data['camcrypt'], tcp.stream_data.get('xor', None))
+    sd = tcp.stream_data
+
+    buf = CamelliaDecrypt(buf, module_data['camcrypt'], sd.get('xor', None))
     listid = unpack("<I",buf[4:8])[0]
     type = unpack("<I",buf[0:4])[0]
     newstream = False
     if module_data['debug']:
         chop.tsprnt("%s headers: %s" % (direction,hexdump(buf)))
     if direction == "in":
-        if tcp.stream_data['inbound_type'].get(listid, -1) != type:
+        if sd['inbound_type'].get(listid, -1) != type:
             newstream = True
-        tcp.stream_data['inbound_type'][listid] = type
-        tcp.stream_data['inbound_chunk_size'][listid] = unpack("<I",buf[8:12])[0]
-        tcp.stream_data['inbound_total_size'][listid] = unpack("<q",buf[20:28])[0]
-        tcp.stream_data['inbound_unpadded_chunk_size'][listid] = unpack("<I",buf[12:16])[0]
-        tcp.stream_data['inbound_decompressed_chunk_size'][listid] = unpack("<I",buf[16:20])[0]
-        if tcp.stream_data['client_collect_buffer'].get(listid) == None:
-            tcp.stream_data['client_collect_buffer'][listid] = ""
+        sd['inbound_type'][listid] = type
+        sd['inbound_chunk_size'][listid] = unpack("<I",buf[8:12])[0]
+        sd['inbound_total_size'][listid] = unpack("<q",buf[20:28])[0]
+        sd['inbound_unpadded_chunk_size'][listid] = unpack("<I",buf[12:16])[0]
+        sd['inbound_decompressed_chunk_size'][listid] = unpack("<I",buf[16:20])[0]
+        if sd['client_collect_buffer'].get(listid) == None:
+            sd['client_collect_buffer'][listid] = ""
 
     else:
-        if tcp.stream_data['outbound_type'].get(listid, -1) != type:
+        if sd['outbound_type'].get(listid, -1) != type:
             newstream = True
-        tcp.stream_data['outbound_type'][listid] = type
-        tcp.stream_data['outbound_chunk_size'][listid] = unpack("<I",buf[8:12])[0]
-        tcp.stream_data['outbound_total_size'][listid] = unpack("<q",buf[20:28])[0]
-        tcp.stream_data['outbound_unpadded_chunk_size'][listid] = unpack("<I",buf[12:16])[0]
-        tcp.stream_data['outbound_decompressed_chunk_size'][listid] = unpack("<I",buf[16:20])[0]
-        if tcp.stream_data['server_collect_buffer'].get(listid) == None:
-            tcp.stream_data['server_collect_buffer'][listid] = ""
+        sd['outbound_type'][listid] = type
+        sd['outbound_chunk_size'][listid] = unpack("<I",buf[8:12])[0]
+        sd['outbound_total_size'][listid] = unpack("<q",buf[20:28])[0]
+        sd['outbound_unpadded_chunk_size'][listid] = unpack("<I",buf[12:16])[0]
+        sd['outbound_decompressed_chunk_size'][listid] = unpack("<I",buf[16:20])[0]
+        if sd['server_collect_buffer'].get(listid) == None:
+            sd['server_collect_buffer'][listid] = ""
 
     return (listid, newstream)
 
@@ -875,189 +877,192 @@ def init(module_data):
     return module_options
 
 def handleStream(tcp):
+    sd = tcp.stream_data
+    md = tcp.module_data
+
     if tcp.client.count_new > 0:
-        tcp.stream_data['client_buffer'] += tcp.client.data[:tcp.client.count_new]
-        if tcp.stream_data['client_state'] == "challenged":
-            if len(tcp.stream_data['client_buffer']) >= 256:
-                challenge_resp = tcp.stream_data['client_buffer'][:256]
-                tcp.stream_data['client_buffer'] = tcp.stream_data['client_buffer'][256:]
-                if module_data['pwlist']:
-                    if TryKeyList(module_data['pwlist'], tcp.stream_data['challenge'], challenge_resp, module_data['camcrypt']):
-                        if module_data['verbose'] or module_data['debug']:
+        sd['client_buffer'] += tcp.client.data[:tcp.client.count_new]
+        if sd['client_state'] == "challenged":
+            if len(sd['client_buffer']) >= 256:
+                challenge_resp = sd['client_buffer'][:256]
+                sd['client_buffer'] = sd['client_buffer'][256:]
+                if md['pwlist']:
+                    if TryKeyList(md['pwlist'], sd['challenge'], challenge_resp, md['camcrypt']):
+                        if md['verbose'] or md['debug']:
                             chop.tsprnt("PI challenge response accepted..")
-                        tcp.stream_data['client_state'] = "challenge_accepted"
+                        sd['client_state'] = "challenge_accepted"
                         tcp.discard(tcp.client.count_new)
                         return
-                if challenge_resp == CamelliaEncrypt(tcp.stream_data['challenge'], module_data['camcrypt']):
-                    if module_data['verbose'] or module_data['debug']:
+                if challenge_resp == CamelliaEncrypt(sd['challenge'], md['camcrypt']):
+                    if md['verbose'] or md['debug']:
                         chop.tsprnt("PI challenge response accepted..")
-                    tcp.stream_data['client_state'] = "challenge_accepted"
+                    sd['client_state'] = "challenge_accepted"
                     tcp.discard(tcp.client.count_new)
                     return
                 else:
-                    tcp.stream_data['client_state'] = "challenge_failed"
-                    if module_data['verbose'] or module_data['debug']:
+                    sd['client_state'] = "challenge_failed"
+                    if md['verbose'] or md['debug']:
                         chop.tsprnt("PI challenge response not valid for supplied passwords(s), skipping stream..")
-                    #tcp.stream_data['challenge_accepted'] = True
+                    #sd['challenge_accepted'] = True
                     tcp.stop()
                     return
 
-        if tcp.stream_data['client_state'] == "double_challenged":
-            if len(tcp.stream_data['client_buffer']) >= 260:
-                challenge_resp = tcp.stream_data['client_buffer'][:256]
-                tcp.stream_data['client_buffer'] = tcp.stream_data['client_buffer'][256:]
+        if sd['client_state'] == "double_challenged":
+            if len(sd['client_buffer']) >= 260:
+                challenge_resp = sd['client_buffer'][:256]
+                sd['client_buffer'] = sd['client_buffer'][256:]
                 (a, b) = struct.unpack('>HH', tcp.client.data[:4])
                 a ^= 0xd015
                 if a != b:
-                    tcp.stream_data['client_state'] = "challenge_failed"
-                    if module_data['verbose'] or module_data['debug']:
+                    sd['client_state'] = "challenge_failed"
+                    if md['verbose'] or md['debug']:
                         chop.tsprnt("PI challenge not valid, skipping stream..")
                     tcp.stop()
                     return
-                tcp.stream_data['xor'] = a & 0xFF
-                chop.tsprnt("PI double nonce xor variant, xor key: %02X" % tcp.stream_data['xor'])
-                if module_data['pwlist']:
-                    if TryKeyList(module_data['pwlist'], tcp.stream_data['challenge'], challenge_resp, module_data['camcrypt'], tcp.stream_data['xor']):
-                        if module_data['verbose'] or module_data['debug']:
+                sd['xor'] = a & 0xFF
+                chop.tsprnt("PI double nonce xor variant, xor key: %02X" % sd['xor'])
+                if md['pwlist']:
+                    if TryKeyList(md['pwlist'], sd['challenge'], challenge_resp, md['camcrypt'], sd['xor']):
+                        if md['verbose'] or md['debug']:
                             chop.tsprnt("PI challenge response accepted..")
-                        tcp.stream_data['client_state'] = "challenge_accepted"
+                        sd['client_state'] = "challenge_accepted"
                         tcp.discard(tcp.client.count_new)
                         return
-                if challenge_resp == CamelliaEncrypt(one_byte_xor(tcp.stream_data['challenge'], tcp.stream_data['xor']), module_data['camcrypt'], tcp.stream_data['xor']):
-                    if module_data['verbose'] or module_data['debug']:
+                if challenge_resp == CamelliaEncrypt(one_byte_xor(sd['challenge'], sd['xor']), md['camcrypt'], sd['xor']):
+                    if md['verbose'] or md['debug']:
                         chop.tsprnt("PI challenge response accepted..")
-                    tcp.stream_data['client_state'] = "challenge_accepted"
+                    sd['client_state'] = "challenge_accepted"
                     tcp.discard(tcp.client.count_new)
                     return
                 else:
-                    tcp.stream_data['client_state'] = "challenge_failed"
-                    if module_data['verbose'] or module_data['debug']:
+                    sd['client_state'] = "challenge_failed"
+                    if md['verbose'] or md['debug']:
                         chop.tsprnt("PI double challenge response not valid for supplied passwords(s), skipping stream..")
-                    #tcp.stream_data['challenge_accepted'] = True
+                    #sd['challenge_accepted'] = True
                     tcp.stop()
                     return
 
-        if tcp.stream_data['client_state'] == "challenge_accepted":
-            if len(tcp.stream_data['client_buffer']) >= 4:
-                if 'xor' in tcp.stream_data:
-                    tcp.stream_data['init_size'] = unpack("<I",one_byte_xor(tcp.stream_data['client_buffer'][:4], tcp.stream_data['xor']))[0]
+        if sd['client_state'] == "challenge_accepted":
+            if len(sd['client_buffer']) >= 4:
+                if 'xor' in sd:
+                    sd['init_size'] = unpack("<I",one_byte_xor(sd['client_buffer'][:4], sd['xor']))[0]
                 else:
-                    tcp.stream_data['init_size'] = unpack("<I",tcp.stream_data['client_buffer'][:4])[0]
-                tcp.stream_data['client_state'] = "init_code_collection"
-                tcp.stream_data['client_buffer'] = tcp.stream_data['client_buffer'][4:]
+                    sd['init_size'] = unpack("<I",sd['client_buffer'][:4])[0]
+                sd['client_state'] = "init_code_collection"
+                sd['client_buffer'] = sd['client_buffer'][4:]
 
 
-        if tcp.stream_data['client_state'] == "init_code_collection":
-            if tcp.stream_data['init_size'] <= len(tcp.stream_data['client_buffer']):
-                tcp.stream_data['client_state'] = "init_code_collected"
-                #decrypted = CamelliaDecrypt(tcp.stream_data['client_buffer'][:tcp.stream_data['init_size']],module_data['camcrypt'])
-                if module_data['debug']:
-                    chop.tsprnt("init code size: %08X" % tcp.stream_data['init_size'])
-                tcp.stream_data['client_buffer'] = tcp.stream_data['client_buffer'][tcp.stream_data['init_size']:]
+        if sd['client_state'] == "init_code_collection":
+            if sd['init_size'] <= len(sd['client_buffer']):
+                sd['client_state'] = "init_code_collected"
+                #decrypted = CamelliaDecrypt(sd['client_buffer'][:sd['init_size']],md['camcrypt'])
+                if md['debug']:
+                    chop.tsprnt("init code size: %08X" % sd['init_size'])
+                sd['client_buffer'] = sd['client_buffer'][sd['init_size']:]
 
-        if tcp.stream_data['client_state'] == "init_code_collected":
-            if len(tcp.stream_data['client_buffer']) >= 4:
-                if 'xor' in tcp.stream_data:
-                    tcp.stream_data['version'] = unpack("<I", one_byte_xor(tcp.stream_data['client_buffer'][:4], tcp.stream_data['xor']))[0]
+        if sd['client_state'] == "init_code_collected":
+            if len(sd['client_buffer']) >= 4:
+                if 'xor' in sd:
+                    sd['version'] = unpack("<I", one_byte_xor(sd['client_buffer'][:4], sd['xor']))[0]
                 else:
-                    tcp.stream_data['version'] = unpack("<I", tcp.stream_data['client_buffer'][:4])[0]
-                tcp.stream_data['client_buffer'] = tcp.stream_data['client_buffer'][4:]
-                tcp.stream_data['client_state'] = "version_collected"
-                chop.tsprnt("Poison Ivy Version: %0.2f" % (tcp.stream_data['version'] / 100.00))
+                    sd['version'] = unpack("<I", sd['client_buffer'][:4])[0]
+                sd['client_buffer'] = sd['client_buffer'][4:]
+                sd['client_state'] = "version_collected"
+                chop.tsprnt("Poison Ivy Version: %0.2f" % (sd['version'] / 100.00))
 
-        if tcp.stream_data['client_state'] == "version_collected":
-            if len(tcp.stream_data['client_buffer']) >= 4:
-                if 'xor' in tcp.stream_data:
-                    tcp.stream_data['init_size'] = unpack("<I",one_byte_xor(tcp.stream_data['client_buffer'][:4], tcp.stream_data['xor']))[0]
+        if sd['client_state'] == "version_collected":
+            if len(sd['client_buffer']) >= 4:
+                if 'xor' in sd:
+                    sd['init_size'] = unpack("<I",one_byte_xor(sd['client_buffer'][:4], sd['xor']))[0]
                 else:
-                    tcp.stream_data['init_size'] = unpack("<I",tcp.stream_data['client_buffer'][:4])[0]
-                tcp.stream_data['client_buffer'] = tcp.stream_data['client_buffer'][4:]
-                tcp.stream_data['client_state'] = "stub_code_collection"
-                if module_data['debug']:
-                    chop.tsprnt("stub code size: %08X" % tcp.stream_data['init_size'])
+                    sd['init_size'] = unpack("<I",sd['client_buffer'][:4])[0]
+                sd['client_buffer'] = sd['client_buffer'][4:]
+                sd['client_state'] = "stub_code_collection"
+                if md['debug']:
+                    chop.tsprnt("stub code size: %08X" % sd['init_size'])
 
-        if tcp.stream_data['client_state'] == "stub_code_collection":
-            if tcp.stream_data['init_size'] <= len(tcp.stream_data['client_buffer']):
-                tcp.stream_data['client_state'] = "stub_code_collected"
-                if module_data['debug']:
+        if sd['client_state'] == "stub_code_collection":
+            if sd['init_size'] <= len(sd['client_buffer']):
+                sd['client_state'] = "stub_code_collected"
+                if md['debug']:
                     chop.tsprnt("stub code collected..")
-                tcp.stream_data['client_buffer'] = tcp.stream_data['client_buffer'][tcp.stream_data['init_size']:]
+                sd['client_buffer'] = sd['client_buffer'][sd['init_size']:]
 
-        if tcp.stream_data['client_state'] == "stub_code_collected":
+        if sd['client_state'] == "stub_code_collected":
             #initialization complete
-            if module_data['debug']:
+            if md['debug']:
                 chop.tsprnt("init complete..")
-            tcp.stream_data['client_state'] = "read_header"
-            tcp.stream_data['server_state'] = "read_header"
-            tcp.stream_data['server_buffer'] = ""
+            sd['client_state'] = "read_header"
+            sd['server_state'] = "read_header"
+            sd['server_buffer'] = ""
 
 
-        if tcp.stream_data['client_state'] == "read_header":
-            listid = tcp.stream_data['client_cur_listid']
-            if len(tcp.stream_data['client_buffer']) >= 32:
-                (tcp.stream_data['client_cur_listid'], newstream) = getHeaders("in",tcp.stream_data['client_buffer'][:32],tcp)
-                listid = tcp.stream_data['client_cur_listid']
-                tcp.stream_data['client_state'] = "recv_chunk"
-                tcp.stream_data['client_buffer'] = tcp.stream_data['client_buffer'][32:]
+        if sd['client_state'] == "read_header":
+            listid = sd['client_cur_listid']
+            if len(sd['client_buffer']) >= 32:
+                (sd['client_cur_listid'], newstream) = getHeaders("in",sd['client_buffer'][:32],tcp)
+                listid = sd['client_cur_listid']
+                sd['client_state'] = "recv_chunk"
+                sd['client_buffer'] = sd['client_buffer'][32:]
                 if newstream:
-                    if tcp.stream_data['inbound_type'].get(listid) == 6:
+                    if sd['inbound_type'].get(listid) == 6:
                         #handle file data
-                        decrypted = CamelliaDecrypt(tcp.stream_data['client_buffer'][:tcp.stream_data['inbound_chunk_size'].get(listid)], module_data['camcrypt'], tcp.stream_data.get('xor', None))
-                        tcp.stream_data['client_buffer'] = tcp.stream_data['client_buffer'][tcp.stream_data['inbound_chunk_size'].get(listid):]
-                        if tcp.stream_data['inbound_unpadded_chunk_size'].get(listid) != tcp.stream_data['inbound_decompressed_chunk_size'].get(listid):
-                            buf = lznt1.dCompressBuf(decrypted[:tcp.stream_data['inbound_unpadded_chunk_size'].get(listid)])
+                        decrypted = CamelliaDecrypt(sd['client_buffer'][:sd['inbound_chunk_size'].get(listid)], md['camcrypt'], sd.get('xor', None))
+                        sd['client_buffer'] = sd['client_buffer'][sd['inbound_chunk_size'].get(listid):]
+                        if sd['inbound_unpadded_chunk_size'].get(listid) != sd['inbound_decompressed_chunk_size'].get(listid):
+                            buf = lznt1.dCompressBuf(decrypted[:sd['inbound_unpadded_chunk_size'].get(listid)])
                             if buf == None:
                                 chop.tsprnt("decompression error: %s" % hexdump(decrypted))
                                 tcp.stop()
                         else:
-                            buf = decrypted[:tcp.stream_data['inbound_unpadded_chunk_size'].get(listid)]
-                        #decompressed = lznt1.dCompressBuf(decrypted[:tcp.stream_data['inbound_unpadded_chunk_size']])
+                            buf = decrypted[:sd['inbound_unpadded_chunk_size'].get(listid)]
+                        #decompressed = lznt1.dCompressBuf(decrypted[:sd['inbound_unpadded_chunk_size']])
                         filename = string.strip(buf, "\x00")
-                        tcp.stream_data['inbound_filename'][listid] = "PI-extracted-inbound-file-%d-%s" % (module_data['filecount'], filename[string.rfind(filename, "\\")+1:])
-                        module_data['filecount'] += 1
+                        sd['inbound_filename'][listid] = "PI-extracted-inbound-file-%d-%s" % (md['filecount'], filename[string.rfind(filename, "\\")+1:])
+                        md['filecount'] += 1
                         chop.tsprnt("inbound file %s " % filename)
 
-                        tcp.stream_data['client_state'] = "read_header"
+                        sd['client_state'] = "read_header"
 
-                    tcp.stream_data['inbound_size_left'][listid] = tcp.stream_data['inbound_total_size'].get(listid)
+                    sd['inbound_size_left'][listid] = sd['inbound_total_size'].get(listid)
 
-            if tcp.stream_data['inbound_size_left'].get(listid) == 0:
-                    tcp.stream_data['inbound_size_left'][listid] = tcp.stream_data['inbound_total_size'].get(listid)
+            if sd['inbound_size_left'].get(listid) == 0:
+                    sd['inbound_size_left'][listid] = sd['inbound_total_size'].get(listid)
 
 
-        if tcp.stream_data['client_state'] == "recv_chunk":
-            listid = tcp.stream_data['client_cur_listid']
-            if tcp.stream_data['inbound_chunk_size'].get(listid) <= len(tcp.stream_data['client_buffer']):
-                if module_data['debug']:
-                    chop.tsprnt("handling inbound chunk.. %d bytes to go" % tcp.stream_data['inbound_size_left'].get(listid))
-                tcp.stream_data['client_state'] = "read_header"
-                decrypted = CamelliaDecrypt(tcp.stream_data['client_buffer'][:tcp.stream_data['inbound_chunk_size'].get(listid)], module_data['camcrypt'], tcp.stream_data.get('xor', None))
-                decrypted = decrypted[:tcp.stream_data['inbound_unpadded_chunk_size'].get(listid)]
+        if sd['client_state'] == "recv_chunk":
+            listid = sd['client_cur_listid']
+            if sd['inbound_chunk_size'].get(listid) <= len(sd['client_buffer']):
+                if md['debug']:
+                    chop.tsprnt("handling inbound chunk.. %d bytes to go" % sd['inbound_size_left'].get(listid))
+                sd['client_state'] = "read_header"
+                decrypted = CamelliaDecrypt(sd['client_buffer'][:sd['inbound_chunk_size'].get(listid)], md['camcrypt'], sd.get('xor', None))
+                decrypted = decrypted[:sd['inbound_unpadded_chunk_size'].get(listid)]
                 buf = decrypted
-                if tcp.stream_data['inbound_unpadded_chunk_size'].get(listid) != tcp.stream_data['inbound_decompressed_chunk_size'].get(listid):
+                if sd['inbound_unpadded_chunk_size'].get(listid) != sd['inbound_decompressed_chunk_size'].get(listid):
                     buf = lznt1.dCompressBuf(decrypted)
                     if buf == None:
                         chop.tsprnt("decompression error: %s" % hexdump(decrypted))
                         tcp.stop()
-                tcp.stream_data['client_collect_buffer'][listid] += buf
-                tcp.stream_data['client_buffer'] = tcp.stream_data['client_buffer'][tcp.stream_data['inbound_chunk_size'].get(listid):]
-                tcp.stream_data['inbound_size_left'][listid] -= tcp.stream_data['inbound_decompressed_chunk_size'].get(listid)
-                if tcp.stream_data['inbound_type'].get(listid) == 6 and module_data['savefiles']:
+                sd['client_collect_buffer'][listid] += buf
+                sd['client_buffer'] = sd['client_buffer'][sd['inbound_chunk_size'].get(listid):]
+                sd['inbound_size_left'][listid] -= sd['inbound_decompressed_chunk_size'].get(listid)
+                if sd['inbound_type'].get(listid) == 6 and md['savefiles']:
                         #inbound file
-                        chop.savefile(tcp.stream_data['inbound_filename'].get(listid), buf, False)
+                        chop.savefile(sd['inbound_filename'].get(listid), buf, False)
 
-                if tcp.stream_data['inbound_size_left'].get(listid) == 0:
-                    if tcp.stream_data['inbound_type'].get(listid) == 6:
-                        if module_data['savefiles']:
+                if sd['inbound_size_left'].get(listid) == 0:
+                    if sd['inbound_type'].get(listid) == 6:
+                        if md['savefiles']:
                             #inbound file
-                            chop.finalizefile(tcp.stream_data['inbound_filename'].get(listid))
-                            chop.tsprnt("saved %s.." % tcp.stream_data['inbound_filename'].get(listid))
+                            chop.finalizefile(sd['inbound_filename'].get(listid))
+                            chop.tsprnt("saved %s.." % sd['inbound_filename'].get(listid))
                     else:
-                        analyzeCode(tcp.stream_data['client_collect_buffer'].get(listid),tcp.stream_data['inbound_type'].get(listid), tcp)
-                        if module_data['debug']:
+                        analyzeCode(sd['client_collect_buffer'].get(listid),sd['inbound_type'].get(listid), tcp)
+                        if md['debug']:
                             chop.tsprnt("analyzing code..")
 
-                    tcp.stream_data['client_collect_buffer'][listid] = ""
+                    sd['client_collect_buffer'][listid] = ""
 
 
         #chop.tsprnt("to client:%d" % tcp.client.count_new)
@@ -1065,98 +1070,98 @@ def handleStream(tcp):
         return
 
     elif tcp.server.count_new > 0:
-        tcp.stream_data['server_buffer'] += tcp.server.data[:tcp.server.count_new]
-        if tcp.stream_data['client_state'] == "unauthenticated":
-            if len(tcp.stream_data['server_buffer']) >= 256:
-                tcp.stream_data['client_state'] = "challenged"
+        sd['server_buffer'] += tcp.server.data[:tcp.server.count_new]
+        if sd['client_state'] == "unauthenticated":
+            if len(sd['server_buffer']) >= 256:
+                sd['client_state'] = "challenged"
                 #chop.tsprnt(hexdump(tcp.server.data[:tcp.server.count_new]))
-                tcp.stream_data['challenge'] = tcp.stream_data['server_buffer'][:256]
-                tcp.stream_data['server_buffer'] = tcp.stream_data['server_buffer'][256:]
-                #chop.tsprnt(hexdump(tcp.stream_data['challenge']))
-        elif tcp.stream_data['client_state'] == "challenged":
-            if len(tcp.stream_data['server_buffer']) >= 256:
-                tcp.stream_data['client_state'] = "double_challenged"
-                tcp.stream_data['challenge'] = tcp.stream_data['server_buffer'][:256]
-                tcp.stream_data['server_buffer'] = tcp.stream_data['server_buffer'][256:]
-        elif tcp.stream_data['client_state'] == "double_challenged":
-            if module_data['verbose'] or module_data['debug']:
+                sd['challenge'] = sd['server_buffer'][:256]
+                sd['server_buffer'] = sd['server_buffer'][256:]
+                #chop.tsprnt(hexdump(sd['challenge']))
+        elif sd['client_state'] == "challenged":
+            if len(sd['server_buffer']) >= 256:
+                sd['client_state'] = "double_challenged"
+                sd['challenge'] = sd['server_buffer'][:256]
+                sd['server_buffer'] = sd['server_buffer'][256:]
+        elif sd['client_state'] == "double_challenged":
+            if md['verbose'] or md['debug']:
                 chop.tsprnt("PI challenge not found, skipping stream..")
             tcp.stop()
 
-        if tcp.stream_data['server_state'] == "read_header":
-            listid = tcp.stream_data['server_cur_listid']
-            if len(tcp.stream_data['server_buffer']) >= 32:
-                (tcp.stream_data['server_cur_listid'], newstream) = getHeaders("out",tcp.stream_data['server_buffer'][:32],tcp)
-                listid = tcp.stream_data['server_cur_listid']
-                tcp.stream_data['server_state'] = "recv_chunk"
-                tcp.stream_data['server_buffer'] = tcp.stream_data['server_buffer'][32:]
+        if sd['server_state'] == "read_header":
+            listid = sd['server_cur_listid']
+            if len(sd['server_buffer']) >= 32:
+                (sd['server_cur_listid'], newstream) = getHeaders("out",sd['server_buffer'][:32],tcp)
+                listid = sd['server_cur_listid']
+                sd['server_state'] = "recv_chunk"
+                sd['server_buffer'] = sd['server_buffer'][32:]
                 if newstream:
-                    if tcp.stream_data['outbound_type'].get(listid) == 4:
+                    if sd['outbound_type'].get(listid) == 4:
                         #handle file data
-                        decrypted = CamelliaDecrypt(tcp.stream_data['server_buffer'][:tcp.stream_data['outbound_chunk_size'].get(listid)], module_data['camcrypt'], tcp.stream_data.get('xor', None))
-                        if tcp.stream_data['outbound_unpadded_chunk_size'].get(listid) != tcp.stream_data['outbound_decompressed_chunk_size'].get(listid):
-                            buf = lznt1.dCompressBuf(decrypted[:tcp.stream_data['outbound_unpadded_chunk_size'].get(listid)])
+                        decrypted = CamelliaDecrypt(sd['server_buffer'][:sd['outbound_chunk_size'].get(listid)], md['camcrypt'], sd.get('xor', None))
+                        if sd['outbound_unpadded_chunk_size'].get(listid) != sd['outbound_decompressed_chunk_size'].get(listid):
+                            buf = lznt1.dCompressBuf(decrypted[:sd['outbound_unpadded_chunk_size'].get(listid)])
                             if buf == None:
                                 chop.tsprnt("decompression error: %s" % hexdump(decrypted))
                                 tcp.stop()
                         else:
-                            buf = decrypted[:tcp.stream_data['outbound_unpadded_chunk_size'].get(listid)]
+                            buf = decrypted[:sd['outbound_unpadded_chunk_size'].get(listid)]
 
-                        tcp.stream_data['server_buffer'] = tcp.stream_data['server_buffer'][tcp.stream_data['outbound_chunk_size'].get(listid):]
+                        sd['server_buffer'] = sd['server_buffer'][sd['outbound_chunk_size'].get(listid):]
                         filename = string.strip(buf, "\x00")
-                        tcp.stream_data['outbound_filename'][listid] = "PI-extracted-outbound-file-%d-%s" % (module_data['filecount'], filename[string.rfind(filename, "\\")+1:])
-                        module_data['filecount'] += 1
+                        sd['outbound_filename'][listid] = "PI-extracted-outbound-file-%d-%s" % (md['filecount'], filename[string.rfind(filename, "\\")+1:])
+                        md['filecount'] += 1
                         chop.tsprnt("outbound file %s " % filename)
 
-                        tcp.stream_data['server_state'] = "read_header"
+                        sd['server_state'] = "read_header"
 
-                    tcp.stream_data['outbound_size_left'][listid] = tcp.stream_data['outbound_total_size'].get(listid)
+                    sd['outbound_size_left'][listid] = sd['outbound_total_size'].get(listid)
 
 
-                if tcp.stream_data['outbound_size_left'].get(listid) == 0:
-                    tcp.stream_data['outbound_size_left'][listid] = tcp.stream_data['outbound_total_size'].get(listid)
+                if sd['outbound_size_left'].get(listid) == 0:
+                    sd['outbound_size_left'][listid] = sd['outbound_total_size'].get(listid)
 
-        if tcp.stream_data['server_state'] == "recv_chunk":
-            listid = tcp.stream_data['server_cur_listid']
-            if tcp.stream_data['outbound_chunk_size'].get(listid) <= len(tcp.stream_data['server_buffer']):
-                if module_data['debug']:
-                    chop.tsprnt("handling outbound chunk.. %d bytes to go" % tcp.stream_data['outbound_size_left'].get(listid))
-                tcp.stream_data['server_state'] = "read_header"
-                decrypted = CamelliaDecrypt(tcp.stream_data['server_buffer'][:tcp.stream_data['outbound_chunk_size'].get(listid)], module_data['camcrypt'], tcp.stream_data.get('xor', None))
-                decrypted = decrypted[:tcp.stream_data['outbound_unpadded_chunk_size'].get(listid)]
+        if sd['server_state'] == "recv_chunk":
+            listid = sd['server_cur_listid']
+            if sd['outbound_chunk_size'].get(listid) <= len(sd['server_buffer']):
+                if md['debug']:
+                    chop.tsprnt("handling outbound chunk.. %d bytes to go" % sd['outbound_size_left'].get(listid))
+                sd['server_state'] = "read_header"
+                decrypted = CamelliaDecrypt(sd['server_buffer'][:sd['outbound_chunk_size'].get(listid)], md['camcrypt'], sd.get('xor', None))
+                decrypted = decrypted[:sd['outbound_unpadded_chunk_size'].get(listid)]
                 buf = decrypted
-                if tcp.stream_data['outbound_unpadded_chunk_size'].get(listid) != tcp.stream_data['outbound_decompressed_chunk_size'].get(listid):
+                if sd['outbound_unpadded_chunk_size'].get(listid) != sd['outbound_decompressed_chunk_size'].get(listid):
                     buf = lznt1.dCompressBuf(decrypted)
                     if buf == None:
                         chop.tsprnt("decompression error: %s" % hexdump(decrypted))
                         tcp.stop()
-                tcp.stream_data['server_collect_buffer'][listid] += buf
-                tcp.stream_data['server_buffer'] = tcp.stream_data['server_buffer'][tcp.stream_data['outbound_chunk_size'].get(listid):]
-                tcp.stream_data['outbound_size_left'][listid] -= tcp.stream_data['outbound_decompressed_chunk_size'].get(listid)
-                if tcp.stream_data['outbound_type'].get(listid) == 4 and module_data['savefiles']:
+                sd['server_collect_buffer'][listid] += buf
+                sd['server_buffer'] = sd['server_buffer'][sd['outbound_chunk_size'].get(listid):]
+                sd['outbound_size_left'][listid] -= sd['outbound_decompressed_chunk_size'].get(listid)
+                if sd['outbound_type'].get(listid) == 4 and md['savefiles']:
                         #outbound file
-                        chop.savefile(tcp.stream_data['outbound_filename'].get(listid), buf, False)
+                        chop.savefile(sd['outbound_filename'].get(listid), buf, False)
 
-                if tcp.stream_data['outbound_size_left'].get(listid) == 0:
-                    if tcp.stream_data['outbound_type'].get(listid) == 4:
-                        if module_data['savefiles']:
+                if sd['outbound_size_left'].get(listid) == 0:
+                    if sd['outbound_type'].get(listid) == 4:
+                        if md['savefiles']:
                             #outbound file
-                            chop.finalizefile(tcp.stream_data['outbound_filename'].get(listid))
-                            chop.tsprnt("saved %s.." % tcp.stream_data['outbound_filename'].get(listid))
+                            chop.finalizefile(sd['outbound_filename'].get(listid))
+                            chop.tsprnt("saved %s.." % sd['outbound_filename'].get(listid))
                     else:
-                        if module_data['debug']:
-                            chop.tsprnt("outbound data: %s" % hexdump(tcp.stream_data['server_collect_buffer'].get(listid)))
+                        if md['debug']:
+                            chop.tsprnt("outbound data: %s" % hexdump(sd['server_collect_buffer'].get(listid)))
 
                         try:
-                            if tcp.stream_data['outbound_type'].get(listid) == 0x5c:
-                                module_data['cmdhandler'][tcp.stream_data['outbound_type'].get(listid)](tcp.stream_data['server_collect_buffer'].get(listid), tcp)
+                            if sd['outbound_type'].get(listid) == 0x5c:
+                                md['cmdhandler'][sd['outbound_type'].get(listid)](sd['server_collect_buffer'].get(listid), tcp)
                             else:
-                                module_data['cmdhandler'][tcp.stream_data['outbound_type'].get(listid)](tcp.stream_data['server_collect_buffer'].get(listid))
+                                md['cmdhandler'][sd['outbound_type'].get(listid)](sd['server_collect_buffer'].get(listid))
                         except:
-                            if module_data['verbose'] or module_data['debug']:
+                            if md['verbose'] or md['debug']:
                                 chop.tsprnt("unrecognized command..")
 
-                    tcp.stream_data['server_collect_buffer'][listid] = ""
+                    sd['server_collect_buffer'][listid] = ""
 
         tcp.discard(tcp.server.count_new)
         return
