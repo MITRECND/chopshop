@@ -734,7 +734,7 @@ def pad(buf):
     size = len(buf)
     next = size
     while next % 16 != 0:
-        next+=1
+        next += 1
 
     pad = next - size
     buf += "\x00" * pad
@@ -744,7 +744,7 @@ def pad(buf):
 def CamelliaEncrypt(buf, camobj, xor=None):
     out = ""
     for i in range(0, len(buf), 16):
-        out+=camobj.encrypt(buf[i:i+16])
+        out += camobj.encrypt(buf[i:i+16])
 
     if xor is not None:
         out = one_byte_xor(out, xor)
@@ -757,14 +757,14 @@ def CamelliaDecrypt(buf, camobj, xor=None):
         buf = one_byte_xor(buf, xor)
 
     for i in range(0, len(buf), 16):
-        out+=camobj.decrypt(buf[i:i+16])
+        out += camobj.decrypt(buf[i:i+16])
 
     return out
 
 def TryKeyList(keylist, challenge, response, camobj, xor=None):
     #just in case admin is not included in the list
-    camobj.keygen(256,"admin" + "\x00" * 27)
-    if response == CamelliaEncrypt(challenge,module_data['camcrypt'], xor):
+    camobj.keygen(256, "admin" + "\x00" * 27)
+    if response == CamelliaEncrypt(challenge, module_data['camcrypt'], xor):
         chop.prnt("Key found: admin")
         return True
 
@@ -781,7 +781,7 @@ def TryKeyList(keylist, challenge, response, camobj, xor=None):
             #pad to 256 bits
             if len(key) < 32:
                 key += "\x00" * (32 - len(key))
-            camobj.keygen(256,key)
+            camobj.keygen(256, key)
             if response == CamelliaEncrypt(challenge,module_data['camcrypt'], xor):
                 chop.prnt("Key found: %s" % line)
                 return True
