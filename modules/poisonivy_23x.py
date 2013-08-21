@@ -67,7 +67,7 @@ def portlist(data):
             if remoteip == "0.0.0.0":
                 remoteport = "*"
                 remoteip = "*"
-        (pid, proclen) = unpack("<IB",data[:5])
+        (pid, proclen) = unpack("<IB", data[:5])
         data = data[5:]
         procname = data[:proclen]
         procname = string.strip(procname, "\x00")
@@ -137,7 +137,7 @@ def hostinfo(data):
     for i in range(len(data)):
         if ord(data[i]) == 0:
             continue
-        match = re.match(str_regex,data[i + 1:i + 1 + ord(data[i])])
+        match = re.match(str_regex, data[i + 1:i + 1 + ord(data[i])])
         if match is not None:
             profileid = match.group(1)
             #move past profile string
@@ -160,7 +160,7 @@ def hostinfo(data):
     i = i + 1 + ord(data[i])
     producttype = ord(data[i])
     i += 5
-    (majorver, minorver, build) = unpack("<III",data[i:i + 12])
+    (majorver, minorver, build) = unpack("<III", data[i:i + 12])
     i += 16 # Not sure why skipping another 4 bytes
     csd = ""
     if (ord(data[i]) >= 32 and ord(data[i]) <= 126):
@@ -473,7 +473,7 @@ def analyzeCode(code, type, tcp=None):
         if p != -1:
             p -= 2 # Back up 2 bytes
             try:
-                (sample, channels, bits) = unpack("<IHH",audioparams[p:p + 8])
+                (sample, channels, bits) = unpack("<IHH", audioparams[p:p + 8])
                 chop.tsprnt("*** Audio Sample Settings ***")
                 chop.prnt("Sample Rate: %0.3f kHz" % (sample / 1000.00))
                 chop.prnt("Channels: %s" % chan[channels])
@@ -700,7 +700,7 @@ def getHeaders(direction, buf, tcp):
     sd = tcp.stream_data
 
     buf = CamelliaDecrypt(buf, module_data['camcrypt'], sd.get('xor', None))
-    (type, listid) = unpack("<II",buf[0:8])
+    (type, listid) = unpack("<II", buf[0:8])
     newstream = False
     if module_data['debug']:
         chop.tsprnt("%s headers:\n%s" % (direction, hexdump(buf)))
@@ -711,7 +711,7 @@ def getHeaders(direction, buf, tcp):
         (sd['inbound_chunk_size'][listid],
          sd['inbound_unpadded_chunk_size'][listid],
          sd['inbound_decompressed_chunk_size'][listid],
-         sd['inbound_total_size'][listid]) = unpack("<IIIq",buf[8:28])
+         sd['inbound_total_size'][listid]) = unpack("<IIIq", buf[8:28])
         if sd['client_collect_buffer'].get(listid) == None:
             sd['client_collect_buffer'][listid] = ""
 
@@ -722,7 +722,7 @@ def getHeaders(direction, buf, tcp):
         (sd['outbound_chunk_size'][listid],
          sd['outbound_unpadded_chunk_size'][listid],
          sd['outbound_decompressed_chunk_size'][listid],
-         sd['outbound_total_size'][listid]) = unpack("<IIIq",buf[8:28])
+         sd['outbound_total_size'][listid]) = unpack("<IIIq", buf[8:28])
         if sd['server_collect_buffer'].get(listid) == None:
             sd['server_collect_buffer'][listid] = ""
 
@@ -780,7 +780,7 @@ def TryKeyList(keylist, challenge, response, camobj, xor=None):
             if len(key) < 32:
                 key += "\x00" * (32 - len(key))
             camobj.keygen(256, key)
-            if response == CamelliaEncrypt(challenge,module_data['camcrypt'], xor):
+            if response == CamelliaEncrypt(challenge, module_data['camcrypt'], xor):
                 chop.prnt("Key found: %s" % line)
                 return True
 
@@ -941,9 +941,9 @@ def handleStream(tcp):
         if sd['client_state'] == "challenge_accepted":
             if len(sd['client_buffer']) >= 4:
                 if 'xor' in sd:
-                    sd['init_size'] = unpack("<I",one_byte_xor(sd['client_buffer'][:4], sd['xor']))[0]
+                    sd['init_size'] = unpack("<I", one_byte_xor(sd['client_buffer'][:4], sd['xor']))[0]
                 else:
-                    sd['init_size'] = unpack("<I",sd['client_buffer'][:4])[0]
+                    sd['init_size'] = unpack("<I", sd['client_buffer'][:4])[0]
                 sd['client_state'] = "init_code_collection"
                 sd['client_buffer'] = sd['client_buffer'][4:]
 
@@ -951,7 +951,7 @@ def handleStream(tcp):
         if sd['client_state'] == "init_code_collection":
             if sd['init_size'] <= len(sd['client_buffer']):
                 sd['client_state'] = "init_code_collected"
-                #decrypted = CamelliaDecrypt(sd['client_buffer'][:sd['init_size']],md['camcrypt'])
+                #decrypted = CamelliaDecrypt(sd['client_buffer'][:sd['init_size']], md['camcrypt'])
                 if md['debug']:
                     chop.tsprnt("init code size: %08X" % sd['init_size'])
                 sd['client_buffer'] = sd['client_buffer'][sd['init_size']:]
@@ -969,9 +969,9 @@ def handleStream(tcp):
         if sd['client_state'] == "version_collected":
             if len(sd['client_buffer']) >= 4:
                 if 'xor' in sd:
-                    sd['init_size'] = unpack("<I",one_byte_xor(sd['client_buffer'][:4], sd['xor']))[0]
+                    sd['init_size'] = unpack("<I", one_byte_xor(sd['client_buffer'][:4], sd['xor']))[0]
                 else:
-                    sd['init_size'] = unpack("<I",sd['client_buffer'][:4])[0]
+                    sd['init_size'] = unpack("<I", sd['client_buffer'][:4])[0]
                 sd['client_buffer'] = sd['client_buffer'][4:]
                 sd['client_state'] = "stub_code_collection"
                 if md['debug']:
@@ -996,7 +996,7 @@ def handleStream(tcp):
         if sd['client_state'] == "read_header":
             listid = sd['client_cur_listid']
             if len(sd['client_buffer']) >= 32:
-                (sd['client_cur_listid'], newstream) = getHeaders("in",sd['client_buffer'][:32],tcp)
+                (sd['client_cur_listid'], newstream) = getHeaders("in", sd['client_buffer'][:32], tcp)
                 listid = sd['client_cur_listid']
                 sd['client_state'] = "recv_chunk"
                 sd['client_buffer'] = sd['client_buffer'][32:]
@@ -1054,7 +1054,7 @@ def handleStream(tcp):
                             chop.finalizefile(sd['inbound_filename'].get(listid))
                             chop.tsprnt("saved %s.." % sd['inbound_filename'].get(listid))
                     else:
-                        analyzeCode(sd['client_collect_buffer'].get(listid),sd['inbound_type'].get(listid), tcp)
+                        analyzeCode(sd['client_collect_buffer'].get(listid), sd['inbound_type'].get(listid), tcp)
                         if md['debug']:
                             chop.tsprnt("analyzing code..")
 
@@ -1087,7 +1087,7 @@ def handleStream(tcp):
         if sd['server_state'] == "read_header":
             listid = sd['server_cur_listid']
             if len(sd['server_buffer']) >= 32:
-                (sd['server_cur_listid'], newstream) = getHeaders("out",sd['server_buffer'][:32],tcp)
+                (sd['server_cur_listid'], newstream) = getHeaders("out", sd['server_buffer'][:32], tcp)
                 listid = sd['server_cur_listid']
                 sd['server_state'] = "recv_chunk"
                 sd['server_buffer'] = sd['server_buffer'][32:]
