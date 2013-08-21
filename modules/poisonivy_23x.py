@@ -22,16 +22,16 @@
 # OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
 # SUCH DAMAGE.
 
-import sys
-from struct import *
 import re
 import os
-from optparse import OptionParser
 import camcrypt
 import binascii
 import string
 import socket
-import subprocess
+
+from optparse import OptionParser
+from struct import *
+
 from c2utils import *
 import lznt1
 
@@ -53,26 +53,21 @@ def portlist(data):
     #1 byte proc name length
     chop.prnt("Protocol\tLocal IP\tLocal Port\tRemote IP\tRemote Port\tStatus\tPID\tProc Name")
     while data != "":
-        if unpack(">H", data[:2])[0] == 1:
+        (proto, localip, localport) = unpack('>H4sH', data[:8])
+        if proto == 1:
             proto = "UDP"
         else:
             proto = "TCP"
-        data = data[2:]
         localip = socket.inet_ntoa(data[:4])
-        data = data[4:]
-        localport = unpack(">H",data[:2])[0]
-        data = data[4:]
+        data = data[10:] # Skipping 2 bytes
         if proto == "TCP":
-            remoteip = socket.inet_ntoa(data[:4])
-            data = data[4:]
-            remoteport = unpack(">H",data[:2])[0]
-            data = data[4:]
-            status = ord(data[0])
-            data = data[1:]
+            (remoteip, reportport, status) = unpack('>4sHxxB', data[:6])
+            remoteip = socket.inet_ntoa(remoteip)
+            data = data[9:]
             if remoteip == "0.0.0.0":
                 remoteport = "*"
                 remoteip = "*"
-        (pid, proclen) = unpack("<IB",data[:5])[0]
+        (pid, proclen) = unpack("<IB",data[:5])
         data = data[5:]
         procname = data[:proclen]
         procname = string.strip(procname, "\x00")
@@ -165,7 +160,7 @@ def hostinfo(data):
     i = i + 1 + ord(data[i])
     producttype = ord(data[i])
     i += 5
-    (majorver, minorver, build) = unpack("<III",data[i:i+12])
+    (majorver, minorver, build) = unpack("<III",data[i:i + 12])
     i += 16 # Not sure why skipping another 4 bytes
     csd = ""
     if (ord(data[i]) >= 32 and ord(data[i]) <= 126):
@@ -348,7 +343,7 @@ def regsearchresults(data):
 
             strlen = unpack("<I", data[0:4])[0]
             data = data[4:]
-            value = data[:strlen-1]
+            value = data[:strlen - 1]
 
         data = data[strlen:]
 
@@ -432,12 +427,12 @@ def ntlmhashlist(data):
         nthash = binascii.hexlify(data[:16])
         lmhash = binascii.hexlify(data[16:32])
         userlen = unpack("<I", data[32:36])[0]
-        username = data[36:36+userlen]
+        username = data[36:36 + userlen]
         chop.prnt("User Name: %s" % username)
         chop.prnt("LM Hash: %s" % lmhash)
         chop.prnt("NT Hash: %s" % nthash)
         chop.prnt("*" * 41)
-        data = data[36+userlen:]
+        data = data[36 + userlen:]
     return
 
 def wirelesspwlist(data):
@@ -476,10 +471,9 @@ def analyzeCode(code, type, tcp=None):
             p = string.rfind(audioparams, "\x00\x00\x02\x00\x10\x00")
 
         if p != -1:
+            p -= 2 # Back up 2 bytes
             try:
-                sample = unpack("<I",audioparams[p-2:p+2])[0]
-                channels = unpack("<H",audioparams[p+2:p+4])[0]
-                bits = unpack("<H",audioparams[p+4:p+6])[0]
+                (sample, channels, bits) = unpack("<IHH",audioparams[p:p + 8])
                 chop.tsprnt("*** Audio Sample Settings ***")
                 chop.prnt("Sample Rate: %0.3f kHz" % (sample / 1000.00))
                 chop.prnt("Channels: %s" % chan[channels])
@@ -500,6 +494,9 @@ def analyzeCode(code, type, tcp=None):
         if code[p + ord(code[p])] == "\\":
             dirend = p + 1 + ord(code[p])
             dirstart = p + 1
+        else:
+            chop.prnt("Unable to find dirend and dirstart.")
+            return
 
         chop.prnt("Search Directory: %s" % code[dirstart:dirend])
 
@@ -636,7 +633,7 @@ def analyzeCode(code, type, tcp=None):
         else:
             p += 4
 
-        relayport = unpack("<H", code[p:p+2])[0]
+        relayport = unpack("<H", code[p:p + 2])[0]
         p += 2
         user = ""
         pw = ""
@@ -682,7 +679,7 @@ def analyzeCode(code, type, tcp=None):
         else:
             p += 4
         srcip = ""
-        relayport = unpack("<H", code[p:p+2])[0]
+        relayport = unpack("<H", code[p:p + 2])[0]
         p += 2
         dstipend = p + 1 + ord(code[p])
         dstip = code[p+1:dstipend]
@@ -703,8 +700,7 @@ def getHeaders(direction, buf, tcp):
     sd = tcp.stream_data
 
     buf = CamelliaDecrypt(buf, module_data['camcrypt'], sd.get('xor', None))
-    listid = unpack("<I",buf[4:8])[0]
-    type = unpack("<I",buf[0:4])[0]
+    (type, listid) = unpack("<II",buf[0:8])
     newstream = False
     if module_data['debug']:
         chop.tsprnt("%s headers:\n%s" % (direction, hexdump(buf)))
@@ -712,10 +708,10 @@ def getHeaders(direction, buf, tcp):
         if sd['inbound_type'].get(listid, -1) != type:
             newstream = True
         sd['inbound_type'][listid] = type
-        sd['inbound_chunk_size'][listid] = unpack("<I",buf[8:12])[0]
-        sd['inbound_total_size'][listid] = unpack("<q",buf[20:28])[0]
-        sd['inbound_unpadded_chunk_size'][listid] = unpack("<I",buf[12:16])[0]
-        sd['inbound_decompressed_chunk_size'][listid] = unpack("<I",buf[16:20])[0]
+        (sd['inbound_chunk_size'][listid],
+         sd['inbound_unpadded_chunk_size'][listid],
+         sd['inbound_decompressed_chunk_size'][listid],
+         sd['inbound_total_size'][listid]) = unpack("<IIIq",buf[8:28])
         if sd['client_collect_buffer'].get(listid) == None:
             sd['client_collect_buffer'][listid] = ""
 
@@ -723,10 +719,10 @@ def getHeaders(direction, buf, tcp):
         if sd['outbound_type'].get(listid, -1) != type:
             newstream = True
         sd['outbound_type'][listid] = type
-        sd['outbound_chunk_size'][listid] = unpack("<I",buf[8:12])[0]
-        sd['outbound_total_size'][listid] = unpack("<q",buf[20:28])[0]
-        sd['outbound_unpadded_chunk_size'][listid] = unpack("<I",buf[12:16])[0]
-        sd['outbound_decompressed_chunk_size'][listid] = unpack("<I",buf[16:20])[0]
+        (sd['outbound_chunk_size'][listid],
+         sd['outbound_unpadded_chunk_size'][listid],
+         sd['outbound_decompressed_chunk_size'][listid],
+         sd['outbound_total_size'][listid]) = unpack("<IIIq",buf[8:28])
         if sd['server_collect_buffer'].get(listid) == None:
             sd['server_collect_buffer'][listid] = ""
 
