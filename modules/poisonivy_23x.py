@@ -454,7 +454,7 @@ def wirelesspwlist(data):
 
 def analyzeCode(code, type, tcp=None):
     if module_data['debug']:
-        chop.tsprnt("code: %s" % hexdump(code))
+        chop.tsprnt("code:\n%s" % hexdump(code))
 
     if type == 0x5c:
         #look for audio data parameters at the end of the code
@@ -707,7 +707,7 @@ def getHeaders(direction, buf, tcp):
     type = unpack("<I",buf[0:4])[0]
     newstream = False
     if module_data['debug']:
-        chop.tsprnt("%s headers: %s" % (direction,hexdump(buf)))
+        chop.tsprnt("%s headers:\n%s" % (direction, hexdump(buf)))
     if direction == "in":
         if sd['inbound_type'].get(listid, -1) != type:
             newstream = True
@@ -1012,7 +1012,7 @@ def handleStream(tcp):
                         if sd['inbound_unpadded_chunk_size'].get(listid) != sd['inbound_decompressed_chunk_size'].get(listid):
                             buf = lznt1.dCompressBuf(decrypted[:sd['inbound_unpadded_chunk_size'].get(listid)])
                             if buf == None:
-                                chop.tsprnt("decompression error: %s" % hexdump(decrypted))
+                                chop.tsprnt("decompression error:\n%s" % hexdump(decrypted))
                                 tcp.stop()
                         else:
                             buf = decrypted[:sd['inbound_unpadded_chunk_size'].get(listid)]
@@ -1042,7 +1042,7 @@ def handleStream(tcp):
                 if sd['inbound_unpadded_chunk_size'].get(listid) != sd['inbound_decompressed_chunk_size'].get(listid):
                     buf = lznt1.dCompressBuf(decrypted)
                     if buf == None:
-                        chop.tsprnt("decompression error: %s" % hexdump(decrypted))
+                        chop.tsprnt("decompression error:\n%s" % hexdump(decrypted))
                         tcp.stop()
                 sd['client_collect_buffer'][listid] += buf
                 sd['client_buffer'] = sd['client_buffer'][sd['inbound_chunk_size'].get(listid):]
@@ -1102,7 +1102,7 @@ def handleStream(tcp):
                         if sd['outbound_unpadded_chunk_size'].get(listid) != sd['outbound_decompressed_chunk_size'].get(listid):
                             buf = lznt1.dCompressBuf(decrypted[:sd['outbound_unpadded_chunk_size'].get(listid)])
                             if buf == None:
-                                chop.tsprnt("decompression error: %s" % hexdump(decrypted))
+                                chop.tsprnt("decompression error:\n%s" % hexdump(decrypted))
                                 tcp.stop()
                         else:
                             buf = decrypted[:sd['outbound_unpadded_chunk_size'].get(listid)]
@@ -1133,7 +1133,7 @@ def handleStream(tcp):
                 if sd['outbound_unpadded_chunk_size'].get(listid) != sd['outbound_decompressed_chunk_size'].get(listid):
                     buf = lznt1.dCompressBuf(decrypted)
                     if buf == None:
-                        chop.tsprnt("decompression error: %s" % hexdump(decrypted))
+                        chop.tsprnt("decompression error:\n%s" % hexdump(decrypted))
                         tcp.stop()
                 sd['server_collect_buffer'][listid] += buf
                 sd['server_buffer'] = sd['server_buffer'][sd['outbound_chunk_size'].get(listid):]
@@ -1150,7 +1150,7 @@ def handleStream(tcp):
                             chop.tsprnt("saved %s.." % sd['outbound_filename'].get(listid))
                     else:
                         if md['debug']:
-                            chop.tsprnt("outbound data: %s" % hexdump(sd['server_collect_buffer'].get(listid)))
+                            chop.tsprnt("outbound data:\n%s" % hexdump(sd['server_collect_buffer'].get(listid)))
 
                         try:
                             if sd['outbound_type'].get(listid) == 0x5c:
