@@ -101,7 +101,7 @@ def dirEnt(data):
     if data[:10] == '\x00\x00\x00\x00\x00\x00\x00\x00\x00\x01':
         chop.prnt("%s" % data[10:])
     else:
-        l =ord(data[0])
+        l = ord(data[0])
         data = data[1:]
         if data[0] == '\x00':
             return
@@ -484,9 +484,6 @@ def analyzeCode(code, type, tcp=None):
                 chop.prnt("Sample Rate: %0.3f kHz" % (sample / 1000.00))
                 chop.prnt("Channels: %s" % chan[channels])
                 chop.prnt("Bits: %d" % bits)
-                tcp.stream_data['audio-sample'] = sample
-                tcp.stream_data['audio-channels'] = channels
-                tcp.stream_data['audio-bits'] = bits
             except:
                 pass
     elif type == 0x05:
@@ -1195,9 +1192,6 @@ def taste(tcp):
     tcp.stream_data['outbound_decompressed_chunk_size'] = {}
     tcp.stream_data['client_state'] = "unauthenticated"
     tcp.stream_data['server_state'] = ""
-    tcp.stream_data['audio-sample'] = 0
-    tcp.stream_data['audio-channels'] = 0
-    tcp.stream_data['audio-bits'] = 0
     return True
 
 def teardown(tcp):
