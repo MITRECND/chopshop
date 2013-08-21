@@ -848,7 +848,7 @@ def init(module_data):
         else:
             module_data['camcrypt'] = camcrypt.CamCrypt("camellia.so")
     except:
-        module_options = { 'proto': 'tcp', 'error':  "Couldn't locate camellia.so"}
+        module_options['error'] = "Couldn't locate camellia.so"
         return module_options
 
     if not module_data['pwlist']:
@@ -858,7 +858,7 @@ def init(module_data):
             module_data['key'] = opts.pw
 
         if len(module_data['key']) > 32:
-            module_options = { 'proto': 'tcp', 'error':  "Supplied password must be 32 bytes long or less.."}
+            module_options['error'] = "Password must be 32 bytes long or less."
             return module_options
         elif len(module_data['key']) < 32:
             #pad key to 256 bits
@@ -868,12 +868,10 @@ def init(module_data):
         module_data['camcrypt'].keygen(256, module_data['key'])
 
     elif not os.path.exists(module_data['pwlist']):
-        module_options = { 'proto': 'tcp', 'error':  "Supplied password list does not exist.."}
+        module_options['error'] = "Supplied password list does not exist.."
         return module_options
 
     module_data['filecount'] = 1
-
-    module_options = { 'proto': 'tcp' }
     return module_options
 
 def handleStream(tcp):
