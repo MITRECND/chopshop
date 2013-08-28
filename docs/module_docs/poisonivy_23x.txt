@@ -58,3 +58,8 @@ making it easy to analyze and build more parsing functionality.
 
 Thanks to Frank Poz for his work on the CamCrypt library that is utilized in
 this module.
+
+If the module is running but not able to decode your Poison Ivy pcap, try this:
+https://code.google.com/p/camcrypt/issues/detail?id=1
+
+
