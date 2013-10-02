@@ -4,8 +4,6 @@ import binascii
 import time
 import re
 
-import pdb
-
 import lznt1
 
 from optparse import OptionParser
