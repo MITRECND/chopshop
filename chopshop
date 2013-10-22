@@ -114,6 +114,8 @@ def main():
         type="string", help="interface to listen on")
     optparser.add_option("-m", "--module_info", action="store_true", dest="modinfo",
         default=False,help="print information about module(s) and exit")
+    optparser.add_option("-t", "--module_tree", action="store_true", dest="modtree",
+        default=False,help="print information about module tree and exit")
     optparser.add_option("-G", "--GMT", action="store_true", dest="GMT",
         default=False, help="timestamps in GMT (tsprnt and tsprettyprnt only)")
     optparser.add_option("-v", "--version", action="store_true", dest="version",
@@ -141,7 +143,7 @@ def main():
         print "Module List Required"
         sys.exit(0)
 
-    if not options.modinfo:
+    if not options.modinfo and not options.modtree:
         if not options.interface:
             if not options.filename:
                 #Nothing is set for input, attempt to read a list of files from stdin
@@ -173,6 +175,7 @@ def main():
     choplib.aslist = options.aslist
     choplib.longrun = options.longrun
     choplib.modinfo = options.modinfo
+    choplib.modtree = options.modtree
     choplib.GMT = options.GMT
 
     if len(args) > 1:
