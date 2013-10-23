@@ -531,12 +531,13 @@ def handleTcpStreams(tcp):
                 del module.streaminfo['tcp'][f_string]
 
                 #TODO check for potential over deletion?
-                for outtype in module.inputs['tcp']: #For every output from tcp
-                    for child in module.children:
-                        if outtype not in child.inputs: #Check if this child accepts this type
-                            continue
-                        if f_string in child.streaminfo[outtype]:
-                            del child.streaminfo[outtype][f_string]
+                if not module.legacy:
+                    for outtype in module.inputs['tcp']: #For every output from tcp
+                        for child in module.children:
+                            if outtype not in child.inputs: #Check if this child accepts this type
+                                continue
+                            if f_string in child.streaminfo[outtype]:
+                                del child.streaminfo[outtype][f_string]
 
 
 def handleProtocol(module, protocol, pp): #pp is parent protocol
