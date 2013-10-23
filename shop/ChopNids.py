@@ -374,6 +374,7 @@ def handleUdpDatagrams(addr, data, ip):
         #Handle Children
         if output is not None:
             udpd.unique = f_string
+            udpd.type = "udp"
             handleChildren(module, udpd, output) 
 
         if udpd.sval: #we were told by this module to stop collecting
@@ -463,25 +464,8 @@ def handleTcpStreams(tcp):
 
                 if output is not None:
                     tcpd.unique = f_string
-                    if isinstance(output, ChopProtocol):
-                        output = [output]
-
-                    for outp in output:
-                        if not isinstance(outp, ChopProtocol): #Make sure it's an instance of ChopProtocol (or child)
-                            chop.prettyprnt("YELLOW", "Module %s returned an invalid type in handleStream" % code.moduleName)
-                            sys.exit(1)
-
-                        if outp.type not in module.inputs['tcp']:#Make sure this module is supposed to output this type
-                            chop.prettyprnt("YELLOW", "Module %s returning unregistered type %s" % (code.moduleName, outp.type))
-                            sys.exit(1)
-
-                        #Handle any children modules
-                        for child in module.children:
-                            if outp.type in child.inputs: #If this child handles this type
-                                if f_string not in child.streaminfo[outp.type]:
-                                    child.streaminfo[outp.type][f_string] = {} #Initialize Sub-dictionary
-                                handleProtocol(child, outp, tcpd)
-
+                    tcpd.type = "tcp"
+                    handleChildren(module, tcpd, output)
 
                 if tcpd.sval: #we were told by this module to stop collecting
                     del tcpd
@@ -567,13 +551,13 @@ def handleProtocol(module, protocol, pp): #pp is parent protocol
         #have been created earlier -- this is an error on the part of the module author then
 
         #Initialize the object -- the pp.unique parent dictionary should have been initialized by parent function
-        if protocol.unique not in module.streaminfo[protocol.type][pp.unique]:
-            module.streaminfo[protocol.type][pp.unique][protocol.unique] = stream_meta()
+        if protocol.unique not in module.streaminfo[protocol.type]:
+            module.streaminfo[protocol.type][protocol.unique] = stream_meta()
 
-        if module.streaminfo[protocol.type][pp.unique][protocol.unique] is None: #module has called stop
+        if module.streaminfo[protocol.type][protocol.unique] is None: #module has called stop
             return
 
-        protocol.stream_data = module.streaminfo[protocol.type][pp.unique][protocol.unique].stream_data
+        protocol.stream_data = module.streaminfo[protocol.type][protocol.unique].stream_data
 
     except KeyError, e:
         chop.prettyprnt("YELLOW", "Error attempting to lookup stream_data")
@@ -617,19 +601,19 @@ def handleProtocol(module, protocol, pp): #pp is parent protocol
         handleChildren(module, protocol, output)
 
     if protocol.sval:
-        module.streaminfo[protocol.type][pp.unique][protocol.unique] = None
+        module.streaminfo[protocol.type][protocol.unique] = None
         #Reset sval so it doesn't affect other children
         protocol.sval = False
         return
 
-    module.streaminfo[protocol.type][pp.unique][protocol.unique].stream_data = protocol.stream_data
+    module.streaminfo[protocol.type][protocol.unique].stream_data = protocol.stream_data
 
 
 def handleChildren(module, protocol, output):
     #Handle any potential children
     if isinstance(output, ChopProtocol):
         output = [output]
-    elif not isinstance(output, []):
+    elif not isinstance(output, list):
         chop.prettyprnt("YELLOW", "Module %s returned an invalid type" % code.moduleName)
         sys.exit(1)
 
@@ -644,14 +628,4 @@ def handleChildren(module, protocol, output):
 
         for child in module.children:
             if outp.type in child.inputs:
-                if protocol.unique not in child.streaminfo[outp.type]:
-                    child.streaminfo[outp.type][protocol.unique] = {}
                 handleProtocol(child, outp, protocol)
-
-
-def stopChildren(module, pp_type, unique): #pp_type is the type of the parent protocl (e.g., 'tcp')
-    for out_type in module.inputs[pp_type]:
-        #First cleanup children
-        for child in module.children:
-            stopChildren(child, out_type, unique) 
-    
