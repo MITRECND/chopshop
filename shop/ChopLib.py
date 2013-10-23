@@ -591,9 +591,9 @@ class ChopLib(Thread):
                     sys.stdout = strbuff = StringIO()
                     
                     try:
-                        modinf = "%s (%s) :\nRequires ChopLib %s or greater:\n" % (mod.code.moduleName, mod.code.moduleVersion, mod.code.minimumChopLib)
+                        modinf = "%s (%s) -- requires ChopLib %s or greater:\n" % (mod.code.moduleName, mod.code.moduleVersion, mod.code.minimumChopLib)
                     except:
-                        modinf = "%s (Legacy Module) :" % mod.code.moduleName
+                        modinf = "%s (Legacy Module) -- pre ChopLib 4.0:\n" % mod.code.moduleName
 
                     modtxt = None
 
@@ -603,8 +603,11 @@ class ChopLib(Thread):
                             modtxt = modtxt + "\n"
                         else:
                             modtxt = strbuff.getvalue()
+                            strbuff.close()
+                            sys.stdout = strbuff = StringIO()
                             if modtxt is not None:
                                 modtxt = modtxt + "\n"
+
                     except Exception, e:
                         modtxt = "Missing module information for %s\n" % mod.name
 
@@ -619,7 +622,7 @@ class ChopLib(Thread):
                     #Close and free contents
                     strbuff.close()
 
-                    chop.prnt(modinf, modtxt, "----------\n")
+                    chop.prnt("%s%s----------\n" % (modinf, modtxt))
 
                 #Restore stdout
                 sys.stdout = orig_stdout 
