@@ -601,13 +601,7 @@ class ChopLib(Thread):
                         modtxt = mod.code.module_info()
                         if modtxt is not None:
                             modtxt = modtxt + "\n"
-                        else:
-                            modtxt = strbuff.getvalue()
-                            strbuff.close()
-                            sys.stdout = strbuff = StringIO()
-                            if modtxt is not None:
-                                modtxt = modtxt + "\n"
-
+                        raise Exception
                     except Exception, e:
                         modtxt = "Missing module information for %s\n" % mod.name
 
