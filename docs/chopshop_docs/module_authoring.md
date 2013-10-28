@@ -118,8 +118,11 @@ from the server
 Variables
 ---------
 Every module <b>must</b> define the following global variables:
+
 "moduleName" -- The module name (string) [E.g., 'myawesomemodule']
+
 "moduleVersion" -- The module version (string) [E.g., '0.1']
+
 "minimumChopLib" -- The minimum version of ChopLib [E.g., '4.0']
 
 
@@ -141,13 +144,14 @@ has been removed.
 
 <b>init(module_data)</b> -- Initialize the module, before processing any
 packets.
-  module_data is a dictionary with at least the following key(s):
-    'args': an array of command-line args suitable to pass to
+
+    module_data is a dictionary with at least the following key(s):
+        'args': an array of command-line args suitable to pass to
             the parse_args() function of an
             optparse.OptionParser() object.
 
-  Returns: dictionary with at least the following key(s):
-    'proto': Array of dictionaries linking input types to outputs
+    Returns: dictionary with at least the following key(s):
+        'proto': Array of dictionaries linking input types to outputs
             E.g., proto = [ {'tcp' : ''}]
                   proto = [ {'tcp' : 'http'}]
             Note: 'tcp', 'udp', and 'ip' are considered pre-defined types and should
