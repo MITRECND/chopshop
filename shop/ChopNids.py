@@ -372,10 +372,11 @@ def handleUdpDatagrams(addr, data, ip):
         module.module_data = udpd.module_data
 
         #Handle Children
-        if output is not None:
-            udpd.unique = f_string
-            udpd.type = "udp"
-            handleChildren(module, udpd, output) 
+        if not module.legacy:
+            if output is not None:
+                udpd.unique = f_string
+                udpd.type = "udp"
+                handleChildren(module, udpd, output) 
 
         if udpd.sval: #we were told by this module to stop collecting
             del udpd
@@ -462,10 +463,11 @@ def handleTcpStreams(tcp):
                 module.module_data = tcpd.module_data
 
 
-                if output is not None:
-                    tcpd.unique = f_string
-                    tcpd.type = "tcp"
-                    handleChildren(module, tcpd, output)
+                if not module.legacy:
+                    if output is not None:
+                        tcpd.unique = f_string
+                        tcpd.type = "tcp"
+                        handleChildren(module, tcpd, output)
 
                 if tcpd.sval: #we were told by this module to stop collecting
                     del tcpd
@@ -537,7 +539,7 @@ def handleTcpStreams(tcp):
                             if outtype not in child.inputs: #Check if this child accepts this type
                                 continue
                             if f_string in child.streaminfo[outtype]:
-                                del child.streaminfo[outtype][f_string]
+                                del child.streaminfo[outtype][child.unique]
 
 
 def handleProtocol(module, protocol, pp): #pp is parent protocol
