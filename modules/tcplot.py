@@ -1,9 +1,5 @@
 moduleName="TCPlot"
 
-byte_arrs={}
-tstmp_arrs={}
-suffixer = 1
-
 import sys
 import struct
 import time
@@ -46,6 +42,8 @@ def parse_args(module_data):
 def init(module_data):
     module_options = {'proto':'tcp'}
     parse_args(module_data)
+    module_data['bytes'] = {}
+    module_data['timestamps'] = {}
     return module_options
     
 def module_info():
@@ -68,24 +66,29 @@ def handleStream(tcp):
     if tcp.module_data['dump']: # dump info to text file
         path = tcp.stream_data['file']
         chop.appendfile("%s.txt" % path, "(%s%i, %.9f)\n" % ("" if from_client else "-", count, time_since_start.total_seconds()))
-    elif tcp.module_data["output"]: # dump to stdout or gui out
+    
+    if tcp.module_data["output"]: # dump to stdout or gui out
         chop.prettyprnt(color, "(%i, %.9f)" % (count, time_since_start.total_seconds()))
-    elif tcp.module_data['plot']: # create plot
-        byte_arrs[tcp.stream_data['file']].append(count if from_client else -count)
-        tstmp_arrs[tcp.stream_data['file']].append(time_since_start.total_seconds())
+    
+    if tcp.module_data['plot']: # create plot
+        if not tcp.module_data['bytes'].get(tcp.stream_data['file']):
+            tcp.module_data['bytes'][tcp.stream_data['file']] = []
+            tcp.module_data['timestamps'][tcp.stream_data['file']] = []
+        tcp.module_data['bytes'][tcp.stream_data['file']].append(count if from_client else -count)
+        tcp.module_data['timestamps'][tcp.stream_data['file']].append(time_since_start.total_seconds())
 
 def taste(tcp):
     ((src, sport), (dst, dport)) = tcp.addr
-    stream_name = "%s_to_%s_%i" % (src, dst, len(byte_arrs))
-    byte_arrs[stream_name] = []
-    tstmp_arrs[stream_name] = []
-    tcp.stream_data['file'] = stream_name
+    tcp.stream_data['file'] = "%s_to_%s_%i" % (src, dst, len(tcp.module_data['bytes']))
     tcp.stream_data['start'] = ''
     return True
 
+def teardown(tcp):
+    return
+    
 def shutdown(module_data):
     if module_data['plot']:
-        for key in byte_arrs:
+        for key in module_data['bytes']:
             if module_data['unified']:
                 dump_unified(key, module_data)
             if module_data['comparison']:
@@ -93,13 +96,13 @@ def shutdown(module_data):
     return
     
 def dump_unified(key, module_data):
-    tstmps = tstmp_arrs.get(key)
-    byte_arr = byte_arrs.get(key)
+    tstmps = module_data['timestamps'].get(key)
+    byte_arr = module_data['bytes'].get(key)
             
     x = np.linspace(0, tstmps[len(tstmps) - 1])
 
     ax = plt.subplot(111)
-    plt.plot(tstmps, byte_arr, get_linestyle(True, module_data['nolines'], module_data['dashedlines']))
+    plt.plot(tstmps, byte_arr, get_linestyle(True, module_data['nolines'], module_data['dashedlines'], True))
     plt.ylabel("Bytes Sent (- = from server, + = from client)")
     plt.xlabel("Seconds Elapsed")
     plt.grid(True)
@@ -107,8 +110,8 @@ def dump_unified(key, module_data):
     plt.clf()
     
 def dump_comparison(key, module_data):
-    tstmps = tstmp_arrs.get(key)
-    byte_arr = byte_arrs.get(key)
+    tstmps = module_data['timestamps'].get(key)
+    byte_arr = module_data['bytes'].get(key)
     
     client_byte_arr = []
     client_tsmpt_arr = []
@@ -135,11 +138,9 @@ def dump_comparison(key, module_data):
     pickle.dump(ax, file("%s_comparison.pickle" % key, 'w'))
     plt.clf()
     
-def get_linestyle(primary, nolines, dashlines):
-    return "%s%s%s" % ("--" if dashlines else "", "g" if primary else "r", "o" if nolines or dashlines else "")
-
-def teardown(tcp):
-    return
+def get_linestyle(primary, nolines, dashlines, unified=False):
+    color = "b" if unified else "g" if primary else "r"
+    return "%s%s%s" % ("--" if dashlines else "", color, "o" if nolines or dashlines else "")
 
 def load_plot(file_path):
     """
