@@ -102,7 +102,7 @@ def dump_unified(key, module_data):
     x = np.linspace(0, tstmps[len(tstmps) - 1])
 
     ax = plt.subplot(111)
-    plt.plot(tstmps, byte_arr, get_linestyle(True, module_data['nolines'], module_data['dashedlines'], True))
+    plt.plot(tstmps, byte_arr, get_linestyle(True, module_data['nolines'], module_data['dashedlines'], True), marker=".")
     plt.ylabel("Bytes Sent (- = from server, + = from client)")
     plt.xlabel("Seconds Elapsed")
     plt.grid(True)
@@ -128,8 +128,8 @@ def dump_comparison(key, module_data):
     x = np.linspace(0, tstmps[len(tstmps) - 1])
 
     ax = plt.subplot(111)
-    plt.plot(client_tsmpt_arr, client_byte_arr, get_linestyle(True, module_data['nolines'], module_data['dashedlines']), label="Client")
-    plt.plot(server_tsmpt_arr, server_byte_arr, get_linestyle(False, module_data['nolines'], module_data['dashedlines']), label="Server")
+    plt.plot(client_tsmpt_arr, client_byte_arr, get_linestyle(True, module_data['nolines'], module_data['dashedlines']), label="Client", marker=".")
+    plt.plot(server_tsmpt_arr, server_byte_arr, get_linestyle(False, module_data['nolines'], module_data['dashedlines']), label="Server", marker=".")
     ax.legend()
     plt.ylabel("Bytes Sent = abs(y)")
     plt.xlabel("Seconds Elapsed")
