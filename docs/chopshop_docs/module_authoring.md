@@ -97,7 +97,7 @@ ChopProtocol structure
 The ChopProtocol base class is what secondary modules will receive through the
 'handleProtocol' function. It has the following elements:
 
-<b>addr</b> - quadtuple containing source ip/port and destination ip/port sam
+<b>addr</b> - quadtuple containing source ip/port and destination ip/port same
 as nids' addr
 
 <b>timestamp</b> - variable that contains the timestamp of this packet, same as
