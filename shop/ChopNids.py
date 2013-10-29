@@ -538,8 +538,9 @@ def handleTcpStreams(tcp):
                         for child in module.children:
                             if outtype not in child.inputs: #Check if this child accepts this type
                                 continue
+                            #This assumes unique has not been changed in the child
                             if f_string in child.streaminfo[outtype]:
-                                del child.streaminfo[outtype][child.unique]
+                                del child.streaminfo[outtype][f_string]
 
 
 def handleProtocol(module, protocol, pp): #pp is parent protocol
@@ -588,7 +589,7 @@ def handleProtocol(module, protocol, pp): #pp is parent protocol
 
 
     try:
-        output = code.handleData(protocol) 
+        output = code.handleProtocol(protocol) 
     except Exception, e:
         exc = traceback.format_exc()
         chop.prettyprnt("YELLOW", "Exception in module %s -- Traceback: \n%s" % (code.moduleName, exc))
@@ -631,4 +632,6 @@ def handleChildren(module, protocol, output):
 
         for child in module.children:
             if outp.type in child.inputs:
-                handleProtocol(child, outp, protocol)
+                #This ensure each child gets a copy that it can muck with
+                child_copy = outp._clone() 
+                handleProtocol(child, child_copy, protocol)

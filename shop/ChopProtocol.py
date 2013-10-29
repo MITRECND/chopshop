@@ -24,25 +24,35 @@
 # SUCH DAMAGE.
 
 
-class ChopProtocol:
+import copy
+
+class ChopProtocol(object):
 
     def __init__(self, type):
         self.addr = None
         self.timestamp = None
-        self.type = type
         self.clientData = None
         self.serverData = None
+
+        #These should not be modified on the fly
+        #or directly touched by module authors
+        self.type = type
         self.sval = False
         self.unique = None
+
+    #If your data is complex enough
+    #you MUST inherit from ChopProtocol and redefine _clone
+    def _clone(self):
+        return copy.deepcopy(self)
+
+    def setUniqueId(self, unique):
+        self.unique = unique
 
     def setAddr(self, addr):
         self.addr = addr
 
     def setTimeStamp(self, timestamp):
         self.timestamp = timestamp
-
-    def setUniqueId(self, unique):
-        self.unique = unique
 
     def setClientData(self, data):
         self.clientData = data
