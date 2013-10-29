@@ -49,7 +49,7 @@ def init(module_data):
     return module_options
     
 def module_info():
-    print "Parse input into scatter plots of TCP traffic, separated by stream."
+    return "Parse input into scatter plots of TCP traffic, separated by stream."
 
 def handleStream(tcp):
     if tcp.server.count_new > 0:
@@ -66,16 +66,13 @@ def handleStream(tcp):
     time_since_start = datetime.datetime.utcfromtimestamp(tcp.timestamp) - tcp.stream_data['start']
     
     if tcp.module_data['dump']: # dump info to text file
-        path = tcp.module_data['file']
-        if not path:
-            path = tcp.stream_data['file']
+        path = tcp.stream_data['file']
         chop.appendfile("%s.txt" % path, "(%s%i, %.9f)\n" % ("" if from_client else "-", count, time_since_start.total_seconds()))
     elif tcp.module_data["output"]: # dump to stdout or gui out
         chop.prettyprnt(color, "(%i, %.9f)" % (count, time_since_start.total_seconds()))
     elif tcp.module_data['plot']: # create plot
         byte_arrs[tcp.stream_data['file']].append(count if from_client else -count)
         tstmp_arrs[tcp.stream_data['file']].append(time_since_start.total_seconds())
-    pass
 
 def taste(tcp):
     ((src, sport), (dst, dport)) = tcp.addr
