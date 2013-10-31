@@ -601,7 +601,8 @@ class ChopLib(Thread):
                         modtxt = mod.code.module_info()
                         if modtxt is not None:
                             modtxt = modtxt + "\n"
-                        raise Exception
+                        else:
+                            raise Exception
                     except Exception, e:
                         modtxt = "Missing module information for %s\n" % mod.name
 
