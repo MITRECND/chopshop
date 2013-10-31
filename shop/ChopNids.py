@@ -209,7 +209,11 @@ class ChopCore(Thread):
                     return
             else:
                 all_modules.append(module)
+                #Proto is an array of dictionaries
                 for proto in module_options['proto']:
+                    #Right now (4.0) each dictionary only has one key
+                    #This might change in the future but should be easy
+                    #since it's already a separate dictionary
                     for input in proto.keys():
                         if input not in module.inputs:
                             module.inputs[input] = []
@@ -218,13 +222,23 @@ class ChopCore(Thread):
                             module.inputs[input].append(proto[input])
                             module.outputs.append(proto[input])
 
-                        module.streaminfo[input] = {}
+                        #Initialize the streaminfo array by type
+                        if input != 'any':
+                            module.streaminfo[input] = {}
 
                         if input == 'tcp':
                             tcp_modules.append(module)
                         elif input == 'udp':
                             udp_modules.append(module)
-                        else:
+                        elif input == 'any': #Special input that catches all non-core types
+                            #Initialize the streaminfo for all parents of the 'any' module
+                            if not len(module.parents):
+                                chop.prettyprnt("GREEN", "WARNING: No Parent for %s to provide data" % (module.code.moduleName))
+                            else:
+                                for parent in module.parents:
+                                    for output in parent.outputs:
+                                        module.streaminfo[output] = {}
+                        else: # non-core types, e.g., 'http' or 'dns'
                             if len(module.parents): #Make sure parents give it what it wants
                                 for parent in module.parents:
                                     if input not in parent.outputs:
@@ -631,7 +645,7 @@ def handleChildren(module, protocol, output):
             sys.exit(1)
 
         for child in module.children:
-            if outp.type in child.inputs:
+            if outp.type in child.inputs or 'any' in child.inputs:
                 #This ensure each child gets a copy that it can muck with
                 child_copy = outp._clone() 
                 handleProtocol(child, child_copy, protocol)
