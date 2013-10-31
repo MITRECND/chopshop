@@ -314,8 +314,8 @@ class ChopCore(Thread):
         #Call modules shutdown functions to do last-minute actions
         for module in all_modules:
             try:
-                chop.prettyprnt("CYAN","\tShutting Down " + code.moduleName)
-                code.shutdown(module.module_data)
+                chop.prettyprnt("CYAN","\tShutting Down " + module.code.moduleName)
+                module.code.shutdown(module.module_data)
             except Exception,e:
                 pass
 
