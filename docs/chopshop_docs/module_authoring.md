@@ -97,7 +97,7 @@ ChopProtocol structure
 The ChopProtocol base class is what secondary modules will receive through the
 'handleProtocol' function. It has the following elements:
 
-<b>addr</b> - quadtuple containing source ip/port and destination ip/port sam
+<b>addr</b> - quadtuple containing source ip/port and destination ip/port same
 as nids' addr
 
 <b>timestamp</b> - variable that contains the timestamp of this packet, same as
@@ -194,15 +194,62 @@ gives the module one last chance to do what it needs to.
   Treat tcp_data like the object sent to callbacks for nids' register_tcp.
   (ex: o.addr, o.client.count_new, o.discard(0))
 
+
+###Primary Modules
+Modules that ingest the core types 'tcp' and 'udp' can return an instance of ChopProtocol to
+be consumed by secondary modules (see below). Before use, ChopProtocl must be imported by doing:
+
+<pre>
+from ChopProtcol import ChopProtocl
+</pre>
+
+To instantiate an instance of ChopProtocol you can do something like:
+
+<pre>
+myhttpinstance = ChopProtocol('http')
+</pre>
+
+After instantiating an object based on ChopProtocol you have access to the following functions:
+
+<b>setAddr</b> - Set the quadtuple containing source ip/port and destination ip/port -- this
+will be auto set by the framework if you do not
+
+<b>setTimestamp</b> - Set variable that contains the timestamp of the protoco -- this will be autoset to the timestamp of whatever packet you return data on if you do not set it
+
+<b>setClientData</b> - Set the arbitrary data structure for the data coming from the client
+
+<b>setServerData</b> - Set the arbitrary python data structure for the data coming from the server
+
+
+_clone function
+-----------------
+
+ChopLib requires the ability to create copies of ChopProtocol to provide modules with their
+own unique copy. By default ChopProtocol contains a _clone function that uses copy's 'deepcopy'
+function. If your data (in clientData and serverData) are complex enough, this might no be enough
+to copy your data. In these instances you should create an inherited class based on ChopProtocol
+and redefine the _clone function.
+
+
+
+
 ###Secondary Modules
 With ChopShop 4.0, it is now possible to chain modules allowing more generic work
-to be done by one modules and then passed to multiple children module for further processing.
+to be done by one module and then passed to multiple children module for further processing.
 For example, if you want to write a decoder for a protcol that runs on top of http, normally
 you would first parse the http traffic out and then proceed to parse the protocol that you
 were <b>actually</b> trying to decode. With 4.0 though, you can pass the data through a primary
 module that takes tcp and turns it into http and then focus on only the protocol you care about
 
+Secondary modules have one function they must define to handle data:
+
 <b>handleProtocol(protocol)</b> -- Protocol data, partially defined by primary module
+
+
+Secondar modules can further return data to be used by other, downstream secondary modules
+
+
+
 
 
 
