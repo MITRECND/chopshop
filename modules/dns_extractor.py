@@ -69,7 +69,7 @@ def init(module_data):
 
     return module_options
 
-def handleData(chopp):
+def handleProtocol(chopp):
     ((src, sport), (dst, dport)) = chopp.addr
     if sport == 53:
         data = chopp.serverData
