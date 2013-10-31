@@ -149,7 +149,7 @@ def response_complete(cp, obj):
     return htpy.HTP_OK
 
 def module_info():
-    return "Takes in TCP traffic and outpus parsed HTTP traffic for use by secondary modules. Refer to the docs for output format"
+    return "Takes in TCP traffic and outputs parsed HTTP traffic for use by secondary modules. Refer to the docs for output format"
 
 def init(module_data):
     module_options = { 'proto': [ {'tcp': 'http'}]}
