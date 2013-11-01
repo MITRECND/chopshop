@@ -33,14 +33,15 @@ class dns_to_dict(json.JSONEncoder):
         return json.JSONEncoder().encode(d)
 
 def log(cp, msg, level, obj):
-    if level == htpy.HTP_LOG_ERROR:
+    chop.tsprnt("in log")
+    if level == htpy.HTP_LOG_DEBUG2:
         elog = cp.get_last_error()
         if elog == None:
-            return htpy.HOOK_ERROR
+            return htpy.HTP_ERROR
         chop.prnt("%s:%i - %s (%i)" % (elog['file'], elog['line'], elog['msg'], elog['level']))
     else:
         chop.prnt("%i - %s" % (level, msg))
-    return htpy.HOOK_OK
+    return htpy.HTP_OK
 
 # The request and response body callbacks are treated identical with one
 # exception: the location in the output dictionary where the data is stored.
@@ -53,25 +54,33 @@ def response_body(data, length, obj):
     return body(data, length, obj, 'response')
 
 def body(data, length, obj, direction):
+    chop.tsprnt("in the body callback")
     d = obj['d']
 
     if length == 0:
+        chop.tsprnt("my body has length 0")
+
         if 'body' not in d[direction]:
-            return htpy.HOOK_OK
+            chop.tsprnt("I have no body")
+            return htpy.HTP_OK
 
         dump(obj['module_data'], d)
-        return htpy.HOOK_OK
+        return htpy.HTP_OK
 
     if 'body' in d[direction]:
+        chop.tsprnt("I have a body and it has data")
         d[direction]['body'] += data
     else:
+        chop.tsprnt("I have a body")
         d[direction]['body'] = data
 
     if obj['module_data']['blen'] != 0 and len(d[direction]['body']) >= obj['module_data']['blen']:
+        chop.tsprnt("I have a body and I am rewriting it")
         d[direction]['body'] = d[direction]['body'][:obj['module_data']['blen']]
-    return htpy.HOOK_OK
+    return htpy.HTP_OK
 
 def dump(module_data, d):
+    chop.tsprnt("in the dumper")
     if module_data['prnt']:
         chop.prnt(d)
     if module_data['mongo']:
@@ -94,11 +103,15 @@ def dump(module_data, d):
     d['response'] = { 'headers': {} }
 
 def request_headers(cp, obj):
+    chop.tsprnt("in req headers")
     d = obj['d']
     d['request'] = { 'headers': {} }
     if not obj['module_data']['fields']:
+        chop.tsprnt("getting all headers")
         d['request']['headers'] = cp.get_all_request_headers()
         d['request']['uri'] = cp.get_uri()
+        d['request']['method'] = cp.get_method()
+        chop.tsprnt("headers: %s \nuri: %s \nmethod: %s" % (d['request']['headers'], d['request']['uri'], d['request']['method']))
     else:
         for field in obj['module_data']['fields']:
             if field == 'uri':
@@ -111,9 +124,10 @@ def request_headers(cp, obj):
     if not d['request']['headers']:
         del d['request']['headers']
 
-    return htpy.HOOK_OK
+    return htpy.HTP_OK
 
 def response_headers(cp, obj):
+    chop.tsprnt("in resp headers")
     d = obj['d']
     d['response'] = { 'headers': {} }
     if not obj['module_data']['fields']:
@@ -136,7 +150,7 @@ def response_headers(cp, obj):
     # enter teardown.
     if 'blen' not in obj['module_data']:
         dump(obj['module_data'], d)
-    return htpy.HOOK_OK
+    return htpy.HTP_OK
 
 def module_info():
     print "Parse HTTP. Print, generate JSON or send to mongo"
@@ -232,7 +246,9 @@ def taste(tcp):
           'dst': dst,
           'dport': dport,
         }
-    tcp.stream_data['cp'] = htpy.init()
+    tcp.stream_data['cfg'] = htpy.config()
+    tcp.stream_data['cfg'].log_level = htpy.HTP_LOG_DEBUG2
+    tcp.stream_data['cp'] = htpy.connp(tcp.stream_data['cfg'])
     tcp.stream_data['cp'].set_obj({'module_data': tcp.module_data, 'd': d})
     tcp.stream_data['cp'].register_log(log)
     tcp.stream_data['cp'].register_request_headers(request_headers)
@@ -248,16 +264,22 @@ def handleStream(tcp):
         if tcp.module_data['verbose']:
             chop.tsprnt("%s:%s->%s:%s (%i)" % (src, sport, dst, dport, tcp.server.count_new))
         try:
+            chop.tsprnt("about to set data")
             tcp.stream_data['cp'].req_data(tcp.server.data[:tcp.server.count_new])
+            chop.tsprnt("tried to set data")
         except htpy.stop:
+            chop.tsprnt("stopping")
             tcp.stop()
         tcp.discard(tcp.server.count_new)
     elif tcp.client.count_new > 0:
         if tcp.module_data['verbose']:
             chop.tsprnt("%s:%s->%s:%s (%i)" % (src, sport, dst, dport, tcp.client.count_new))
         try:
+            chop.tsprnt("about to set data")
             tcp.stream_data['cp'].res_data(tcp.client.data[:tcp.client.count_new])
+            chop.tsprnt("tried to set data")
         except htpy.stop:
+            chop.tsprnt("stopping")
             tcp.stop()
         tcp.discard(tcp.client.count_new)
     return
