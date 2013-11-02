@@ -280,6 +280,9 @@ def handleStream(tcp):
         except htpy.error:
             chop.prnt("Stream error in htpy.")
             tcp.stop()
+        except htpy.error:
+            chop.prnt("Stream error in htpy.")
+            tcp.stop()
         tcp.discard(tcp.server.count_new)
     elif tcp.client.count_new > 0:
         if tcp.module_data['verbose']:
@@ -290,6 +293,9 @@ def handleStream(tcp):
             chop.tsprnt("tried to set data")
         except htpy.stop:
             chop.tsprnt("stopping")
+            tcp.stop()
+        except htpy.error:
+            chop.prnt("Stream error in htpy.")
             tcp.stop()
         except htpy.error:
             chop.prnt("Stream error in htpy.")
