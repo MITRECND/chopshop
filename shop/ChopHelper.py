@@ -133,15 +133,24 @@ class chops:
 
             self.dataq.put(message)
 
-    def savefile(self, filename, data, finalize = True):
+    def savefile(self, filename, data, finalize = True, prepend_timestamp = False):
+        if prepend_timestamp:
+            ts = self.core.getptime()
+            if self.GMT:
+                fmt = "%Y%m%d%H%M%SZ"
+                ts = time.gmtime(ts)
+            else:
+                fmt = "%Y%m%d%H%M%S%Z"
+                ts = time.localtime(ts)
+            filename = "%s-%s" % (time.strftime(fmt, ts).strip(), filename)
         self.appendfile(filename,data,finalize,'w')
+        return filename
 
 
     #mode should not be used by chop users -- 
     #it is meant to be used by savefile
     def appendfile(self, filename, data, finalize = False, mode = 'a'):
         if self.to_outs['savefiles']:
-
             message = self.__get_message_template__()
             message['type'] = 'filedata'
             message['data'] = { 'filename': filename, 
@@ -185,6 +194,7 @@ class chops:
                 if self.cls is not None:
                     msg = msg + " with custom json encoder"
                 self.prettyprnt("RED", msg, e)
+                return #don't put anything onto the queue
            
             message = self.__get_message_template__()
             message['type'] = 'json'
@@ -192,6 +202,21 @@ class chops:
 
             self.dataq.put(message)
 
+    def pyobj(self, obj):
+        if self.to_outs['pyobj']:
+            message = self.__get_message_template__()
+            message['type'] = 'pyobj'
+            message['data'] = obj
+
+            try:
+                self.dataq.put(message)
+            except Exception, e:
+                msg = "FATAL ERROR in chop.pyobj"
+                self.prettyprnt("RED", msg, e)
+
+    def pyjson(self, obj):
+        self.pyobj(obj)
+        self.json(obj)
 
     def set_custom_json_encoder(self, cls):
         self.cls = cls
@@ -207,7 +232,7 @@ class chops:
                     'addr'   : { 'src' : '',
                                  'dst' : '',
                                  'sport': '',
-                                 'doprt': ''
+                                 'dport': ''
                                },
                     'proto'  : ''
                   }
@@ -239,6 +264,7 @@ class ChopHelper:
         self.to_outs = {'text': False,
                         'json': False,
                         'savefiles': False,
+                        'pyobj': False
                        }
         self.choplist = []
         self.core = None
@@ -252,6 +278,9 @@ class ChopHelper:
 
         if options['savefiles']:
             self.to_outs['savefiles'] = True
+
+        if options['pyobjout']:
+            self.to_outs['pyobj'] = True
 
         chops.GMT = options['GMT']
         chops.to_outs = self.to_outs

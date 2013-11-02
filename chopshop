@@ -32,7 +32,7 @@ TODO
 """
 
 
-VERSION = "3.0-BETA"
+VERSION = "3.0"
 
 import sys
 import signal
@@ -107,9 +107,9 @@ def main():
     optparser.add_option("-f", "--file", action="store", dest="filename",
         type="string", help="input pcap file")
     optparser.add_option("-l", "--aslist", action = "store_true", dest = "aslist",
-        default=False, help="Treat filename as a file containing a list of files")
+        default=False, help="Treat FILENAME as a file containing a list of files")
     optparser.add_option("-L", "--long", action="store_true", dest="longrun",
-        default=False, help="Read from filename forever even if there's no more pcap data")
+        default=False, help="Read from FILENAME forever even if there's no more pcap data")
     optparser.add_option("-i", "--interface", action="store", dest="interface",
         type="string", help="interface to listen on")
     optparser.add_option("-m", "--module_info", action="store_true", dest="modinfo",
@@ -121,7 +121,7 @@ def main():
     optparser.add_option("-g", "--gui", action="store_true", dest="gui",
         default=False, help="Enable ChopShop Gui")
     optparser.add_option("-S", "--stdout", action="store_true", dest="stdout",
-        default=True, help="Explicitly enable output to stdout")
+        default=False, help="Explicitly enable output to stdout")
     optparser.add_option("-F", "--fileout", action="store", dest="fileout",
         type="string", default=None, help="Enable File Output")
     optparser.add_option("-s", "--savedir", action="store", dest="savedir",
@@ -181,10 +181,8 @@ def main():
     else:
         choplib.modules = args[0]
 
-    if options.stdout or options.gui or options.fileout is not None:
-        choplib.text = True
-
     if options.gui:
+        #Forecefully disable stdout
         options.stdout = False
         chopui.gui = True
 
@@ -192,14 +190,23 @@ def main():
         chopui.fileout = True
         chopui.filedir = options.fileout
 
-    if options.stdout:
-        #ChopStdout.prepend_module_name = True
-        chopui.stdout = True
-
     if options.jsonout is not None:
         chopui.jsonout = True
         chopui.jsondir = options.jsonout
         choplib.jsonout = True
+
+    #If any of the other outputs are not chosen, enable stdout
+    if (not options.gui and 
+        options.fileout is None and 
+        options.jsonout is None):
+        options.stdout = True
+
+    if options.stdout or options.gui or options.fileout is not None:
+        choplib.text = True
+
+    if options.stdout:
+        #ChopStdout.prepend_module_name = True
+        chopui.stdout = True
 
     if options.savedir is not None:
         chopui.savefiles = True

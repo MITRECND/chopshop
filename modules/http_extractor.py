@@ -23,14 +23,12 @@
 
 from c2utils import packet_timedate, sanitize_filename, parse_addr
 from optparse import OptionParser
+from base64 import b64encode
 import json
 import htpy
+import hashlib
 
 moduleName="http_extractor"
-
-class dns_to_dict(json.JSONEncoder):
-    def default(self, d):
-        return json.JSONEncoder().encode(d)
 
 def log(cp, msg, level, obj):
     chop.tsprnt("in log")
@@ -61,10 +59,16 @@ def body(data, length, obj, direction):
         chop.tsprnt("my body has length 0")
 
         if 'body' not in d[direction]:
-            chop.tsprnt("I have no body")
             return htpy.HTP_OK
 
-        dump(obj['module_data'], d)
+        if obj['module_data']['md5_body']:
+            d[direction]['body_md5'] = hashlib.md5(d[direction]['body']).hexdigest()
+            del d[direction]['body']
+
+        # Only dump if direction is 'response', otherwise POST causes
+        # one dump for request and another for response.
+        if direction == 'response':
+            dump(obj['module_data'], d)
         return htpy.HTP_OK
 
     if 'body' in d[direction]:
@@ -80,13 +84,8 @@ def body(data, length, obj, direction):
     return htpy.HTP_OK
 
 def dump(module_data, d):
-    chop.tsprnt("in the dumper")
-    if module_data['prnt']:
-        chop.prnt(d)
     if module_data['mongo']:
         module_data['db'].insert(d)
-    if module_data['json']:
-        chop.json(d)
 
     if module_data['carve_request'] and 'body' in d['request']:
         chop.prnt("DUMPING REQUEST: %s (%i)" % (sanitize_filename(d['request']['uri']['path'][1:] + '.request.' + str(module_data['counter'])), len(d['request']['body'])))
@@ -97,6 +96,17 @@ def dump(module_data, d):
         chop.prnt("DUMPING RESPONSE: %s (%i)" % (sanitize_filename(d['request']['uri']['path'][1:] + '.response.' + str(module_data['counter'])), len(d['response']['body'])))
         chop.savefile(sanitize_filename(d['request']['uri']['path'][1:] + '.response.' + str(module_data['counter'])), d['response']['body'])
         module_data['counter'] += 1
+
+    # Convert the body to base64 encoded data, if it exists.
+    if 'body' in d['request']:
+        d['request']['body'] = b64encode(d['request']['body'])
+        d['request']['body_encoding'] = 'base64'
+    if 'body' in d['response']:
+        d['response']['body'] = b64encode(d['response']['body'])
+        d['response']['body_encoding'] = 'base64'
+
+    chop.prnt(d)
+    chop.json(d)
 
     # In case pipelining is going on remove these.
     d['request'] = { 'headers': {} }
@@ -111,11 +121,12 @@ def request_headers(cp, obj):
         d['request']['headers'] = cp.get_all_request_headers()
         d['request']['uri'] = cp.get_uri()
         d['request']['method'] = cp.get_method()
-        chop.tsprnt("headers: %s \nuri: %s \nmethod: %s" % (d['request']['headers'], d['request']['uri'], d['request']['method']))
     else:
         for field in obj['module_data']['fields']:
             if field == 'uri':
                 d['request']['uri'] = cp.get_uri()
+            if field == 'method':
+                d['request']['method'] = cp.get_method()
             else:
                 value = cp.get_request_header(field)
                 if value != None:
@@ -165,12 +176,10 @@ def init(module_data):
         dest="carve_request", default=False, help="Save request body")
     parser.add_option("-f", "--fields", action="store", dest="fields",
         default=[], help="Comma separated list of fields to extract")
-    parser.add_option("-p", "--print", action="store_true", dest="prnt",
-        default=False, help="Send output to stdout")
+    parser.add_option("-m", "--md5_body", action="store_true", dest="md5_body",
+        default=False, help="Generate MD5 of body, and throw contents away")
     parser.add_option("-M", "--mongo", action="store_true", dest="mongo",
         default=False, help="Send output to mongodb")
-    parser.add_option("-J", "--json", action="store_true", dest="json",
-        default=False, help="Send output to json file (use -J to chosphop)")
     parser.add_option("-H", "--host", action="store", dest="host",
         default="localhost", help="Host to connect to")
     parser.add_option("-P", "--port", action="store", dest="port",
@@ -185,15 +194,11 @@ def init(module_data):
     (options,lo) = parser.parse_args(module_data['args'])
 
     module_data['counter'] = 0
-    module_data['prnt'] = options.prnt
     module_data['mongo'] = options.mongo
-    module_data['json'] = options.json
     module_data['carve_request'] = options.carve_request
     module_data['carve_response'] = options.carve_response
     module_data['verbose'] = options.verbose
-
-    if not options.prnt and not options.mongo and not options.json:
-        chop.prnt("WARNING: No output method selected.")
+    module_data['md5_body'] = options.md5_body
 
     if module_data['mongo']:
         try:
@@ -202,9 +207,6 @@ def init(module_data):
             module_options['error'] = str(e)
             return module_options
         module_data['db'] = mongo_connector(options.host, options.port, options.db, options.col)
-
-    if module_data['json']:
-        chop.set_custom_json_encoder(dns_to_dict)
 
     module_data['fields'] = options.fields
     if options.fields:
@@ -228,6 +230,11 @@ def init(module_data):
             module_data['blen'] = 0
         else:
             chop.prnt("Carving %i bytes of bodies." % module_data['blen'])
+
+    if module_data['md5_body']:
+        if 'blen' not in module_data:
+            chop.prnt("Defaulting to MD5 entire body.")
+            module_data['blen'] = 0
 
     return module_options
 
@@ -270,6 +277,9 @@ def handleStream(tcp):
         except htpy.stop:
             chop.tsprnt("stopping")
             tcp.stop()
+        except htpy.error:
+            chop.prnt("Stream error in htpy.")
+            tcp.stop()
         tcp.discard(tcp.server.count_new)
     elif tcp.client.count_new > 0:
         if tcp.module_data['verbose']:
@@ -280,6 +290,9 @@ def handleStream(tcp):
             chop.tsprnt("tried to set data")
         except htpy.stop:
             chop.tsprnt("stopping")
+            tcp.stop()
+        except htpy.error:
+            chop.prnt("Stream error in htpy.")
             tcp.stop()
         tcp.discard(tcp.client.count_new)
     return

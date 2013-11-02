@@ -48,7 +48,7 @@ import ChopShopDebug as CSD
 
 class ChopUi(Thread):
     def __init__(self):
-        Thread.__init__(self)
+        Thread.__init__(self, name = 'ChopUi')
 
 
         self.options = { 'stdout'   : False,
@@ -58,14 +58,20 @@ class ChopUi(Thread):
                          'savedir'  : None,
                          'savefiles': False,
                          'jsonout'  : False,
-                         'jsondir'  : None
+                         'jsondir'  : None,
+                         'pyobjout' : False
                        }
 
         self.stopped = False 
         self.isrunning = False
         self.message_queue = None
         self.lib_stop_fn = None
-
+        self.stdclass = None
+        self.uiclass = None
+        self.fileoclass = None
+        self.jsonclass = None
+        self.filesclass = None
+        self.pyobjclass = None
 
     @property
     def stdout(self):
@@ -75,6 +81,14 @@ class ChopUi(Thread):
     @stdout.setter
     def stdout(self, v):
         self.options['stdout'] = v
+
+    @property
+    def pyobjout(self):
+        return self.options['pyobjout']
+    
+    @pyobjout.setter
+    def pyobjout(self, v):
+        self.options['pyobjout'] = v
 
     @property
     def gui(self):
@@ -159,38 +173,41 @@ class ChopUi(Thread):
         #    self.lib_stop_fn()
 
     def run(self):
-        stdclass = None
-        uiclass = None
-        fileoclass = None
-        jsonclass = None
-        filesclass = None
+        try:
+            if self.options['stdout'] == True:
+                self.stdclass = ChopStdout()
+                #Assign the default stdout handler 
+            elif self.options['stdout'] != False:
+                self.stdclass = self.options['stdout']()
+                #Override the default handler with this one 
 
-        if self.options['stdout'] == True:
-            stdclass = ChopStdout()
-            #Assign the default stdout handler 
-        elif self.options['stdout'] != False:
-            stdclass = self.options['stdout']()
-            #Override the default handler with this one 
+            if self.options['gui'] == True:
+                self.uiclass = ChopGui(self.stop, self.lib_stop_fn)
+            elif self.options['gui'] != False:
+                self.uiclass = self.options['gui'](self.stop, self.lib_stop_fn)
 
-        if self.options['gui'] == True:
-            uiclass = ChopGui(self.stop, self.lib_stop_fn)
-        elif self.options['gui'] != False:
-            uiclass = self.options['gui'](self.stop, self.lib_stop_fn)
+            if self.options['fileout'] == True:
+                self.fileoclass = ChopFileout(format_string = self.options['filedir'])
+            elif self.options['fileout'] != False:
+                self.fileoclass = self.options['fileout'](format_string = self.options['filedir'])
 
-        if self.options['fileout'] == True:
-            fileoclass = ChopFileout(format_string = self.options['filedir'])
-        elif self.options['fileout'] != False:
-            fileoclass = self.options['fileout'](format_string = self.options['filedir'])
+            if self.options['jsonout'] == True:
+                self.jsonclass = ChopJson(format_string = self.options['jsondir'])
+            elif self.options['jsonout'] != False:
+                self.jsonclass = self.options['jsonout'](format_string = self.options['jsondir'])
 
-        if self.options['jsonout'] == True:
-            jsonclass = ChopJson(format_string = self.options['jsondir'])
-        elif self.options['jsonout'] != False:
-            jsonclass = self.options['jsonout'](format_string = self.options['jsondir'])
+            if self.options['savefiles'] == True:
+                self.filesclass = ChopFilesave(format_string = self.options['savedir'])
+            elif self.options['savefiles'] != False:
+                self.filesclass = self.options['savefiles'](format_string = self.options['savedir'])
 
-        if self.options['savefiles'] == True:
-            filesclass = ChopFilesave(format_string = self.options['savedir'])
-        elif self.options['savefiles'] != False:
-            filesclass = self.options['savefiles'](format_string = self.options['savedir'])
+            if self.options['pyobjout'] == True:
+                self.pyobjclass = None #No default handler Should throw exception
+            elif self.options['pyobjout'] != False:
+                self.pyobjclass = self.options['pyobjout']()
+    
+        except Exception, e:
+            raise ChopUiException(e)
 
         while not self.stopped:
 
@@ -202,20 +219,22 @@ class ChopUi(Thread):
 
             try:
                 if message['type'] == 'ctrl':
-                    if stdclass is not None:
-                        stdclass.handle_ctrl(message)
-                    if uiclass is not None:
-                        uiclass.handle_ctrl(message)
-                    if fileoclass is not None:
-                        fileoclass.handle_ctrl(message)
-                    if jsonclass is not None:
-                        jsonclass.handle_ctrl(message)
-                    if filesclass is not None:
-                        filesclass.handle_ctrl(message)
+                    if self.stdclass is not None:
+                        self.stdclass.handle_ctrl(message)
+                    if self.uiclass is not None:
+                        self.uiclass.handle_ctrl(message)
+                    if self.fileoclass is not None:
+                        self.fileoclass.handle_ctrl(message)
+                    if self.jsonclass is not None:
+                        self.jsonclass.handle_ctrl(message)
+                    if self.filesclass is not None:
+                        self.filesclass.handle_ctrl(message)
+                    if self.pyobjclass is not None:
+                        self.pyobjclass.handle_ctrl(message)
 
                     #The GUI is the only thing that doesn't care if the core is no
                     #longer running
-                    if message['data']['msg'] == 'finished' and uiclass is None:
+                    if message['data']['msg'] == 'finished' and self.uiclass is None:
                         self.stop()
                         continue
 
@@ -224,31 +243,38 @@ class ChopUi(Thread):
 
             try:
                 if message['type'] == 'text':
-                    if stdclass is not None:
-                        stdclass.handle_message(message)
-                    if uiclass is not None:
-                        uiclass.handle_message(message)
-                    if fileoclass is not None:
-                        fileoclass.handle_message(message)
+                    if self.stdclass is not None:
+                        self.stdclass.handle_message(message)
+                    if self.uiclass is not None:
+                        self.uiclass.handle_message(message)
+                    if self.fileoclass is not None:
+                        self.fileoclass.handle_message(message)
 
                 if message['type'] == 'json':
-                    if jsonclass is not None:  
-                        jsonclass.handle_message(message)
+                    if self.jsonclass is not None:  
+                        self.jsonclass.handle_message(message)
                 
                 if message['type'] == 'filedata':
-                    if filesclass is not None:
-                        filesclass.handle_message(message) 
+                    if self.filesclass is not None:
+                        self.filesclass.handle_message(message) 
+
+                if message['type'] == 'pyobj':
+                    if self.pyobjclass is not None:
+                        self.pyobjclass.handle_message(message)
+
             except Exception, e:
                 raise ChopUiException(e)
 
-        if stdclass is not None:
-            stdclass.stop()
-        if uiclass is not None:
-            uiclass.stop()
-        if fileoclass is not None:
-            fileoclass.stop()
-        if jsonclass is not None:
-            jsonclass.stop()
-        if filesclass is not None:
-            filesclass.stop()
+        if self.stdclass is not None:
+            self.stdclass.stop()
+        if self.uiclass is not None:
+            self.uiclass.stop()
+        if self.fileoclass is not None:
+            self.fileoclass.stop()
+        if self.jsonclass is not None:
+            self.jsonclass.stop()
+        if self.filesclass is not None:
+            self.filesclass.stop()
+        if self.pyobjclass is not None:
+            self.pyobjclass.stop()
 

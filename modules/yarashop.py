@@ -29,7 +29,7 @@ Usage: yarashop ...
 
 import argparse
 
-from c2utils import parse_addr
+from c2utils import parse_addr, hexdump
 import chopring
 import yaraprocessor
 
@@ -80,14 +80,6 @@ def init(module_data):
         help='If Yara matches are found, save the stream to file.')
 
     parser.add_argument(
-        '-j', '--json',
-        action='store_true',
-        dest='json',
-        default=False,
-        help='Print Yara matches as JSON.'
-        )
-
-    parser.add_argument(
         '-v', '--verbose',
         action='store_true',
         dest='verbose',
@@ -108,7 +100,6 @@ def init(module_data):
     module_data['size'] = args.size
     module_data['step'] = args.step
     module_data['save'] = args.save
-    module_data['json'] = args.json
     module_data['verbose'] = args.verbose
     module_data['quiet'] = args.quiet
 
@@ -236,7 +227,7 @@ def teardown(tcp):
 
 def handle_results(tcp):
     """Print and save results."""
-    ((src, sport), (dst, dport)) = tcp.addr
+    ((src, sport), (dst, dport)) = parse_addr(tcp)
     # print results
     for match in tcp.stream_data['server_processor'].results:
         if not module_data['quiet']:
@@ -248,11 +239,11 @@ def handle_results(tcp):
             output = 'Match found in server stream; src=%s; sport=%s; dst=%s; dport=%s\n' \
                       % (src, sport, dst, dport)
             output += str(match) + '\n\n'
-            output += c2utils.hexdump(tcp.stream_data['server_buffer']) + '\n'
+            output += hexdump(tcp.stream_data['server_buffer']) + '\n'
             chop.appendfile(tcp.module_data['save'], output)
 
-        if tcp.module_data['json']:
-            chop.json(match)
+        chop.json(match)
+    tcp.stream_data['server_processor'].clear_results()
 
     # print results
     for match in tcp.stream_data['client_processor'].results:
@@ -265,8 +256,8 @@ def handle_results(tcp):
             output = 'Match found in client stream; src=%s; sport=%s; dst=%s; dport=%s\n' \
                       % (dst, dport, src, sport)
             output += str(match) + '\n\n'
-            output += c2utils.hexdump(tcp.stream_data['client_buffer']) + '\n'
+            output += hexdump(tcp.stream_data['client_buffer']) + '\n'
             chop.appendfile(tcp.module_data['save'], output)
 
-        if tcp.module_data['json']:
-            chop.json(match)
+        chop.json(match)
+    tcp.stream_data['client_processor'].clear_results()

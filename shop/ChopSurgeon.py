@@ -117,5 +117,5 @@ class Surgeon:
                 break
             time.sleep(.1)
 
-        os.close(flist)
+        flist.close()
         suture.end_bunch()

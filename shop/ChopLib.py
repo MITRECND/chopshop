@@ -24,7 +24,7 @@
 # SUCH DAMAGE.
 
 
-VERSION = 3.0
+VERSION = 3.1
 
 import sys
 import os
@@ -50,8 +50,9 @@ from ChopException import ChopLibException
 """
 
 class ChopLib(Thread):
+    daemon = True
     def __init__(self):
-        Thread.__init__(self)
+        Thread.__init__(self, name = 'ChopLib')
         global CHOPSHOP_WD
 
         pyversion = sys.version_info
@@ -79,13 +80,13 @@ class ChopLib(Thread):
                          'GMT': False,
                          'savefiles': False, #Should ChopShop handle the saving of files?
                          'text': False,
+                         'pyobjout': False,
                          'jsonout': False,
                          'savedir': '/tmp/',
                          'modules': ''
                        }
 
         self.stopped = False
-
 
         #Setup Interaction Queues
         self.tocaller = Queue() #output directly to caller
@@ -98,6 +99,8 @@ class ChopLib(Thread):
         self.nidsp.start()
 
         self.chop = None
+
+        self.kill_lock = Lock()
 
     @property
     def mod_dir(self):
@@ -208,6 +211,15 @@ class ChopLib(Thread):
         self.options['text'] = v
 
     @property
+    def pyobjout(self):
+        """Handle raw python objects"""
+        return self.options['pyobjout']
+
+    @pyobjout.setter
+    def pyobjout(self, v):
+        self.options['pyobjout'] = v
+
+    @property
     def jsonout(self):
         """Handle JSON Data (chop.json)."""
         return self.options['jsonout']
@@ -264,7 +276,27 @@ class ChopLib(Thread):
         chophelper = ChopHelper(self.tocaller, self.options)
         self.chop = chophelper.setup_module(name, pid)
         
+    def send_finished_msg(self, data = {}, stop_seq = False):
+        message = { 'type' : 'ctrl',
+                    'data' : {'msg' : 'finished',
+                              'status': 'ok' #default to ok
+                            }
+                  }
 
+        for key,val in data.iteritems():
+            message['data'][key] = val
+
+        self.kill_lock.acquire()
+        try:
+            self.tocaller.put(message)
+
+            if stop_seq:
+                self.tonids.put(['stop'])
+                self.nidsp.join()
+        except AttributeError:
+            pass
+        finally:
+            self.kill_lock.release()
 
     def run(self):
         surgeon = None
@@ -274,16 +306,16 @@ class ChopLib(Thread):
             if not self.options['interface']:
                 if not self.options['filename']:
                     if not self.options['filelist']:
-                        raise ChopLibException("No input specified")
+                        self.send_finished_msg({'status':'error','errors': 'No input Specified'}, True)
+                        return
                     else:
                         surgeon = Surgeon(self.options['filelist'])
                         self.options['filename'] = surgeon.create_fifo()
                         surgeon.operate()
                 else:
                     if not os.path.exists(self.options['filename']):
-                        #print "Unable to find file '%s'" % self.options['filename']
-                        raise ChopLibException("Unable to find file '%s'" % self.options['filename'])
-                        #sys.exit(-1)
+                        self.send_finished_msg({'status':'error','errors':"Unable to find file '%s'" % self.options['filename']}, True)
+                        return
 
                     if self.options['aslist']:
                         #input file is a listing of files to process
@@ -293,54 +325,91 @@ class ChopLib(Thread):
                         surgeon.operate(True)
 
         #Send options to Process 2 and tell it to setup
-        self.tonids.put(['init', self.options])
+        self.kill_lock.acquire()
+        try:
+            self.tonids.put(['init', self.options])
+        except AttributeError:
+            #usually means tonids is None
+            #possibly being killed?
+            pass
+        except Exception, e:
+            raise ChopLibException(e)
+        finally:
+            self.kill_lock.release()
+
         #Wait for a reponse
-        resp = self.fromnids.get()
+        self.kill_lock.acquire()
+        try:
+            resp = self.fromnids.get()
+        except AttributeError:
+            resp = "notok" #probably means fromnids is None, which should only happen when being killed
+        except Exception, e:
+            raise ChopLibException(e)
+        finally:
+            self.kill_lock.release()
+
         if resp != 'ok':
-            raise ChopLibException(resp)
+            self.send_finished_msg({'status':'error','errors':resp}, True)
+            return
 
         if self.options['modinfo']:
-            self.tonids.put(['mod_info'])
-            resp = self.fromnids.get() #really just to make sure the functions finish
+            self.kill_lock.acquire()
+            try:
+                self.tonids.put(['mod_info'])
+                resp = self.fromnids.get() #really just to make sure the functions finish
+            except AttributeError:
+                pass
+            finally:
+                self.kill_lock.release()
+
             #Process 2 will quit after doing its job
 
             #Inform caller that the process is done
-            message = { 'type' : 'ctrl',
-                        'data' : {'msg'  : 'finished'}
-                      }
-            
-            self.tocaller.put(message)
-
-            #Surgeon should not be invoked son only need
+            self.send_finished_msg()
+            #Surgeon should not be invoked so only need
             #to cleanup nidsp
             self.nidsp.join()
             return
 
         else:
-            self.tonids.put(['cont'])
+            self.kill_lock.acquire()
+            try:
+                self.tonids.put(['cont'])
+            except AttributeError:
+                pass
+            except Exception, e:
+                raise ChopLibException(e)
+            finally:
+                self.kill_lock.release()
 
-        
         #Processing loop
         while True:
+            self.kill_lock.acquire()
             try:
                 data = self.fromnids.get(True, .1)
             except Queue.Empty, e:
                 if not self.nidsp.is_alive():
                     break
-
-                if self.stopped:
-                    self.nidsp.terminate()                
+                #if self.stopped:
+                #    self.nidsp.terminate()                
                 continue
+            except AttributeError:
+                break
+            finally:
+                self.kill_lock.release()
 
             if data[0] == "stop": 
                 #Send the message to caller that we need to stop
                 message = { 'type' : 'ctrl',
                             'data' : {'msg'  : 'stop'}
                           }
-                self.tocaller.put(message)
+                self.kill_lock.acquire()
+                try:
+                    self.tocaller.put(message)
+                finally:
+                    self.kill_lock.release()
 
                 self.nidsp.join(1)
-
                 #Force Terminate if nids process is non-compliant
                 if self.nidsp.is_alive():
                     self.nidsp.terminate()
@@ -357,26 +426,31 @@ class ChopLib(Thread):
         self.nidsp.join()
 
         #Inform caller that we are now finished
-        message = { 'type' : 'ctrl',
-                    'data' : {'msg'  : 'finished'}
-                  }
-        
-        self.tocaller.put(message)
-
+        self.send_finished_msg()
 
     #This must be torn down safely after who need it have cleaned up
     def finish(self):
-        if self.nidsp.is_alive():
-            self.nidsp.terminate()
-        self.nidsp.join(.1)
-
+        self.kill_lock.acquire()
         try:
-            self.tonids.close()
-            self.fromnids.close()
-            self.tocaller.close()
-            time.sleep(.1)
-        except:
-            pass 
+            self.stop()
+            if self.nidsp.is_alive():
+                self.nidsp.terminate()
+            self.nidsp.join(.1)
+
+            try:
+                self.tonids.close()
+                self.fromnids.close()
+                self.tocaller.close()
+
+                self.tonids = None
+                self.fromnids = None
+                self.tocaller = None
+                time.sleep(.1)
+
+            except:
+                pass 
+        finally:
+            self.kill_lock.release()
 
 
 #######Process 2 Functions######
@@ -513,12 +587,14 @@ class ChopLib(Thread):
 
             elif data[0] == 'cont':
                 break
+            elif data[0] == 'stop': #Some error must have occurred
+                sys.exit(0)
             else: 
                 #FIXME custom exception?
                 raise Exception("Unknown message")
 
 
-        chop.prettyprnt("RED", "Starting the ChopShop")
+        chop.prettyprnt("RED", "Starting ChopShop")
 
         #Initialize the ChopShop Core
         ccore = ChopCore(options, module_list, chop, chophelper)
