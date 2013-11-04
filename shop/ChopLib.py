@@ -588,8 +588,6 @@ class ChopLib(Thread):
                 orig_stdout = sys.stdout #We don't know what the original stdout might have been (__stdout__)
                                          #Although it should be /dev/null
                 for mod in module_list:
-                    sys.stdout = strbuff = StringIO()
-                    
                     try:
                         modinf = "%s (%s) -- requires ChopLib %s or greater:\n" % (mod.code.moduleName, mod.code.moduleVersion, mod.code.minimumChopLib)
                     except:
@@ -605,6 +603,8 @@ class ChopLib(Thread):
                             raise Exception
                     except Exception, e:
                         modtxt = "Missing module information for %s\n" % mod.name
+
+                    sys.stdout = strbuff = StringIO()
 
                     try:
                         sys.argv[0] = mod.code.moduleName
