@@ -114,6 +114,8 @@ def main():
         type="string", help="interface to listen on")
     optparser.add_option("-m", "--module_info", action="store_true", dest="modinfo",
         default=False,help="print information about module(s) and exit")
+    optparser.add_option("-a", "--all_module_list", action="store_true", dest="modlist",
+        default=False,help="print names of available module(s) and exit")
     optparser.add_option("-G", "--GMT", action="store_true", dest="GMT",
         default=False, help="timestamps in GMT (tsprnt and tsprettyprnt only)")
     optparser.add_option("-v", "--version", action="store_true", dest="version",
@@ -137,11 +139,11 @@ def main():
         print "ChopShop Version %s (Choplib: %s)" % (VERSION, choplib.version())
         sys.exit()
 
-    if len(args) <= 0:
+    if len(args) <= 0 and not options.modlist:
         print "Module List Required"
         sys.exit(0)
 
-    if not options.modinfo:
+    if not options.modinfo and not options.modlist:
         if not options.interface:
             if not options.filename:
                 #Nothing is set for input, attempt to read a list of files from stdin
@@ -173,12 +175,13 @@ def main():
     choplib.aslist = options.aslist
     choplib.longrun = options.longrun
     choplib.modinfo = options.modinfo
+    choplib.modlist = options.modlist
     choplib.GMT = options.GMT
 
     if len(args) > 1:
         choplib.bpf = args[0]
         choplib.modules = args[1]
-    else:
+    elif len(args) == 1:
         choplib.modules = args[0]
 
     if options.gui:
