@@ -35,9 +35,9 @@ import Queue
 from ChopProtocol import ChopProtocol
 
 
-#TODO Add more error checking
+#TODO 
+# Add more error checking
 # See if any useful information is missing
-# Check body lenght limits
 
 moduleName ="http"
 moduleVersion ='0.1'
@@ -66,33 +66,37 @@ def response_body(data, length, obj):
 def body(data, length, obj, direction):
     trans = obj['temp']
 
-    if length == 0:
-        if 'body' not in trans[direction]:
-            return htpy.HTP_OK
+    trans[direction]['body_len'] += length
 
-        #if obj['module_data']['md5_body']:
-        #    d[direction]['body_md5'] = hashlib.md5(d[direction]['body']).hexdigest()
-        #    del d[direction]['body']
-
-        # Only dump if direction is 'response', otherwise POST causes
-        # one dump for request and another for response.
-        #if direction == 'response':
-        #    dump(obj['module_data'], d)
+    if length == 0 or trans[direction]['truncated'] == True:
         return htpy.HTP_OK
 
-    if 'body' in trans[direction]:
+    if obj['options']['no-body']:
+        trans[direction]['body']  = ''
+        trans[direction]['truncated'] = True
+        return htpy.HTP_OK
+
+    if trans[direction]['body'] is not None:
         trans[direction]['body'] += data
     else:
         trans[direction]['body'] = data
 
-    #if obj['module_data']['blen'] != 0 and len(d[direction]['body']) >= obj['module_data']['blen']:
-    #    d[direction]['body'] = d[direction]['body'][:obj['module_data']['blen']]
+    #Truncate to Maximum Length
+    if len(trans[direction]['body']) > obj['options']['length']:
+        trans[direction]['body'] = trans[direction]['body'][:(obj['options']['length'])]
+        trans[direction]['truncated'] = True
+    
+
     return htpy.HTP_OK
 
 def request_headers(cp, obj):
     trans = obj['temp']
     trans['start'] = obj['timestamp']
     trans['request'] = {}
+    trans['request']['truncated'] = False #Has the body been truncated?
+    trans['request']['body'] = None
+    trans['request']['body_len'] = 0
+
     trans['request']['headers'] = cp.get_all_request_headers()
     trans['request']['uri'] = cp.get_uri()
     trans['request']['method'] = cp.get_method()
@@ -128,6 +132,10 @@ def response_headers(cp, obj):
     trans['response']['headers'] = cp.get_all_response_headers()
     trans['response']['status'] = cp.get_response_status()
 
+    trans['response']['truncated'] = False
+    trans['response']['body'] = None
+    trans['response']['body_len'] = 0
+
     return htpy.HTP_OK
 
 def response_complete(cp, obj):
@@ -158,14 +166,17 @@ def init(module_data):
     parser.add_option("-v", "--verbose", action="store_true", dest="verbose",
         default=False, help="Be verbose about incoming packets")
     parser.add_option("-b", "--no-body", action="store_true", dest="nobody",
-        default=False, help="Do not process http bodies")
+        default=False, help="Do not store http bodies")
+    parser.add_option("-l", "--length", action="store", dest="length", type="int",
+        default=1048576, help="Maximum length of bodies in bytes (Default: 1MB)")
 
     (options,lo) = parser.parse_args(module_data['args'])
 
     module_data['counter'] = 0
     module_data['options'] = { 
                                 'verbose' : options.verbose, 
-                                'no-body' : options.nobody
+                                'no-body' : options.nobody,
+                                'length' : options.length
                              }
 
     return module_options
