@@ -227,14 +227,14 @@ class ChopGrammar:
 
         while right < len(invocation):
             if invocation[right][0] == "OPTION":
-                mymod.arguments.append(invocation[right][1])
+                mymod.arguments.append(invocation[right][1].rstrip())
                 if (right + 1) < len(invocation) and (invocation[right + 1][0] == "QUOTED" or invocation[right + 1][0] == "STRING"):
-                    mymod.arguments.append(invocation[right + 1][1])
+                    mymod.arguments.append(invocation[right + 1][1].rstrip())
                     right += 1 #skip the parameter
             elif (invocation[right][0] == "QUOTED" or invocation[right][0] == "STRING"):
                 if (right + 1) < len(invocation):
                     raise Exception("QUOTED or STRING tokens must be last element of invocation or following a OPTION token")
-                mymod.arguments.append(invocation[right][1])
+                mymod.arguments.append(invocation[right][1].rstrip())
             else:
                 raise Exception("Unexpected %s token %s" % (invocation[right][0], invocation[right][1]))
             right += 1
