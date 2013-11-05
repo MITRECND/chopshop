@@ -210,10 +210,20 @@ class ChopCore(Thread):
             else:
                 all_modules.append(module)
                 #Proto is an array of dictionaries
+                if not isinstance(module_options['proto'], list): #Malformed
+                    chop.prnt("%s has malformed proto list" % module.code.moduleName)
+                    self.complete = True
+                    return
+
                 for proto in module_options['proto']:
                     #Right now (4.0) each dictionary only has one key
                     #This might change in the future but should be easy
                     #since it's already a separate dictionary
+                    if type(proto) is not dict:
+                        chop.prnt("%s has malformed proto list" % module.code.moduleName)
+                        self.complete = True
+                        return
+ 
                     for input in proto.keys():
                         if input not in module.inputs:
                             module.inputs[input] = []
