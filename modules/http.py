@@ -91,7 +91,7 @@ def body(data, length, obj, direction):
         trans[direction]['body'] = data
 
     #Truncate to Maximum Length
-    if len(trans[direction]['body']) > obj['options']['length']:
+    if obj['options']['length'] > 0 and len(trans[direction]['body']) > obj['options']['length']:
         trans[direction]['body'] = trans[direction]['body'][:(obj['options']['length'])]
         trans[direction]['truncated'] = True
     
@@ -191,7 +191,7 @@ def init(module_data):
     parser.add_option("-b", "--no-body", action="store_true", dest="nobody",
         default=False, help="Do not store http bodies")
     parser.add_option("-l", "--length", action="store", dest="length", type="int",
-        default=5242880, help="Maximum length of bodies in bytes (Default: 5MB)")
+        default=5242880, help="Maximum length of bodies in bytes (Default: 5MB, set to 0 to disable)")
     parser.add_option("-a", "--hash-function", action="store", dest="hash_function",
         default="md5", help="Hash Function to use on bodies (default 'md5', available: 'sha1', 'sha256', 'sha512')")
 
