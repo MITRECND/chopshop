@@ -35,13 +35,16 @@ from optparse import OptionParser
 from c2utils import multibyte_xor, hexdump, parse_addr, entropy
 
 moduleName = 'payloads'
+moduleVersion = '2.0'
+minimumChopLib = '4.0'
+
 
 def parse_args(module_data):
     parser = OptionParser()
 
     parser.add_option("-b", "--base64", action="store_true",
         dest="base64", default=False,
-        help="Base64 encode payloads (useful for JSON handling)")
+        help="Base64 encode payloads (useful for JSON handling) (TCP)")
     parser.add_option("-v", "--verbose", action="store_true",
         dest="verbose", default=False, help="print all information")
     parser.add_option("-x", "--hexdump", action="store_true",
@@ -49,10 +52,16 @@ def parse_args(module_data):
     parser.add_option("-o", "--xor", action="store",
         dest="xor_key", default=None, help="XOR packet payloads with this key")
     parser.add_option("-O", "--oneshot", action="store_true",
-        dest="oneshot", default=False, help="Buffer entire flow until teardown")
+        dest="oneshot", default=False, help="Buffer entire flow until teardown (TCP)")
     parser.add_option("-S", "--oneshot_split", action="store_true",
         dest="oneshot_split", default=False,
-        help="Buffer each side of flow until teardown")
+        help="Buffer each side of flow until teardown (TCP)")
+    parser.add_option("-u", "--udp-disable", action="store_true",
+        dest="disable_udp", default=False,
+        help="Disable UDP support")
+    parser.add_option("-t", "--tcp-disable", action="store_true",
+        dest="disable_tcp", default=False,
+        help="Disable TCP support")
 
     (opts,lo) = parser.parse_args(module_data['args'])
 
@@ -65,13 +74,30 @@ def parse_args(module_data):
     if opts.xor_key:
         module_data['xor_key'] = opts.xor_key[2:]
 
-def init(module_data):
-    module_options = {'proto':'tcp'}
+    return opts
 
-    parse_args(module_data)
+def init(module_data):
+    opts = parse_args(module_data)
+
+    module_options = {'proto': []}
+
+    tcp = {'tcp' : ''}
+    udp = {'udp' : ''}
+
+    if not opts.disable_tcp:
+        module_options['proto'].append(tcp)
+
+    if not opts.disable_udp:
+        module_options['proto'].append(udp)
+
+    if len(module_options['proto']) == 0: #They disabled both?
+        module_options['error'] = "Cannot disable both UDP *AND* TCP"
+    
     
     return module_options
 
+
+#TCP
 def taste(tcp):
     ((src, sport), (dst, dport)) = tcp.addr
 
@@ -117,7 +143,7 @@ def handleStream(tcp):
     if tcp.module_data['hexdump']:
         data = hexdump(data)
 
-    if module_data['base64']:
+    if tcp.module_data['base64']:
         data = b64encode(data)
 
     chop.prettyprnt(color, data)
@@ -152,7 +178,22 @@ def alter_data(module_data, data):
 
     return data
 
+
+#UDP
+def handleDatagram(udp):
+	# collect time and IP metadata
+	((src, sport), (dst, dport)) = udp.addr
+	# handle client system packets
+        if udp.module_data['verbose']:
+            chop.tsprettyprnt("RED", "%s:%s -> %s:%s 0x%04X bytes" % (src, sport, dst, dport, len(udp.data)))
+        if 'xor_key' in udp.module_data:
+            data = multibyte_xor(udp.data, udp.module_data['xor_key'])
+        else:
+            data = udp.data
+        if udp.module_data['hexdump']:
+            data = hexdump(data)
+        chop.prettyprnt("RED", data)
+
+
 def module_info():
-    print "A module to dump raw packet payloads from a stream."
-    print "Meant to be used to watch netcat reverse shells and other plaintext"
-    print "backdoors."
+    return "A module to dump raw packet payloads from a stream.\nMeant to be used to watch netcat reverse shells and other plaintext\nbackdoors."
