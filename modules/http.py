@@ -43,6 +43,9 @@ moduleName ="http"
 moduleVersion ='0.1'
 minimumChopLib ='4.0'
 
+__hash_function__ = None
+
+
 def log(cp, msg, level, obj):
     if level == htpy.HTP_LOG_ERROR:
         elog = cp.get_last_error()
@@ -52,6 +55,7 @@ def log(cp, msg, level, obj):
     else:
         chop.prnt("%i - %s" % (level, msg))
     return htpy.HTP_OK
+
 
 # The request and response body callbacks are treated identical with one
 # exception: the location in the output dictionary where the data is stored.
@@ -68,7 +72,12 @@ def body(data, length, obj, direction):
 
     trans[direction]['body_len'] += length
 
-    if length == 0 or trans[direction]['truncated'] == True:
+    if length == 0: 
+        return htpy.HTP_OK
+
+    trans[direction]['tmp_hash'].update(data)
+
+    if trans[direction]['truncated'] == True:
         return htpy.HTP_OK
 
     if obj['options']['no-body']:
@@ -97,6 +106,9 @@ def request_headers(cp, obj):
     trans['request']['body'] = None
     trans['request']['body_len'] = 0
 
+    trans['request']['hash_fn'] = obj['options']['hash_function']
+    trans['request']['tmp_hash'] = __hash_function__()
+
     trans['request']['headers'] = cp.get_all_request_headers()
     trans['request']['uri'] = cp.get_uri()
     trans['request']['method'] = cp.get_method()
@@ -121,6 +133,10 @@ def request_headers(cp, obj):
 
 def request_complete(cp, obj):
     #Move request data to the lines queue
+    trans = obj['temp']
+    trans['request']['body_hash'] = trans['request']['tmp_hash'].hexdigest()
+    del trans['request']['tmp_hash']
+
     obj['lines'].put(obj['temp']['request'])
     obj['temp']['request'] = {}
 
@@ -132,6 +148,9 @@ def response_headers(cp, obj):
     trans['response']['headers'] = cp.get_all_response_headers()
     trans['response']['status'] = cp.get_response_status()
 
+    trans['response']['hash_fn'] = obj['options']['hash_function']
+    trans['response']['tmp_hash'] = __hash_function__()
+
     trans['response']['truncated'] = False
     trans['response']['body'] = None
     trans['response']['body_len'] = 0
@@ -140,6 +159,10 @@ def response_headers(cp, obj):
 
 def response_complete(cp, obj):
     trans = obj['temp']
+
+    trans['response']['body_hash'] = trans['response']['tmp_hash'].hexdigest()
+    del trans['response']['tmp_hash']
+
     try:
         req = obj['lines'].get(False) #Do not block
     except Queue.Empty:
@@ -168,15 +191,29 @@ def init(module_data):
     parser.add_option("-b", "--no-body", action="store_true", dest="nobody",
         default=False, help="Do not store http bodies")
     parser.add_option("-l", "--length", action="store", dest="length", type="int",
-        default=1048576, help="Maximum length of bodies in bytes (Default: 1MB)")
+        default=5242880, help="Maximum length of bodies in bytes (Default: 5MB)")
+    parser.add_option("-a", "--hash-function", action="store", dest="hash_function",
+        default="md5", help="Hash Function to use on bodies (default 'md5', available: 'sha1', 'sha256', 'sha512')")
 
     (options,lo) = parser.parse_args(module_data['args'])
+
+    global __hash_function__
+    if options.hash_function == 'sha1':
+        __hash_function__ = hashlib.sha1
+    elif options.hash_function == 'sha256':
+        __hash_function__ = hashlib.sha256
+    elif options.hash_function == 'sha512':
+        __hash_function__ = hashlib.sha512
+    else:
+        options.hash_function = 'md5'
+        __hash_function__ = hashlib.md5
 
     module_data['counter'] = 0
     module_data['options'] = { 
                                 'verbose' : options.verbose, 
                                 'no-body' : options.nobody,
-                                'length' : options.length
+                                'length' : options.length,
+                                'hash_function' : options.hash_function
                              }
 
     return module_options
