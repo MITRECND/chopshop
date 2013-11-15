@@ -68,7 +68,7 @@ class ChopGrammar:
         (r"[ ]*\)[ ]*",                                 lambda scanner, token:("ETEE", token)),
         (r"[ ]*\|[ ]*",                                 lambda scanner, token:("PIPE", token)),
         (r"[ ]*\,[ ]*",                                 lambda scanner, token:("COMMA", token)),
-        (r"-[a-zA-Z0-9][ ]*",                           lambda scanner, token:("OPTION", token)),
+        (r"-[a-zA-Z0-9]+[ ]*",                          lambda scanner, token:("OPTION", token)),
         (r"--[a-zA-Z0-9_-]+[ ]*",                       lambda scanner, token:("OPTION", token)),
         (r"[a-zA-Z0-9_-]+[ ]*",                         lambda scanner, token:("STRING", token)),
     ])
