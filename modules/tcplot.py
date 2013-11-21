@@ -4,15 +4,24 @@ import sys
 import struct
 import time
 import datetime
+import operator
+import string
 import math
 import numpy as np
 import matplotlib.pyplot as plt
 import pickle
 from optparse import OptionParser
 
+def split_cb(option, opt, value, parser):
+  setattr(parser.values, option.dest, [int(i) for i in value.split(',')])
+  
 def parse_args(module_data):
     parser = OptionParser()
 
+    parser.add_option("-s", "--skip_client", action="callback", type="string",
+        dest="skip_client", default=[], callback=split_cb, help="Comma separated list of byte sizes to skip when sent by client")
+    parser.add_option("-r", "--skip_server", action="callback", type="string",
+        dest="skip_server", default=[], callback=split_cb, help="Comma separated list of byte sizes to skip when sent by server")
     parser.add_option("-d", "--dump", action="store_true",
         dest="dump", default=False, help="Dump traffic summary to text file")
     parser.add_option("-o", "--output", action="store_true",
@@ -29,7 +38,8 @@ def parse_args(module_data):
         dest="absolute", default=False, help="When creating comparison plot,represent both client and server using positive byte counts")
         
     (opts,lo) = parser.parse_args(module_data['args'])
-
+    module_data['skip_client'] = opts.skip_client
+    module_data['skip_server'] = opts.skip_server
     module_data['dump'] = opts.dump
     module_data['output'] = opts.output
     module_data['unified'] = opts.unified
@@ -44,6 +54,14 @@ def init(module_data):
     parse_args(module_data)
     module_data['bytes'] = {}
     module_data['timestamps'] = {}
+    module_data['serv_sent_cts'] = {}
+    module_data['clnt_sent_cts'] = {}
+    module_data['serv_sent_pkt_cts'] = 0
+    module_data['clnt_sent_pkt_cts'] = 0
+    module_data['total_sz'] = 0
+    module_data['client_sent'] = 0
+    module_data['server_sent'] = 0
+    module_data['streams'] = []
     return module_options
     
 def module_info():
@@ -51,14 +69,24 @@ def module_info():
 
 def handleStream(tcp):
     if tcp.server.count_new > 0:
-        count = tcp.server.count_new
         from_client = True
+        count = tcp.server.count_new
+        if count in tcp.module_data["skip_client"]:
+            return
+        tcp.module_data["clnt_sent_cts"][count] = 1 + tcp.module_data["clnt_sent_cts"].get(count, 0)
+        tcp.module_data["clnt_sent_pkt_cts"] += 1
         color = "RED"
-    else:
-        count = tcp.client.count_new
+    elif tcp.client.count_new > 0:
         from_client = False
+        count = tcp.client.count_new
+        if count in tcp.module_data["skip_server"]:
+            return
+        tcp.module_data["serv_sent_cts"][count] = 1 + tcp.module_data["serv_sent_cts"].get(count, 0)
+        tcp.module_data["serv_sent_pkt_cts"] += 1
         color = "GREEN"
-        
+    else:
+        return
+    
     if not tcp.stream_data['start']:
         tcp.stream_data['start'] = datetime.datetime.utcfromtimestamp(tcp.timestamp)
     time_since_start = datetime.datetime.utcfromtimestamp(tcp.timestamp) - tcp.stream_data['start']
@@ -76,11 +104,15 @@ def handleStream(tcp):
             tcp.module_data['timestamps'][tcp.stream_data['file']] = []
         tcp.module_data['bytes'][tcp.stream_data['file']].append(count if from_client else -count)
         tcp.module_data['timestamps'][tcp.stream_data['file']].append(time_since_start.total_seconds())
+    tcp.module_data['total_sz'] += tcp.server.count_new + tcp.client.count_new
+    tcp.module_data['client_sent'] += tcp.server.count_new
+    tcp.module_data['server_sent'] += tcp.client.count_new
 
 def taste(tcp):
     ((src, sport), (dst, dport)) = tcp.addr
     tcp.stream_data['file'] = "%s_to_%s_%i" % (src, dst, len(tcp.module_data['bytes']))
     tcp.stream_data['start'] = ''
+    tcp.module_data['streams'].append("%i/%i" % (sport, dport))
     return True
 
 def teardown(tcp):
@@ -93,7 +125,53 @@ def shutdown(module_data):
                 dump_unified(key, module_data)
             if module_data['comparison']:
                 dump_comparison(key, module_data)
+    print_stats(module_data)
     return
+    
+def print_stats(module_data):
+    client = module_data['clnt_sent_cts']
+    server = module_data['serv_sent_cts']
+    
+    total_sz = module_data['total_sz']
+    srv_packs = module_data['serv_sent_pkt_cts']
+    clnt_packs = module_data['clnt_sent_pkt_cts']
+    srv_sz = module_data['server_sent']
+    clnt_sz = module_data['client_sent']
+
+    chop.prnt("\n")
+    chop.prettyprnt("CYAN", "Total Bytes: %i\tTotal Packets: %i" 
+                                % (total_sz, srv_packs + clnt_packs))
+    chop.prettyprnt("CYAN", "Streams: ")
+    for strm in module_data['streams']:
+        chop.prettyprnt("CYAN", "\t%s" % strm)
+    chop.prnt("")
+    chop.prettyprnt("GREEN", "Client: |%0.4f%%| of traffic" 
+                                % (float(clnt_sz) * 100 / total_sz))
+    chop.prettyprnt("GREEN", "\tBytes sent\tTimes sent\t\t% of client traffic\tPacket Frequency %")
+    chop.prettyprnt("GREEN", "\t----------\t----------\t\t-------------------\t-------------------")
+    for data in reversed(sorted(client.iteritems(), key=operator.itemgetter(1))):
+        byte_sz = data[0]
+        freq = data[1]
+        chop.prettyprnt("GREEN", "\t%i Bytes\tSent %i times\t\t~ %0.4f%%\t\t%0.4f%%" 
+                                    % (byte_sz, freq, float(freq) * byte_sz * 100 / clnt_sz, float(freq) * 100 / clnt_packs))
+    chop.prettyprnt("GREEN", "\t----------\t----------\t\t-------------------\t-------------------")
+    chop.prettyprnt("GREEN", "\t%i Bytes\tSent %i times\t\t100%%\t\t\t100%%" 
+                                % (clnt_sz, clnt_packs))
+
+    chop.prnt("\n")
+
+    chop.prettyprnt("RED", "Server: |%0.4f%%| of traffic" 
+                                % (float(srv_sz) * 100 / total_sz))
+    chop.prettyprnt("RED", "\tBytes sent\tTimes sent\t\t% of server traffic\tPacket Frequency %")
+    chop.prettyprnt("RED", "\t----------\t----------\t\t-------------------\t-------------------")
+    for data in reversed(sorted(server.iteritems(), key=operator.itemgetter(1))):
+        byte_sz = data[0]
+        freq = data[1]
+        chop.prettyprnt("RED", "\t%i Bytes\tSent %i times\t\t~ %0.4f%%\t\t%0.4f%%" 
+                                    % (byte_sz, freq, float(freq) * byte_sz * 100 / srv_sz, float(freq) * 100 / srv_packs))
+    chop.prettyprnt("RED", "\t----------\t----------\t\t-------------------\t-------------------")
+    chop.prettyprnt("RED", "\t%i Bytes\tSent %i times\t\t100%%\t\t\t100%%" 
+                                % (srv_sz, srv_packs))
     
 def dump_unified(key, module_data):
     tstmps = module_data['timestamps'].get(key)
