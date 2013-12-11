@@ -190,7 +190,7 @@ class ChopCore(Thread):
                 chop.prettyprnt("GREEN", "\t\t%s init failure: %s" % (code.moduleName, module_options['error']))
                 continue
 
-            if type(module_options['proto']) is str: #legacy
+            if module.legacy:
                 if module_options['proto'] == 'tcp' :
                     tcp_modules.append(module)
                     all_modules.append(module)
