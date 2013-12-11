@@ -34,7 +34,10 @@ from threading import Lock
 from multiprocessing import Process, Manager, Queue as mQueue
 import Queue
 import time
+import copy
 
+import struct
+import socket
 
 import ChopShopDebug as CSD
 from ChopProtocol import ChopProtocol
@@ -62,6 +65,11 @@ class tcpdata:
         self.dval = dv
     def stop(self):
         self.sval = True
+
+class ipdata:
+    def __init__(self):
+        pass
+
         
 class hstream:
     pass
@@ -71,6 +79,31 @@ class stream_meta:
         self.stream_data = {}
         self.offset_client = of
         self.offset_server = os
+
+
+def process_ip_data(ip):
+    iplocal = ipdata()
+
+    data = struct.unpack('<BBHHHBBH', ip[0:12])
+    iplocal.version = data[0] >> 4
+    iplocal.ihl = data[0] & 0x0f # 0b1111
+    iplocal.dscp = data[1] >> 2
+    iplocal.ecn = data[1] & 0x03 # 0b0011
+    iplocal.length = data[2]
+    iplocal.identifiation = data[3]
+    iplocal.flags = data[4] >> 13
+    iplocal.frag_offset = data[4] & 0x1fff # 0b0001111111111111
+    iplocal.ttl = data[5]
+    iplocal.protocol = data[6]
+    iplocal.checksum = data[7]
+    iplocal.src = socket.inet_ntoa(ip[12:16])
+    iplocal.dst = socket.inet_ntoa(ip[16:20])
+    iplocal.raw = ip
+
+    iplocal.addr = ((iplocal.src, ''), (iplocal.dst, ''))
+
+    return iplocal
+
 
 # Differences between UDP and TCP:
 #
@@ -233,13 +266,15 @@ class ChopCore(Thread):
                             module.outputs.append(proto[input])
 
                         #Initialize the streaminfo array by type
-                        if input != 'any':
+                        if input != 'any' and input != 'ip':
                             module.streaminfo[input] = {}
 
                         if input == 'tcp':
                             tcp_modules.append(module)
                         elif input == 'udp':
                             udp_modules.append(module)
+                        elif input == 'ip':
+                            ip_modules.append(module)
                         elif input == 'any': #Special input that catches all non-core types
                             #Initialize the streaminfo for all parents of the 'any' module
                             if not len(module.parents):
@@ -281,6 +316,7 @@ class ChopCore(Thread):
             nids.chksum_ctl([('0.0.0.0/0',False),])
             nids.register_tcp(handleTcpStreams)
             nids.register_udp(handleUdpDatagrams)
+            nids.register_ip(handleIpPackets)
 
             while(True): #This overall while prevents exceptions from halting the processing of packets
                 if self.stopped:
@@ -313,6 +349,7 @@ class ChopCore(Thread):
             nids.chksum_ctl([('0.0.0.0/0',False),])
             nids.register_tcp(handleTcpStreams)
             nids.register_udp(handleUdpDatagrams)
+            nids.register_ip(handleIpPackets)
 
             while(True): #This overall while prevents exceptions from halting the long running reading
                 if self.stopped:
@@ -345,6 +382,56 @@ class ChopCore(Thread):
 
         chop.prettyprnt("RED", "Module Shutdown Complete ...")
         self.complete = True
+
+def handleIpPackets(pkt):
+    global timestamp
+    global metadata
+    global once
+
+    ptimestamp = nids.get_pkt_ts()
+
+
+    if len(pkt) >= 20:#packets should have at least a 20 byte header
+                      #nids should take care of this, but better safe than sorry, I guess
+        ip = process_ip_data(pkt)
+
+        metadata['proto'] = 'ip'
+        metadata['time'] = ptimestamp
+        metadata['addr'] = { 'src': ip.src,
+                             'dst': ip.dst,
+                             'dport': '',
+                             'sport': ''
+                            }
+
+        for module in ip_modules:
+            code = module.code
+            #TODO do we need a shallow or deep copy?
+            ipd = copy.copy(ip)        
+            ipd.timestamp = ptimestamp
+            ipd.module_data = module.module_data
+
+            try:
+                output = code.handlePacket(ipd)
+            except Exception, e:
+                exc = traceback.format_exc()
+                chop.prettyprnt("YELLOW", "Exception in module %s -- Traceback: \n%s" % (code.moduleName, exc))
+                sys.exit(-1)
+
+            module.module_data = ipd.module_data
+
+            #Handle Children
+            if not module.legacy:
+                if output is not None:
+                    ipd.unique = ipd.src + "-" + ipd.dst
+                    ipd.type = 'ip'
+                    handleChildren(module, ipd, output)
+
+
+            del ipd            
+
+
+    else: #some error?
+        chop.prnt("Malformed ip data received from nids ... skipping")
 
 def handleUdpDatagrams(addr, data, ip):
     global ptimestamp
