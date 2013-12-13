@@ -62,7 +62,7 @@ Module flags/options:
   -b, --no-body         Do not store http bodies
   -l LENGTH, --length=LENGTH
                         Maximum length of bodies in bytes (Default: 5MB, set
-                        to 0 to disable)
+                        to 0 to process all body data)
   -a HASH_FUNCTION, --hash-function=HASH_FUNCTION
                         Hash Function to use on bodies (default 'md5',
                         available: 'sha1', 'sha256', 'sha512')
@@ -74,10 +74,10 @@ Module flags/options:
 
 Notes:
 If http parses a transaction that exceeds the length specified (default 5MB)
-it will truncate the body from that point (setting truncate to True) but will
-continue to hash and measure the body. This means that body_len and body_hash 
-will always be indicative of what was seen in the packet even if the body was 
-truncated.
+it will truncate the body at that point (setting truncate to True) but will
+continue to hash and measure the length of the body. This means that body_len 
+and body_hash will always be indicative of what was seen in the transaction 
+even if the body was truncated.
 
 Every transaction received will have its own timestamp for that transaction.
 This value coorelates to timestamp of the packet after the headers have been
