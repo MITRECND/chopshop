@@ -134,7 +134,10 @@ def request_headers(cp, obj):
 def request_complete(cp, obj):
     #Move request data to the lines queue
     trans = obj['temp']
-    trans['request']['body_hash'] = trans['request']['tmp_hash'].hexdigest()
+    if trans['request']['body_len'] > 0:
+        trans['request']['body_hash'] = trans['request']['tmp_hash'].hexdigest()
+    else:
+        trans['request']['body_hash'] = ""
     del trans['request']['tmp_hash']
 
     obj['lines'].put(obj['temp']['request'])
@@ -160,7 +163,10 @@ def response_headers(cp, obj):
 def response_complete(cp, obj):
     trans = obj['temp']
 
-    trans['response']['body_hash'] = trans['response']['tmp_hash'].hexdigest()
+    if trans['response']['body_len'] > 0:
+        trans['response']['body_hash'] = trans['response']['tmp_hash'].hexdigest()
+    else:
+        trans['response']['body_hash'] = ""
     del trans['response']['tmp_hash']
 
     try:
