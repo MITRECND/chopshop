@@ -200,6 +200,8 @@ def init(module_data):
         default=5242880, help="Maximum length of bodies in bytes (Default: 5MB, set to 0 to disable)")
     parser.add_option("-a", "--hash-function", action="store", dest="hash_function",
         default="md5", help="Hash Function to use on bodies (default 'md5', available: 'sha1', 'sha256', 'sha512')")
+    parser.add_option("-p", "--ports", action="store", dest="ports",
+        default="80", help="List of ports to check comma separated, e.g., \"80,8080\", pass an empty string \"\" to scan all ports (default '80')")
 
     (options,lo) = parser.parse_args(module_data['args'])
 
@@ -214,20 +216,31 @@ def init(module_data):
         options.hash_function = 'md5'
         __hash_function__ = hashlib.md5
 
+
+    ports = options.ports.split(",")
+    try: #This will except if ports is empty or malformed
+        ports = [int(port) for port in ports]
+    except:
+        ports = []
+
+
     module_data['counter'] = 0
     module_data['options'] = { 
                                 'verbose' : options.verbose, 
                                 'no-body' : options.nobody,
                                 'length' : options.length,
-                                'hash_function' : options.hash_function
+                                'hash_function' : options.hash_function,
+                                'ports' : ports
                              }
 
     return module_options
 
 def taste(tcp):
     ((src, sport), (dst, dport)) = tcp.addr
-    if sport != 80 and dport != 80:
-        return False
+    if len(tcp.module_data['options']['ports']):
+        ports = tcp.module_data['options']['ports']
+        if sport not in ports and dport not in ports:
+            return False
 
     if tcp.module_data['options']['verbose']:
         chop.tsprnt("New session: %s:%s->%s:%s" % (src, sport, dst, dport))
