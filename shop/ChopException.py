@@ -33,6 +33,23 @@ class ChopException(BaseException):
 class ChopUiException(ChopException):
     pass
 
+class ChopUiStdOutException(ChopUiException):
+    pass
+
+class ChopUiGuiException(ChopUiException):
+    pass
+
+class ChopUiFileOutException(ChopUiException):
+    pass
+
+class ChopUiJsonException(ChopUiException):
+    pass
+
+class ChopUiFileSaveException(ChopUiException):
+    pass
+
+class ChopUiPyObjException(ChopUiException):
+    pass
 
 class ChopLibException(ChopException):
     pass
