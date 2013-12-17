@@ -26,6 +26,7 @@
 
 VERSION = 3.1
 
+import ConfigParser
 import sys
 import os
 import imp
@@ -268,90 +269,61 @@ class ChopLib(Thread):
     def stop(self):
         self.stopped = True
 
-    def parse_config(self, options):
-        if hasattr(options, 'mod_dir'):
-            self.mod_dir = options.mod_dir
-        if hasattr(options, 'ext_dir'):
-            self.ext_dir = options.ext_dir
-        if hasattr(options, 'base_dir'):
-            self.base_dir = options.base_dir
-        if hasattr(options, 'filename'):
-            self.filename = options.filename
-        if hasattr(options, 'filelist'):
-            self.filelist = options.filelist
-        if hasattr(options, 'bpf'):
-            self.bpf = options.bpf
-        if hasattr(options, 'aslist'):
-            self.aslist = options.aslist
-        if hasattr(options, 'longrun'):
-            self.longrun = options.longrun
-        if hasattr(options, 'interface'):
-            self.interface = options.interface
-        if hasattr(options, 'modinfo'):
-            self.modinfo = options.modinfo
-        if hasattr(options, 'GMT'):
-            self.GMT = options.GMT
-        if hasattr(options, 'savefiles'):
-            self.savefiles = options.savefiles
-        if hasattr(options, 'text'):
-            self.text = options.text
-        if hasattr(options, 'pyobjout'):
-            self.pyobjout = options.pyobjout
-        if hasattr(options, 'jsonout'):
-            self.jsonout = options.jsonout
-        if hasattr(options, 'savedir'):
-            self.savedir = options.savedir
-        if hasattr(options, 'modules'):
-            self.modules = options.modules
+    def parse_config(self, configfile):
+        cfg = ConfigParser.ConfigParser()
+        cfg.read(configfile)
+        opt_list = {'Directories': ['mod_dir',
+                                    'ext_dir',
+                                    'base_dir',
+                                    'savedir'],
+                    'General': ['filename',
+                                'filelist',
+                                'bpf',
+                                'aslist',
+                                'longrun',
+                                'interface',
+                                'modinfo',
+                                'GMT',
+                                'savefiles',
+                                'text',
+                                'pyobjout',
+                                'jsonout',
+                                'modules']
+                    }
+        for k,v in opt_list.iteritems():
+            for i in v:
+                try:
+                    o = cfg.get(k, i)
+                    setattr(self, i, o)
+                except:
+                    pass
 
 
     def save_config(self, filepath):
-        fp = open(filepath, 'w')
-        if isinstance(self.base_dir, basestring):
-            fp.write("base_dir = \"%s\"\n" % (self.base_dir))
-        else:
-            fp.write("base_dir = %s\n" % (self.base_dir))
-        if isinstance(self.bpf, basestring):
-            fp.write("bpf = \"%s\"\n" % (self.bpf))
-        else:
-            fp.write("bpf = %s\n" % (self.bpf))
-        if isinstance(self.ext_dir, basestring):
-            fp.write("ext_dir = \"%s\"\n" % (self.ext_dir))
-        else:
-            fp.write("ext_dir = %s\n" % (self.ext_dir))
-        if isinstance(self.filelist, basestring):
-            fp.write("filelist = \"%s\"\n" % (self.filelist))
-        else:
-            fp.write("filelist = %s\n" % (self.filelist))
-        if isinstance(self.filename, basestring):
-            fp.write("filename = \"%s\"\n" % (self.filename))
-        else:
-            fp.write("filename = %s\n" % (self.filename))
-        if isinstance(self.interface, basestring):
-            fp.write("interface = \"%s\"\n" % (self.interface))
-        else:
-            fp.write("interface = %s\n" % (self.interface))
-        if isinstance(self.mod_dir, basestring):
-            fp.write("mod_dir = \"%s\"\n" % (self.mod_dir))
-        else:
-            fp.write("mod_dir = %s\n" % (self.mod_dir))
-        if isinstance(self.modules, basestring):
-            fp.write("modules = \"%s\"\n" % (self.modules))
-        else:
-            fp.write("modules = %s\n" % (self.modules))
-        if isinstance(self.savedir, basestring):
-            fp.write("savedir = \"%s\"\n" % (self.savedir))
-        else:
-            fp.write("savedir = %s\n" % (self.savedir))
-        fp.write("aslist = %s\n" % (self.aslist))
-        fp.write("GMT = %s\n" % (self.GMT))
-        fp.write("jsonout = %s\n" % (self.jsonout))
-        fp.write("longrun = %s\n" % (self.longrun))
-        fp.write("modinfo = %s\n" % (self.modinfo))
-        fp.write("pyobjout = %s\n" % (self.pyobjout))
-        fp.write("savefiles = %s\n" % (self.savefiles))
-        fp.write("text = %s\n" % (self.text))
-        fp.close()
+        if os.path.exists(filepath):
+            fp = open(filepath, 'w')
+            cfg = ConfigParser.ConfigParser()
+            cfg.add_section('Directories')
+            cfg.add_section('General')
+            cfg.set('Directories', 'base_dir', self.base_dir)
+            cfg.set('Directories', 'ext_dir', self.ext_dir)
+            cfg.set('Directories', 'mod_dir', self.mod_dir)
+            cfg.set('Directories', 'savedir', self.savedir)
+            cfg.set('General', 'aslist', self.aslist)
+            cfg.set('General', 'bpf', self.bpf)
+            cfg.set('General', 'filelist', self.filelist)
+            cfg.set('General', 'filename', self.filename)
+            cfg.set('General', 'interface', self.interface)
+            cfg.set('General', 'modules', self.modules)
+            cfg.set('General', 'GMT', self.GMT)
+            cfg.set('General', 'jsonout', self.jsonout)
+            cfg.set('General', 'longrun', self.longrun)
+            cfg.set('General', 'modinfo', self.modinfo)
+            cfg.set('General', 'pyobjout', self.pyobjout)
+            cfg.set('General', 'savefiles', self.savefiles)
+            cfg.set('General', 'text', self.text)
+            cfg.write(fp)
+            fp.close()
 
 
     def setup_local_chop(self, name = "ChopShop", pid = -1):
