@@ -54,18 +54,7 @@ def body(data, length, obj, direction):
     d = obj['d']
 
     if length == 0:
-        if 'body' not in d[direction]:
-            return htpy.HTP_OK
-
-        if obj['module_data']['md5_body']:
-            d[direction]['body_md5'] = hashlib.md5(d[direction]['body']).hexdigest()
-            del d[direction]['body']
-
-        # Only dump if direction is 'response', otherwise POST causes
-        # one dump for request and another for response.
-        if direction == 'response':
-            dump(obj['module_data'], d)
-        return htpy.HTP_OK
+        return body_finished(obj, direction)
 
     if 'body' in d[direction]:
         d[direction]['body'] += data
@@ -74,6 +63,28 @@ def body(data, length, obj, direction):
 
     if obj['module_data']['blen'] != 0 and len(d[direction]['body']) >= obj['module_data']['blen']:
         d[direction]['body'] = d[direction]['body'][:obj['module_data']['blen']]
+    return htpy.HTP_OK
+
+def response_complete(cp, obj):
+    d = obj['d']
+
+    if 'body' not in d['response']:
+        return htpy.HTP_OK
+
+    return body_finished(obj, 'response')
+
+def body_finished(obj, direction):
+    d = obj['d']
+
+    if 'body' not in d[direction]:
+        return htpy.HTP_OK
+
+    if obj['module_data']['md5_body']:
+        d[direction]['body_md5'] = hashlib.md5(d[direction]['body']).hexdigest()
+        if obj['module_data']['delete_body']:
+            del d[direction]['body']
+
+    dump(obj['module_data'], d)
     return htpy.HTP_OK
 
 def dump(module_data, d):
@@ -168,6 +179,9 @@ def init(module_data):
         default=[], help="Comma separated list of fields to extract")
     parser.add_option("-m", "--md5_body", action="store_true", dest="md5_body",
         default=False, help="Generate MD5 of body, and throw contents away")
+    parser.add_option("-d", "--delete_body", action="store_true",
+        dest="delete_body", default=False,
+        help="Delete body after MD5. Implies -m option")
     parser.add_option("-M", "--mongo", action="store_true", dest="mongo",
         default=False, help="Send output to mongodb")
     parser.add_option("-H", "--host", action="store", dest="host",
@@ -189,6 +203,11 @@ def init(module_data):
     module_data['carve_response'] = options.carve_response
     module_data['verbose'] = options.verbose
     module_data['md5_body'] = options.md5_body
+    module_data['delete_body'] = options.delete_body
+
+    # Delete body implies MD5...
+    if module_data['delete_body']:
+        module_data['md5_body'] = True
 
     if module_data['mongo']:
         try:
@@ -221,7 +240,7 @@ def init(module_data):
         else:
             chop.prnt("Carving %i bytes of bodies." % module_data['blen'])
 
-    if module_data['md5_body']:
+    if module_data['md5_body'] or module_data['delete_body']:
         if 'blen' not in module_data:
             chop.prnt("Defaulting to MD5 entire body.")
             module_data['blen'] = 0
@@ -251,6 +270,7 @@ def taste(tcp):
     if 'blen' in tcp.module_data:
         tcp.stream_data['cp'].register_request_body_data(request_body)
         tcp.stream_data['cp'].register_response_body_data(response_body)
+        tcp.stream_data['cp'].register_response_complete(response_complete)
     return True
 
 def handleStream(tcp):
