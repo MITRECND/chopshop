@@ -30,10 +30,13 @@ class ChopException(BaseException):
     def __str__(self):
         return repr(self.value)
 
+class ChopConfigException(ChopException):
+    pass
+
+
 class ChopUiException(ChopException):
     pass
 
 
 class ChopLibException(ChopException):
     pass
-

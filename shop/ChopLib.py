@@ -269,63 +269,6 @@ class ChopLib(Thread):
     def stop(self):
         self.stopped = True
 
-    def parse_config(self, configfile):
-        cfg = ConfigParser.ConfigParser()
-        cfg.read(configfile)
-        opt_list = {'Directories': ['mod_dir',
-                                    'ext_dir',
-                                    'base_dir',
-                                    'savedir'],
-                    'General': ['filename',
-                                'filelist',
-                                'bpf',
-                                'aslist',
-                                'longrun',
-                                'interface',
-                                'modinfo',
-                                'GMT',
-                                'savefiles',
-                                'text',
-                                'pyobjout',
-                                'jsonout',
-                                'modules']
-                    }
-        for k,v in opt_list.iteritems():
-            for i in v:
-                try:
-                    o = cfg.get(k, i)
-                    setattr(self, i, o)
-                except:
-                    pass
-
-
-    def save_config(self, filepath):
-        if os.path.exists(filepath):
-            fp = open(filepath, 'w')
-            cfg = ConfigParser.ConfigParser()
-            cfg.add_section('Directories')
-            cfg.add_section('General')
-            cfg.set('Directories', 'base_dir', self.base_dir)
-            cfg.set('Directories', 'ext_dir', self.ext_dir)
-            cfg.set('Directories', 'mod_dir', self.mod_dir)
-            cfg.set('Directories', 'savedir', self.savedir)
-            cfg.set('General', 'aslist', self.aslist)
-            cfg.set('General', 'bpf', self.bpf)
-            cfg.set('General', 'filelist', self.filelist)
-            cfg.set('General', 'filename', self.filename)
-            cfg.set('General', 'interface', self.interface)
-            cfg.set('General', 'modules', self.modules)
-            cfg.set('General', 'GMT', self.GMT)
-            cfg.set('General', 'jsonout', self.jsonout)
-            cfg.set('General', 'longrun', self.longrun)
-            cfg.set('General', 'modinfo', self.modinfo)
-            cfg.set('General', 'pyobjout', self.pyobjout)
-            cfg.set('General', 'savefiles', self.savefiles)
-            cfg.set('General', 'text', self.text)
-            cfg.write(fp)
-            fp.close()
-
-
     def setup_local_chop(self, name = "ChopShop", pid = -1):
         #This allows Process 1 to access Chops, note that it has
         #a hardcoded id of -1 since otherwise it might overlap

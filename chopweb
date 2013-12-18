@@ -26,7 +26,7 @@
 #Chopshop
 
 """
-TODO 
+TODO
     Need to add multi-threading support -- requires locking of smallest_discard object
 
 """
@@ -72,6 +72,8 @@ import ChopShopDebug as CSD
 #CSD.enable_debug()
 #####
 
+from ChopException import ChopConfigException
+from ChopConfig import ChopConfig
 from ChopLib import ChopLib
 from ChopWebServer import ChopWebUi
 global choplib
@@ -97,6 +99,7 @@ def main():
     global chopweb
 
     #choplib = ChopLib()
+    chopconfig = ChopConfig()
     chopweb = ChopWebUi()
 
     optparser = OptionParser(usage='usage: %prog [options] ["bpf filter"] "list ; of ; modules"')
@@ -118,12 +121,16 @@ def main():
         optparser.add_option("-G", "--GMT", action="store_true", dest="GMT",
         default=False, help="timestamps in GMT (tsprnt and tsprettyprnt only)")
     '''
-    optparser.add_option("-v", "--version", action="store_true", dest="version",
-        default=False,help="print version and exit")
     optparser.add_option("-a", "--host", action="store", dest="host", type="string",
         default='',help="Host/Address to listen on")
+    optparser.add_option("-c", "--configfile", action="store", dest="configfile",
+                         type="string", default=None, help="Import a config file")
+    optparser.add_option("-C", "--saveconfig", action="store", dest="saveconfig",
+                         type="string", default=None, help="Save current arguments to a config file")
     optparser.add_option("-p", "--port", action="store", dest="port", type="int",
         default=8080,help="Port to listen on")
+    optparser.add_option("-v", "--version", action="store_true", dest="version",
+        default=False,help="print version and exit")
 
     (options, args) = optparser.parse_args()
 
@@ -133,7 +140,7 @@ def main():
             print "Module List Required"
             sys.exit(0)
 
-    
+
         if not options.interface:
             if not options.filename:
                 #Nothing is set for input, attempt to read a list of files from stdin
@@ -160,8 +167,18 @@ def main():
             choplib.interface = options.interface
     '''
 
-    chopweb.server_host = options.host
-    chopweb.port = options.port
+    try:
+        chopconfig.parse_opts(options, args)
+    except ChopConfigException, e:
+        print e
+        sys.exit(1)
+
+    chopweb.server_host = chopconfig.host
+    chopweb.port = chopconfig.port
+    if chopweb.server_host:
+        print "Starting chopweb on %s:%s" % (chopweb.server_host, chopweb.port)
+    else:
+        print "Starting chopweb on localhost:%s" % chopweb.port
     #chopweb.bind(choplib)
     chopweb.start()
     #chopweb should run choplib.start()
@@ -186,7 +203,7 @@ def main():
 
 
     while chopweb.is_alive():
-        time.sleep(.1) 
+        time.sleep(.1)
 
 
     #choplib.start()

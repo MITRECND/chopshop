@@ -68,8 +68,10 @@ import ChopShopDebug as CSD
 #CSD.enable_debug()
 #####
 
+from ChopConfig import ChopConfig
 from ChopLib import ChopLib
 from ChopUi import ChopUi, ChopStdout
+from ChopException import ChopConfigException
 global choplib
 global chopui
 
@@ -96,6 +98,7 @@ def main():
     global chopui
     choplib = ChopLib()
     chopui = ChopUi()
+    chopconfig = ChopConfig()
 
 
     optparser = OptionParser(usage='usage: %prog [options] ["bpf filter"] "list ; of ; modules"')
@@ -136,24 +139,20 @@ def main():
 
     (options, args) = optparser.parse_args()
 
-    if options.configfile:
-        if os.path.exists(options.configfile):
-            choplib.parse_config(options.configfile)
-        else:
-            print "Cannot find config file."
-            sys.exit(1)
+    # Parse options and arguments.
+    try:
+        chopconfig.parse_opts(options, args)
+    except ChopConfigException, e:
+        print e
+        sys.exit(1)
 
     if options.version:
         print "ChopShop Version %s (Choplib: %s)" % (VERSION, choplib.version())
         sys.exit()
 
-    if len(args) <= 0 and not options.configfile:
-        print "Module List Required"
-        sys.exit(0)
-
-    if not options.modinfo and not choplib.modinfo:
-        if not options.interface and not choplib.interface:
-            if not options.filename and not choplib.filename:
+    if not chopconfig.modinfo:
+        if not chopconfig.interface:
+            if not chopconfig.filename:
                 #Nothing is set for input, attempt to read a list of files from stdin
                 try:
                     files = sys.stdin.readlines()
@@ -169,66 +168,58 @@ def main():
 
                 choplib.filelist = files
 
-            elif options.filename:
-                if not os.path.exists(options.filename):
-                    print "Unable to find file '%s'" % options.filename
-                    sys.exit(-1)
-                choplib.filename = options.filename
             else:
-                if not os.path.exists(choplib.filename):
-                    print "Unable to find file '%s'" % choplib.filename
+                if not os.path.exists(chopconfig.filename):
+                    print "Unable to find file '%s'" % chopconfig.filename
                     sys.exit(-1)
+                choplib.filename = chopconfig.filename
         else:
-            choplib.interface = options.interface
+            choplib.interface = chopconfig.interface
 
-    choplib.base_dir = options.base_dir
-    choplib.mod_dir = options.mod_dir
-    choplib.ext_dir = options.ext_dir
-    choplib.aslist = options.aslist
-    choplib.longrun = options.longrun
-    choplib.modinfo = options.modinfo
-    choplib.GMT = options.GMT
+    choplib.base_dir = chopconfig.base_dir
+    choplib.mod_dir = chopconfig.mod_dir
+    choplib.ext_dir = chopconfig.ext_dir
+    choplib.aslist = chopconfig.aslist
+    choplib.longrun = chopconfig.longrun
+    choplib.modinfo = chopconfig.modinfo
+    choplib.GMT = chopconfig.GMT
+    choplib.bpf = chopconfig.bpf
+    choplib.modules = chopconfig.modules
 
-    if len(args) > 1:
-        choplib.bpf = args[0]
-        choplib.modules = args[1]
-    elif len(args) == 1:
-        choplib.modules = args[0]
-
-    if options.gui:
+    if chopconfig.gui:
         #Forecefully disable stdout
         options.stdout = False
         chopui.gui = True
 
-    if options.fileout is not None:
+    if chopconfig.fileout:
         chopui.fileout = True
-        chopui.filedir = options.fileout
+        chopui.filedir = chopconfig.fileout
 
-    if options.jsonout is not None:
+    if chopconfig.jsonout:
         chopui.jsonout = True
-        chopui.jsondir = options.jsonout
+        chopui.jsondir = chopconfig.jsonout
         choplib.jsonout = True
 
     #If any of the other outputs are not chosen, enable stdout
-    if (not options.gui and
-        options.fileout is None and
-        options.jsonout is None):
+    if (not chopconfig.gui and
+        not options.fileout and
+        not options.jsonout):
         options.stdout = True
 
-    if options.stdout or options.gui or options.fileout is not None:
+    if chopconfig.stdout or chopconfig.gui or chopconfig.fileout:
         choplib.text = True
 
-    if options.stdout:
+    if chopconfig.stdout:
         #ChopStdout.prepend_module_name = True
         chopui.stdout = True
 
-    if options.savedir is not None:
+    if chopconfig.savedir:
         chopui.savefiles = True
-        chopui.savedir = options.savedir
+        chopui.savedir = chopconfig.savedir
         choplib.savefiles = True
 
-    if options.saveconfig:
-        choplib.save_config(options.saveconfig)
+    if chopconfig.saveconfig:
+        chopconfig.save_config(chopconfig.saveconfig)
         sys.exit()
 
     chopui.bind(choplib)
