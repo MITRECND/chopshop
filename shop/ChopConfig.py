@@ -97,7 +97,7 @@ class ChopConfig():
 
 
     def parse_config(self, configfile):
-        cfg = ConfigParser.ConfigParser()
+        cfg = ConfigParser.ConfigParser()        
         cfg.read(configfile)
         opt_list = {'Directories': ['mod_dir',
                                     'ext_dir',
