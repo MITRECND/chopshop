@@ -70,7 +70,6 @@ class ipdata:
     def __init__(self):
         pass
 
-        
 class hstream:
     pass
 
@@ -139,21 +138,21 @@ def copy_tcp_data(tcp,offset_info,client_direction):
     tcplocal.client.state = tcp.client.state
     tcplocal.client.data = tcp.client.data[offset_info.offset_client:]
     tcplocal.client.urgdata = tcp.client.urgdata
-    tcplocal.client.count = tcp.client.count 
-    tcplocal.client.offset = tcp.client.offset + offset_info.offset_client 
+    tcplocal.client.count = tcp.client.count
+    tcplocal.client.offset = tcp.client.offset + offset_info.offset_client
     tcplocal.client.count_new = tcp.client.count_new
     tcplocal.client.count_new_urg = tcp.client.count_new_urg
 
     tcplocal.server.state = tcp.server.state
     tcplocal.server.data = tcp.server.data[offset_info.offset_server:]
     tcplocal.server.urgdata = tcp.server.urgdata
-    tcplocal.server.count = tcp.server.count 
+    tcplocal.server.count = tcp.server.count
     tcplocal.server.offset = tcp.server.offset + offset_info.offset_server
     tcplocal.server.count_new = tcp.server.count_new
     tcplocal.server.count_new_urg = tcp.server.count_new_urg
 
 
-    if client_direction: 
+    if client_direction:
         tcplocal.dval = tcplocal.client.count_new
     else:
         tcplocal.dval = tcplocal.server.count_new
@@ -165,7 +164,7 @@ class ChopCore(Thread):
         Thread.__init__(self)
         self.options = options
         self.module_list = module_list
-        self.chophelper = chophelper 
+        self.chophelper = chophelper
         self.stopped = False
         self.complete = False
 
@@ -360,7 +359,7 @@ class ChopCore(Thread):
                             if not nids.next():
                                 time.sleep(.001)
                     else:
-                        while not self.stopped and nids.next(): 
+                        while not self.stopped and nids.next():
                             pass
                         self.stopped = True #Force it to true and exit
                 except Exception, e:
@@ -443,7 +442,7 @@ def handleUdpDatagrams(addr, data, ip):
     else:
         f_string = dst + ":" + str(dport) + "-" + src + ":" + str(sport)
 
-    
+
     metadata['proto'] = 'udp'
     metadata['time'] = ptimestamp
     metadata['addr'] = { 'src' : src,
@@ -528,7 +527,7 @@ def handleTcpStreams(tcp):
             try:
                 temp_info = stream_meta(0,0)
 
-                tcpd = copy_tcp_data(tcp,temp_info,0) 
+                tcpd = copy_tcp_data(tcp,temp_info,0)
                 tcpd.timestamp = ptimestamp
                 tcpd.module_data = module.module_data
                 #Create a temporary stream_data in case the module needs it -- it'll be saved if the module decides to collect
@@ -611,7 +610,7 @@ def handleTcpStreams(tcp):
                 tcp.client.collect = 0
                 tcp.server.collect = 0
 
-        
+
         for module in tcp_modules:
             code = module.code
             if f_string in module.streaminfo['tcp']:

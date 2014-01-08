@@ -62,7 +62,7 @@ class ChopUi(Thread):
                          'pyobjout' : False
                        }
 
-        self.stopped = False 
+        self.stopped = False
         self.isrunning = False
         self.message_queue = None
         self.lib_stop_fn = None
@@ -85,7 +85,7 @@ class ChopUi(Thread):
     @property
     def pyobjout(self):
         return self.options['pyobjout']
-    
+
     @pyobjout.setter
     def pyobjout(self, v):
         self.options['pyobjout'] = v
@@ -117,7 +117,7 @@ class ChopUi(Thread):
     def filedir(self, v):
         self.options['filedir'] = v
 
-    
+
     @property
     def savedir(self):
         """Directory format string to save output files to"""
@@ -176,10 +176,10 @@ class ChopUi(Thread):
         try:
             if self.options['stdout'] == True:
                 self.stdclass = ChopStdout()
-                #Assign the default stdout handler 
+                #Assign the default stdout handler
             elif self.options['stdout'] != False:
                 self.stdclass = self.options['stdout']()
-                #Override the default handler with this one 
+                #Override the default handler with this one
 
             if self.options['gui'] == True:
                 self.uiclass = ChopGui(self.stop, self.lib_stop_fn)
@@ -205,7 +205,6 @@ class ChopUi(Thread):
                 self.pyobjclass = None #No default handler Should throw exception
             elif self.options['pyobjout'] != False:
                 self.pyobjclass = self.options['pyobjout']()
-    
         except Exception, e:
             raise ChopUiException(e)
 

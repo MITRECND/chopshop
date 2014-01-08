@@ -26,6 +26,7 @@
 
 VERSION = 4.0 
 
+import ConfigParser
 import sys
 import os
 import imp
@@ -37,11 +38,11 @@ from cStringIO import StringIO
 
 CHOPSHOP_WD = os.path.realpath(os.path.dirname(sys.argv[0]))
 
-if CHOPSHOP_WD + '/shop' not in sys.path: 
+if CHOPSHOP_WD + '/shop' not in sys.path:
     sys.path.append(CHOPSHOP_WD + '/shop')
 
 from ChopNids import ChopCore
-from ChopHelper import ChopHelper 
+from ChopHelper import ChopHelper
 from ChopSurgeon import Surgeon
 from ChopException import ChopLibException
 from ChopGrammar import ChopGrammar
@@ -272,10 +273,10 @@ class ChopLib(Thread):
 
     def get_stop_fn(self):
         return self.stop
-       
+
     def version(self):
         global VERSION
-        return VERSION 
+        return VERSION
 
     def stop(self):
         self.stopped = True
@@ -287,7 +288,7 @@ class ChopLib(Thread):
         #what you're doing
         chophelper = ChopHelper(self.tocaller, self.options)
         self.chop = chophelper.setup_module(name, pid)
-        
+
     def send_finished_msg(self, data = {}, stop_seq = False):
         message = { 'type' : 'ctrl',
                     'data' : {'msg' : 'finished',
@@ -415,14 +416,14 @@ class ChopLib(Thread):
                 if not self.nidsp.is_alive():
                     break
                 #if self.stopped:
-                #    self.nidsp.terminate()                
+                #    self.nidsp.terminate()
                 continue
             except AttributeError:
                 break
             finally:
                 self.kill_lock.release()
 
-            if data[0] == "stop": 
+            if data[0] == "stop":
                 #Send the message to caller that we need to stop
                 message = { 'type' : 'ctrl',
                             'data' : {'msg'  : 'stop'}
@@ -445,7 +446,7 @@ class ChopLib(Thread):
         #Join with Surgeon
         if surgeon is not None:
             surgeon.stop()
-    
+
         #Join with Nids Process
         self.nidsp.join()
 
@@ -472,7 +473,7 @@ class ChopLib(Thread):
                 time.sleep(.1)
 
             except:
-                pass 
+                pass
         finally:
             self.kill_lock.release()
 
@@ -529,15 +530,15 @@ class ChopLib(Thread):
                 #Set up the module directory and the external libraries directory
                 if options['base_dir'] is not None:
                     base_dir = os.path.realpath(options['base_dir'])
-                    mod_dir = base_dir + "/modules/" 
-                    ext_dir = base_dir + "/ext_libs" 
+                    mod_dir = base_dir + "/modules/"
+                    ext_dir = base_dir + "/ext_libs"
                 else:
-                    mod_dir = options['mod_dir'] 
+                    mod_dir = options['mod_dir']
                     ext_dir = options['ext_dir']
 
                 sys.path.append(os.path.realpath(ext_dir))
 
-                #Setup the chophelper 
+                #Setup the chophelper
                 chophelper = ChopHelper(dataq, options)
                 chop = chophelper.setup_main()
 
@@ -620,10 +621,9 @@ class ChopLib(Thread):
                     chop.prnt("%s%s----------\n" % (modinf, modtxt))
 
                 #Restore stdout
-                sys.stdout = orig_stdout 
-        
+                sys.stdout = orig_stdout
                 outq.put('fini')
-                sys.exit(0) 
+                sys.exit(0)
 
             elif data[0] == 'mod_tree':
                 tree = chopgram.get_tree()
@@ -636,7 +636,7 @@ class ChopLib(Thread):
                 break
             elif data[0] == 'stop': #Some error must have occurred
                 sys.exit(0)
-            else: 
+            else:
                 #FIXME custom exception?
                 raise Exception("Unknown message")
 
@@ -649,7 +649,7 @@ class ChopLib(Thread):
         #Setup Core and its modules
         ccore.prep_modules()
 
-        
+
         if autostart:
             ccore.start()
 

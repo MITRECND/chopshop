@@ -73,6 +73,7 @@ import select
 import socket
 import sys
 import threading
+import traceback
 from threading import Thread, Lock
 import Queue
 import time
@@ -104,6 +105,7 @@ if CHOPSHOP_WD + '/shop' not in sys.path:
     sys.path.append(CHOPSHOP_WD + '/shop')
 
 from ChopLib import ChopLib
+from ChopConfig import ChopConfig
 from ChopException import ChopUiException
 
 
@@ -391,6 +393,35 @@ class _ChopLibShell(Thread):
             raise Exception #queuetracker is managed by the the webui
         self.queuetracker.set_queue(self.choplib.get_message_queue())
 
+    def setup_choplib_from_config(self, chopconfig):
+        if self.choplib is not None:
+            self.destroy_choplib()
+
+        self.choplib = ChopLib()
+        self.choplib.text = True
+
+        if not os.path.exists(chopconfig.filename):
+            raise ValueError("Unable to find file '%s'" % chopconfig.filename)
+        self.choplib.filename = chopconfig.filename
+        self.choplib.base_dir = chopconfig.base_dir
+        self.choplib.mod_dir = chopconfig.mod_dir
+        self.choplib.ext_dir = chopconfig.ext_dir
+        self.choplib.aslist = chopconfig.aslist
+        self.choplib.longrun = chopconfig.longrun
+        self.choplib.modinfo = chopconfig.modinfo
+        self.choplib.GMT = chopconfig.GMT
+        self.choplib.bpf = chopconfig.bpf
+        self.choplib.modules = chopconfig.modules
+        #if chopconfig.savedir:
+            #pass
+            #chopui.savefiles = True
+            #chopui.savedir = chopconfig.savedir
+            #self.choplib.savefiles = True
+
+        if self.queuetracker is None:
+            raise Exception #queuetracker is managed by the the webui
+        self.queuetracker.set_queue(self.choplib.get_message_queue())
+
     def destroy_choplib(self):
         self.queuetracker.unset_queue()
         if self.choplib is not None:
@@ -433,6 +464,7 @@ class _ChopLibShell(Thread):
     def help_message(self):
         output = ("Available Commands: \n" +
                 "\tnew\n"+
+                "\tnew_from_file\n"
                 "\tdestroy\n"+
                 "\trenew\n"+
                 "\tset\n"+
@@ -556,7 +588,16 @@ class _ChopLibShell(Thread):
         commands = line.split(' ', 1)
         if commands[0] == 'new':
             self.setup_choplib()
-            self.send_message("Created new choplib instance") 
+            self.send_message("Created new choplib instance")
+        elif commands[0] == 'new_from_file':
+            try:
+                config = ChopConfig()
+                config.parse_config(commands[1])
+                self.setup_choplib_from_config(config)
+                self.send_message("Created new choplib instance from %s" % commands[1])
+            except Exception, e:
+                traceback.print_exc()
+                self.send_message("Unable to create choplib instance: %s" % e)
         elif commands[0] == 'destroy':
             self.destroy_choplib()
             self.send_message("Destroyed choplib instance") 

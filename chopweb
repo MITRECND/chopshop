@@ -26,7 +26,7 @@
 #Chopshop
 
 """
-TODO 
+TODO
     Need to add multi-threading support -- requires locking of smallest_discard object
 
 """
@@ -58,6 +58,7 @@ import time
 try:
     from mod_pywebsocket import standalone
 except:
+    print "mod_pywebsocket required"
     sys.exit(-1)
 
 #Chopshop Working Directory -- defaults to where script exists
@@ -72,22 +73,20 @@ import ChopShopDebug as CSD
 #CSD.enable_debug()
 #####
 
+from ChopException import ChopConfigException
+from ChopConfig import ChopConfig
 from ChopLib import ChopLib
 from ChopWebServer import ChopWebUi
 global choplib
 global chopweb
 
 def signal_handler(signal, frame):
-        try:
-            chopweb.stop()
-            #choplib.stop()
+    try:
+        chopweb.stop()
+    except:
+        pass
 
-            #choplib.finish()
-            #choplib.join()
-        except:
-            pass
-
-        sys.exit(0)
+    sys.exit(0)
 
 signal.signal(signal.SIGINT, signal_handler)
 
@@ -96,104 +95,49 @@ def main():
     #global choplib
     global chopweb
 
-    #choplib = ChopLib()
+
+    chopconfig = ChopConfig()
     chopweb = ChopWebUi()
 
     optparser = OptionParser(usage='usage: %prog [options] ["bpf filter"] "list ; of ; modules"')
-    '''
-        optparser.add_option("-B", "--base_dir", dest = "base_dir", default=None,
-            help = "Base directory to load modules and external libraries from")
-        optparser.add_option("-E", "--ext_dir", dest = "ext_dir",
-            default=CHOPSHOP_WD + '/ext_libs/', help = "Directory to load external libraries from")
-        optparser.add_option("-M", "--mod_dir", dest = "mod_dir",
-            default=CHOPSHOP_WD + '/modules/', help = "Directory to load modules from")
-        optparser.add_option("-f", "--file", action="store", dest="filename",
-            type="string", help="input pcap file")
-        optparser.add_option("-l", "--aslist", action = "store_true", dest = "aslist",
-            default=False, help="Treat filename as a file containing a list of files")
-        optparser.add_option("-L", "--long", action="store_true", dest="longrun",
-            default=False, help="Read from filename forever even if there's no more pcap data")
-        optparser.add_option("-i", "--interface", action="store", dest="interface",
-            type="string", help="interface to listen on")
-        optparser.add_option("-G", "--GMT", action="store_true", dest="GMT",
-        default=False, help="timestamps in GMT (tsprnt and tsprettyprnt only)")
-    '''
-    optparser.add_option("-v", "--version", action="store_true", dest="version",
-        default=False,help="print version and exit")
     optparser.add_option("-a", "--host", action="store", dest="host", type="string",
         default='',help="Host/Address to listen on")
+    optparser.add_option("-c", "--configfile", action="store", dest="configfile",
+                         type="string", default=None, help="Import a config file")
+    optparser.add_option("-C", "--saveconfig", action="store", dest="saveconfig",
+                         type="string", default=None, help="Save current arguments to a config file")
     optparser.add_option("-p", "--port", action="store", dest="port", type="int",
         default=8080,help="Port to listen on")
+    optparser.add_option("-v", "--version", action="store_true", dest="version",
+        default=False,help="print version and exit")
 
     (options, args) = optparser.parse_args()
 
-
-    '''
-        if len(args) <= 0:
-            print "Module List Required"
-            sys.exit(0)
-
+    # the chopconfig object requires that a module list exist but
+    # chopweb doesn't take a module list on the command line.  We
+    # should address this down the road to make chopconfig work for
+    # ChopWeb and ChopShop but for now I'm just taking it out
     
-        if not options.interface:
-            if not options.filename:
-                #Nothing is set for input, attempt to read a list of files from stdin
-                try:
-                    files = sys.stdin.readlines()
-                except Exception, e:
-                    sys.exit("Error getting files from stdin %s\n" %  str(e))
-
-                try:
-                    f = open('/dev/tty')
-                    os.dup2(f.fileno(), 0)
-                except:
-                    print "Unable to reclaim tty"
-                    sys.exit(-1)
-
-                choplib.filelist = files
-
-            else:
-                if not os.path.exists(options.filename):
-                    print "Unable to find file '%s'" % options.filename
-                    sys.exit(-1)
-                choplib.filename = options.filename
-        else:
-            choplib.interface = options.interface
+    '''
+    try:
+        chopconfig.parse_opts(options, args)
+    except ChopConfigException, e:
+        print e
+        sys.exit(1)
     '''
 
     chopweb.server_host = options.host
     chopweb.port = options.port
+    if chopweb.server_host:
+        print "Starting chopweb on %s:%s" % (chopweb.server_host, chopweb.port)
+    else:
+        print "Starting chopweb on localhost:%s" % chopweb.port
     #chopweb.bind(choplib)
     chopweb.start()
     #chopweb should run choplib.start()
 
-
-    '''
-        choplib.base_dir = options.base_dir
-        choplib.mod_dir = options.mod_dir
-        choplib.ext_dir = options.ext_dir
-        choplib.aslist = options.aslist
-        choplib.longrun = options.longrun
-        choplib.GMT = options.GMT
-
-        if len(args) > 1:
-            choplib.bpf = args[0]
-            choplib.modules = args[1]
-        else:
-            choplib.modules = args[0]
-
-        choplib.text = True
-    '''
-
-
     while chopweb.is_alive():
-        time.sleep(.1) 
-
-
-    #choplib.start()
-
-    #choplib.finish()
-    #if choplib.is_alive():
-    #    choplib.join()
-
+        time.sleep(.1)
+        
 if __name__ == '__main__':
     main()
