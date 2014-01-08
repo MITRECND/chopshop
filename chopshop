@@ -204,7 +204,7 @@ def main():
     if (not chopconfig.gui and
         not options.fileout and
         not options.jsonout):
-        options.stdout = True
+        chopconfig.stdout = True
 
     if chopconfig.stdout or chopconfig.gui or chopconfig.fileout:
         choplib.text = True
