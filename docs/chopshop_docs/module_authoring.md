@@ -92,11 +92,45 @@ The udp_data structure has the following functions:
 <b>stop()</b> -- tells ChopShop that this quad-tuple should be ignored for the
 lifetime of the module
 
+ChopProtocol structure
+----------------------
+The ChopProtocol base class is what secondary modules will receive through the
+'handleProtocol' function. It has the following elements:
+
+<b>addr</b> - quadtuple containing source ip/port and destination ip/port same
+as nids' addr
+
+<b>timestamp</b> - variable that contains the timestamp of this packet, same as
+a call to nids.get_pkt_ts()
+
+<b>module_data</b> - dictionary that is passed back and forth and persists data
+across the lifetime of a module
+
+<b>type</b> - variable specifying the 'type' of the data
+
+<b>clientData</b> - arbitrary python data structure defined by primary modules for data
+from the client
+
+<b>serverData</b> - arbitrary python data structure defined by primary modules for data
+from the server
+
+
 Variables
 ---------
-Every module must define a global "moduleName" variable and populate it with
-the module name -- this is mainly used for output purposes but is an absolute
-requirement for every module.
+Every module <b>must</b> define the following global variables:
+
+"moduleName" -- The module name (string) [E.g., 'myawesomemodule']
+
+"moduleVersion" -- The module version (string) [E.g., '0.1']
+
+"minimumChopLib" -- The minimum version of ChopLib [E.g., '4.0']
+
+
+Modules will not function without "moduleName"
+Any module that does not define 'moduleVersion' or 'minimumChopLib'
+will be considerd 'legacy' (pre 4.0) and will not be able to access
+module pipelining
+
 
 Required Functions
 ------------------
@@ -106,17 +140,23 @@ Modules must define the following functions to be used with ChopShop:
 <b>module_info()</b> -- invoked when a chopshop user uses the -m/--module_info
 flag, module may write out any information it wants to inform the user of its
 functionality/usage by returning a string. The usage of 'print' in this function
-has been deprecated and will be removed in a future release.
+has been removed.
 
 <b>init(module_data)</b> -- Initialize the module, before processing any
 packets.
-  module_data is a dictionary with at least the following key(s):
-    'args': an array of command-line args suitable to pass to
+
+    module_data is a dictionary with at least the following key(s):
+        'args': an array of command-line args suitable to pass to
             the parse_args() function of an
             optparse.OptionParser() object.
 
-  Returns: dictionary with at least the following key(s):
-    'proto': must be set to 'tcp' or 'udp'.
+    Returns: dictionary with at least the following key(s):
+        'proto': Array of dictionaries linking input types to outputs
+            E.g., proto = [ {'tcp' : ''}]
+                  proto = [ {'tcp' : 'http'}]
+            Note: 'tcp', 'udp', and 'ip' are considered pre-defined types and should
+            not be used as return types (further note, 'ip' has not been implemented yet)
+
     Optional: the return dictionary may also include:
         'error': indicates an error in the module has occured
                  set to a friendly string so that ChopShop can
@@ -149,9 +189,69 @@ extra functionality or information.
 <b>shutdown(module_data)</b> -- Called when ChopShop is shutting down;
 gives the module one last chance to do what it needs to.
 
-<b>teardown(tcp_data)</b> -- Called when a stream is closed (RST, etc.)
+
+<b>teardown(tcp_data)</b> -- TCP-only, called when a stream is closed (RST, etc.)
   Treat tcp_data like the object sent to callbacks for nids' register_tcp.
   (ex: o.addr, o.client.count_new, o.discard(0))
+
+
+###Primary Modules
+Modules that ingest the core types 'tcp' and 'udp' can return an instance of ChopProtocol to
+be consumed by secondary modules (see below). Before use, ChopProtocl must be imported by doing:
+
+<pre>
+from ChopProtcol import ChopProtocl
+</pre>
+
+To instantiate an instance of ChopProtocol you can do something like:
+
+<pre>
+myhttpinstance = ChopProtocol('http')
+</pre>
+
+After instantiating an object based on ChopProtocol you have access to the following functions:
+
+<b>setAddr</b> - Set the quadtuple containing source ip/port and destination ip/port -- this
+will be auto set by the framework if you do not
+
+<b>setTimestamp</b> - Set variable that contains the timestamp of the protoco -- this will be autoset to the timestamp of whatever packet you return data on if you do not set it
+
+<b>setClientData</b> - Set the arbitrary data structure for the data coming from the client
+
+<b>setServerData</b> - Set the arbitrary python data structure for the data coming from the server
+
+
+_clone function
+-----------------
+
+ChopLib requires the ability to create copies of ChopProtocol to provide modules with their
+own unique copy. By default ChopProtocol contains a _clone function that uses copy's 'deepcopy'
+function. If your data (in clientData and serverData) are complex enough, this might no be enough
+to copy your data. In these instances you should create an inherited class based on ChopProtocol
+and redefine the _clone function.
+
+
+
+
+###Secondary Modules
+With ChopShop 4.0, it is now possible to chain modules allowing more generic work
+to be done by one module and then passed to multiple children module for further processing.
+For example, if you want to write a decoder for a protcol that runs on top of http, normally
+you would first parse the http traffic out and then proceed to parse the protocol that you
+were <b>actually</b> trying to decode. With 4.0 though, you can pass the data through a primary
+module that takes tcp and turns it into http and then focus on only the protocol you care about
+
+Secondary modules have one function they must define to handle data:
+
+<b>handleProtocol(protocol)</b> -- Protocol data, partially defined by primary module
+
+
+Secondar modules can further return data to be used by other, downstream secondary modules
+
+
+
+
+
 
 The "chop" library
 ==================

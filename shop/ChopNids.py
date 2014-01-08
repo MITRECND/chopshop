@@ -34,9 +34,14 @@ from threading import Lock
 from multiprocessing import Process, Manager, Queue as mQueue
 import Queue
 import time
+import copy
 
+import struct
+import socket
 
 import ChopShopDebug as CSD
+from ChopProtocol import ChopProtocol
+
 
 tcp_modules = []
 ip_modules = []
@@ -61,6 +66,10 @@ class tcpdata:
     def stop(self):
         self.sval = True
 
+class ipdata:
+    def __init__(self):
+        pass
+
 class hstream:
     pass
 
@@ -69,6 +78,31 @@ class stream_meta:
         self.stream_data = {}
         self.offset_client = of
         self.offset_server = os
+
+
+def process_ip_data(ip):
+    iplocal = ipdata()
+
+    data = struct.unpack('<BBHHHBBH', ip[0:12])
+    iplocal.version = data[0] >> 4
+    iplocal.ihl = data[0] & 0x0f # 0b1111
+    iplocal.dscp = data[1] >> 2
+    iplocal.ecn = data[1] & 0x03 # 0b0011
+    iplocal.length = data[2]
+    iplocal.identifiation = data[3]
+    iplocal.flags = data[4] >> 13
+    iplocal.frag_offset = data[4] & 0x1fff # 0b0001111111111111
+    iplocal.ttl = data[5]
+    iplocal.protocol = data[6]
+    iplocal.checksum = data[7]
+    iplocal.src = socket.inet_ntoa(ip[12:16])
+    iplocal.dst = socket.inet_ntoa(ip[16:20])
+    iplocal.raw = ip
+
+    iplocal.addr = ((iplocal.src, ''), (iplocal.dst, ''))
+
+    return iplocal
+
 
 # Differences between UDP and TCP:
 #
@@ -156,8 +190,8 @@ class ChopCore(Thread):
         self.chophelper.set_core(self)
         modules = self.module_list
         for module in modules:
-            module = module[0]
-            module.chop = self.chophelper.setup_module(module.moduleName)
+            code = module.code
+            code.chop = self.chophelper.setup_module(code.moduleName)
 
     def run(self):
         global chop
@@ -169,38 +203,93 @@ class ChopCore(Thread):
         chop.prettyprnt("RED", "Initializing Modules ...")
 
         for module in modules:
-            name = module[2]
-            arguments = shlex.split(module[1])
-            module = module[0]
+            name = module.name
+            arguments = module.arguments #shlex.split(module[1])
+            code = module.code #module[0]
             #Create module_data for all modules
-            module.module_data = {'args':arguments}
+            module.module_data = {'args': arguments}
             module.streaminfo = {}
 
             chop.prettyprnt("CYAN", "\tInitializing module '" + name + "'")
             try:
-                module_options = module.init(module.module_data)
+                module_options = code.init(module.module_data)
             except Exception, e:
-                chop.prnt("Error Initializing Module", module.moduleName + ":", e)
+                chop.prnt("Error Initializing Module", code.moduleName + ":", e)
                 self.complete = True
                 return
 
             if 'error' in module_options:
-                chop.prettyprnt("GREEN", "\t\t%s init failure: %s" % (module.moduleName, module_options['error']))
+                chop.prettyprnt("GREEN", "\t\t%s init failure: %s" % (code.moduleName, module_options['error']))
                 continue
 
-            if module_options['proto'] == 'tcp' :
-                tcp_modules.append(module)
-                all_modules.append(module)
-            elif module_options['proto'] == 'ip' :
-                ip_modules.append(module)
-                all_modules.append(module)
-            elif module_options['proto'] == 'udp' :
-                udp_modules.append(module)
-                all_modules.append(module)
+            if module.legacy:
+                if module_options['proto'] == 'tcp' :
+                    tcp_modules.append(module)
+                    all_modules.append(module)
+                    module.streaminfo['tcp'] = {}
+                elif module_options['proto'] == 'ip' :
+                    ip_modules.append(module)
+                    all_modules.append(module)
+                    module.streaminfo['ip'] = {}
+                elif module_options['proto'] == 'udp' :
+                    udp_modules.append(module)
+                    all_modules.append(module)
+                    module.streaminfo['udp'] = {}
+                else:
+                    chop.prnt("Undefined Module Type\n")
+                    self.complete = True
+                    return
             else:
-                chop.prnt("Undefined Module Type\n")
-                self.complete = True
-                return
+                all_modules.append(module)
+                #Proto is an array of dictionaries
+                if not isinstance(module_options['proto'], list): #Malformed
+                    chop.prnt("%s has malformed proto list" % module.code.moduleName)
+                    self.complete = True
+                    return
+
+                for proto in module_options['proto']:
+                    #Right now (4.0) each dictionary only has one key
+                    #This might change in the future but should be easy
+                    #since it's already a separate dictionary
+                    if type(proto) is not dict:
+                        chop.prnt("%s has malformed proto list" % module.code.moduleName)
+                        self.complete = True
+                        return
+ 
+                    for input in proto.keys():
+                        if input not in module.inputs:
+                            module.inputs[input] = []
+
+                        if proto[input] != '':
+                            module.inputs[input].append(proto[input])
+                            module.outputs.append(proto[input])
+
+                        #Initialize the streaminfo array by type
+                        if input != 'any' and input != 'ip':
+                            module.streaminfo[input] = {}
+
+                        if input == 'tcp':
+                            tcp_modules.append(module)
+                        elif input == 'udp':
+                            udp_modules.append(module)
+                        elif input == 'ip':
+                            ip_modules.append(module)
+                        elif input == 'any': #Special input that catches all non-core types
+                            #Initialize the streaminfo for all parents of the 'any' module
+                            if not len(module.parents):
+                                chop.prettyprnt("GREEN", "WARNING: No Parent for %s to provide data" % (module.code.moduleName))
+                            else:
+                                for parent in module.parents:
+                                    for output in parent.outputs:
+                                        module.streaminfo[output] = {}
+                        else: # non-core types, e.g., 'http' or 'dns'
+                            if len(module.parents): #Make sure parents give it what it wants
+                                for parent in module.parents:
+                                    if input not in parent.outputs:
+                                        chop.prettyprnt("GREEN", "WARNING: Parent to %s not providing %s data" % (module.code.moduleName, input))
+                            else:
+                                chop.prettyprnt("GREEN", "WARNING: No Parent for %s providing %s data" % (module.code.moduleName, input))
+
 
         if not all_modules:
             chop.prnt("No modules")
@@ -226,6 +315,7 @@ class ChopCore(Thread):
             nids.chksum_ctl([('0.0.0.0/0',False),])
             nids.register_tcp(handleTcpStreams)
             nids.register_udp(handleUdpDatagrams)
+            nids.register_ip(handleIpPackets)
 
             while(True): #This overall while prevents exceptions from halting the processing of packets
                 if self.stopped:
@@ -258,6 +348,7 @@ class ChopCore(Thread):
             nids.chksum_ctl([('0.0.0.0/0',False),])
             nids.register_tcp(handleTcpStreams)
             nids.register_udp(handleUdpDatagrams)
+            nids.register_ip(handleIpPackets)
 
             while(True): #This overall while prevents exceptions from halting the long running reading
                 if self.stopped:
@@ -275,6 +366,7 @@ class ChopCore(Thread):
                     if not options['longrun']:
                         self.stopped = True #Force it to true and exit
                     chop.prnt("Error processing packets", e)
+                    raise
 
 
         chop.prettyprnt("RED", "Shutting Down Modules ...")
@@ -282,13 +374,63 @@ class ChopCore(Thread):
         #Call modules shutdown functions to do last-minute actions
         for module in all_modules:
             try:
-                chop.prettyprnt("CYAN","\tShutting Down " + module.moduleName)
-                module.shutdown(module.module_data)
+                chop.prettyprnt("CYAN","\tShutting Down " + module.code.moduleName)
+                module.code.shutdown(module.module_data)
             except Exception,e:
                 pass
 
         chop.prettyprnt("RED", "Module Shutdown Complete ...")
         self.complete = True
+
+def handleIpPackets(pkt):
+    global timestamp
+    global metadata
+    global once
+
+    ptimestamp = nids.get_pkt_ts()
+
+
+    if len(pkt) >= 20:#packets should have at least a 20 byte header
+                      #nids should take care of this, but better safe than sorry, I guess
+        ip = process_ip_data(pkt)
+
+        metadata['proto'] = 'ip'
+        metadata['time'] = ptimestamp
+        metadata['addr'] = { 'src': ip.src,
+                             'dst': ip.dst,
+                             'dport': '',
+                             'sport': ''
+                            }
+
+        for module in ip_modules:
+            code = module.code
+            #TODO do we need a shallow or deep copy?
+            ipd = copy.copy(ip)        
+            ipd.timestamp = ptimestamp
+            ipd.module_data = module.module_data
+
+            try:
+                output = code.handlePacket(ipd)
+            except Exception, e:
+                exc = traceback.format_exc()
+                chop.prettyprnt("YELLOW", "Exception in module %s -- Traceback: \n%s" % (code.moduleName, exc))
+                sys.exit(-1)
+
+            module.module_data = ipd.module_data
+
+            #Handle Children
+            if not module.legacy:
+                if output is not None:
+                    ipd.unique = ipd.src + "-" + ipd.dst
+                    ipd.type = 'ip'
+                    handleChildren(module, ipd, output)
+
+
+            del ipd            
+
+
+    else: #some error?
+        chop.prnt("Malformed ip data received from nids ... skipping")
 
 def handleUdpDatagrams(addr, data, ip):
     global ptimestamp
@@ -311,7 +453,8 @@ def handleUdpDatagrams(addr, data, ip):
 
     stopped = False
     for module in udp_modules:
-        if f_string in module.streaminfo and module.streaminfo[f_string] == None:
+        code = module.code
+        if f_string in module.streaminfo['udp'] and module.streaminfo['udp'][f_string] == None:
             # This module called udp.stop() for this f_string
             continue
 
@@ -320,31 +463,38 @@ def handleUdpDatagrams(addr, data, ip):
         udpd.timestamp = ptimestamp
         udpd.module_data = module.module_data
 
-        if f_string not in module.streaminfo:
+        if f_string not in module.streaminfo['udp']:
             # First time this module has seen this f_string.
             # Create a new stream_data object. Will save it later.
-            module.streaminfo[f_string] = stream_meta()
+            module.streaminfo['udp'][f_string] = stream_meta()
             udpd.stream_data = stream_meta().stream_data
         else:
-            udpd.stream_data = module.streaminfo[f_string].stream_data
+            udpd.stream_data = module.streaminfo['udp'][f_string].stream_data
 
         try:
-            module.handleDatagram(udpd)
+            output = code.handleDatagram(udpd)
         except Exception, e:
             exc = traceback.format_exc()
-            chop.prettyprnt("YELLOW", "Exception in module %s -- Traceback: \n%s" % (module.moduleName, exc))
+            chop.prettyprnt("YELLOW", "Exception in module %s -- Traceback: \n%s" % (code.moduleName, exc))
             sys.exit(-1)
 
         #Have to copy the information back now
         module.module_data = udpd.module_data
 
+        #Handle Children
+        if not module.legacy:
+            if output is not None:
+                udpd.unique = f_string
+                udpd.type = "udp"
+                handleChildren(module, udpd, output) 
+
         if udpd.sval: #we were told by this module to stop collecting
             del udpd
-            module.streaminfo[f_string] = None
+            module.streaminfo['udp'][f_string] = None
             stopped = True
             continue
         #else we continue on since this module is still collecting
-        module.streaminfo[f_string].stream_data = udpd.stream_data
+        module.streaminfo['udp'][f_string].stream_data = udpd.stream_data
         del udpd
 
 def handleTcpStreams(tcp):
@@ -372,6 +522,7 @@ def handleTcpStreams(tcp):
 
     if tcp.nids_state == nids.NIDS_JUST_EST: #Implement tasting
         for module in tcp_modules:
+            code = module.code
             collecting = False
             try:
                 temp_info = stream_meta(0,0)
@@ -381,17 +532,17 @@ def handleTcpStreams(tcp):
                 tcpd.module_data = module.module_data
                 #Create a temporary stream_data in case the module needs it -- it'll be saved if the module decides to collect
                 tcpd.stream_data = stream_meta().stream_data #Yes I could probably do = {} but this is more descriptive
-                collecting = module.taste(tcpd)
+                collecting = code.taste(tcpd)
 
             except Exception, e:
-                chop.prettyprnt("YELLOW", "Module %s error in taste function: %s" % (module.moduleName, str(e)))
+                chop.prettyprnt("YELLOW", "Module %s error in taste function: %s" % (code.moduleName, str(e)))
                 sys.exit(-1)
 
             module.module_data = tcpd.module_data
 
             if collecting:
-                module.streaminfo[f_string] = stream_meta()
-                module.streaminfo[f_string].stream_data = tcpd.stream_data
+                module.streaminfo['tcp'][f_string] = stream_meta() 
+                module.streaminfo['tcp'][f_string].stream_data = tcpd.stream_data
                 tcp.client.collect = 1
                 tcp.server.collect = 1
 
@@ -401,33 +552,44 @@ def handleTcpStreams(tcp):
     elif tcp.nids_state == nids.NIDS_DATA:#Implement data processing portion
         stopped = False
         for module in tcp_modules:
-            if f_string in module.streaminfo: #If this module is collecting on this stream
+            code = module.code
+            if f_string in module.streaminfo['tcp']: #If this module is collecting on this stream
 
                 #Create a copy of the data customized for this module
-                tcpd = copy_tcp_data(tcp,module.streaminfo[f_string],client_direction)
+                tcpd = copy_tcp_data(tcp, module.streaminfo['tcp'][f_string], client_direction) 
                 tcpd.timestamp = ptimestamp
-                tcpd.stream_data = module.streaminfo[f_string].stream_data
+                tcpd.stream_data = module.streaminfo['tcp'][f_string].stream_data
                 tcpd.module_data = module.module_data
 
 
                 try:
-                    module.handleStream(tcpd)
+                    output = code.handleStream(tcpd)
                 except Exception, e:
                     exc = traceback.format_exc()
-                    chop.prettyprnt("YELLOW", "Exception in module %s -- Traceback: \n%s" % (module.moduleName, exc))
-                    sys.exit(-1)
+                    chop.prettyprnt("YELLOW", "Exception in module %s -- Traceback: \n%s" % (code.moduleName, exc))
+                    sys.exit(1)
 
                 #Have to copy the information back now
                 module.module_data = tcpd.module_data
 
+
+                if not module.legacy:
+                    if output is not None:
+                        tcpd.unique = f_string
+                        tcpd.type = "tcp"
+                        handleChildren(module, tcpd, output)
+
                 if tcpd.sval: #we were told by this module to stop collecting
                     del tcpd
-                    del module.streaminfo[f_string]
+                    del module.streaminfo['tcp'][f_string]
                     stopped = True
+
+                    #TODO check for potential over deletion? -- Also should we be deleting children here?
+                    #TODO add deletion sequence from teardown below for children
                     continue
                 #else we continue on since this module is still collecting
-                module.streaminfo[f_string].stream_data = tcpd.stream_data
-                module.streaminfo[f_string].last_discard = tcpd.dval
+                module.streaminfo['tcp'][f_string].stream_data = tcpd.stream_data
+                module.streaminfo['tcp'][f_string].last_discard = tcpd.dval
 
                 if tcpd.dval < smallest_discard:
                     smallest_discard = tcpd.dval
@@ -440,7 +602,7 @@ def handleTcpStreams(tcp):
         if stopped:
             found = False
             for module in tcp_modules:
-                if f_string in module.streaminfo:
+                if f_string in module.streaminfo['tcp']:
                     found = True
                     continue
 
@@ -450,32 +612,136 @@ def handleTcpStreams(tcp):
 
 
         for module in tcp_modules:
-            if f_string in module.streaminfo:
-                if module.streaminfo[f_string].last_discard > smallest_discard:
-                    diff = module.streaminfo[f_string].last_discard - smallest_discard
+            code = module.code
+            if f_string in module.streaminfo['tcp']:
+                if module.streaminfo['tcp'][f_string].last_discard > smallest_discard:
+                    diff = module.streaminfo['tcp'][f_string].last_discard - smallest_discard
                     if client_direction:
-                        module.streaminfo[f_string].offset_client += diff
+                        module.streaminfo['tcp'][f_string].offset_client += diff
                     else:
-                        module.streaminfo[f_string].offset_server += diff
+                        module.streaminfo['tcp'][f_string].offset_server += diff
 
         tcp.discard(smallest_discard)
 
 
     elif tcp.nids_state in end_states: #Teardown portion of code
         for module in tcp_modules:
-            if f_string in module.streaminfo:
+            code = module.code
+            if f_string in module.streaminfo['tcp']:
                 try:
-                    tcpd = copy_tcp_data(tcp,module.streaminfo[f_string],client_direction)
+                    tcpd = copy_tcp_data(tcp, module.streaminfo['tcp'][f_string], client_direction) 
                     tcpd.timestamp = ptimestamp
-                    tcpd.stream_data = module.streaminfo[f_string].stream_data
+                    tcpd.stream_data = module.streaminfo['tcp'][f_string].stream_data
                     tcpd.module_data = module.module_data
-                    module.teardown(tcpd)
+                    code.teardown(tcpd)
                 except Exception, e:
                     exc = traceback.format_exc()
-                    chop.prettyprnt("YELLOW", "Exception in module %s -- Traceback: \n%s" % (module.moduleName, exc))
+                    chop.prettyprnt("YELLOW", "Exception in module %s -- Traceback: \n%s" % (code.moduleName, exc))
 
                 #delete the entry in the streaminfo dict
                 del tcpd
-                del module.streaminfo[f_string]
+                del module.streaminfo['tcp'][f_string]
+
+                #TODO check for potential over deletion?
+                if not module.legacy:
+                    for outtype in module.inputs['tcp']: #For every output from tcp
+                        for child in module.children:
+                            if outtype not in child.inputs: #Check if this child accepts this type
+                                continue
+                            #This assumes unique has not been changed in the child
+                            if f_string in child.streaminfo[outtype]:
+                                del child.streaminfo[outtype][f_string]
 
 
+def handleProtocol(module, protocol, pp): #pp is parent protocol
+    code = module.code
+
+    #unique should be set for all parents, including the standard tcp/udp types
+    if protocol.unique is None:
+        protocol.unique = pp.unique
+
+    try:
+        #If this excepts it's probably because protocol.type is not in streaminfo which should
+        #have been created earlier -- this is an error on the part of the module author then
+
+        #Initialize the object -- the pp.unique parent dictionary should have been initialized by parent function
+        if protocol.unique not in module.streaminfo[protocol.type]:
+            module.streaminfo[protocol.type][protocol.unique] = stream_meta()
+
+        if module.streaminfo[protocol.type][protocol.unique] is None: #module has called stop
+            return
+
+        protocol.stream_data = module.streaminfo[protocol.type][protocol.unique].stream_data
+
+    except KeyError, e:
+        chop.prettyprnt("YELLOW", "Error attempting to lookup stream_data")
+        sys.exit(1)
+    except Exception, e:
+        chop.prettyprnt("YELLOW", "Error attempting to set stream_data: %s" % str(e))
+        sys.exit(1)
+
+    #Add module_data to protocol object
+    protocol.module_data = module.module_data
+
+    #Elements that are common between tcp/udp and ChopProtocol
+    if protocol.addr is None:
+        protocol.setAddr(pp.addr)
+
+    if protocol.timestamp is None:
+        protocol.setTimeStamp(pp.timestamp)
+
+
+    #TODO figure out if this is necessary and remove if not
+    if isinstance(pp, ChopProtocol): #This is a 3rd level module (parent is not tcp or udp)
+        pass
+    else: #This is a 2nd level module (parent is tcp or udp)
+        pass
+
+
+    try:
+        output = code.handleProtocol(protocol) 
+    except Exception, e:
+        exc = traceback.format_exc()
+        chop.prettyprnt("YELLOW", "Exception in module %s -- Traceback: \n%s" % (code.moduleName, exc))
+        sys.exit(1)
+
+
+    #Copy it back just in case
+    module.module_data = protocol.module_data
+
+
+    #Handle any potential children
+    if output is not None:
+        handleChildren(module, protocol, output)
+
+    if protocol.sval:
+        module.streaminfo[protocol.type][protocol.unique] = None
+        #Reset sval so it doesn't affect other children
+        protocol.sval = False
+        return
+
+    module.streaminfo[protocol.type][protocol.unique].stream_data = protocol.stream_data
+
+
+def handleChildren(module, protocol, output):
+    #Handle any potential children
+    if isinstance(output, ChopProtocol):
+        output = [output]
+    elif not isinstance(output, list):
+        chop.prettyprnt("YELLOW", "Module %s returned an invalid type" % code.moduleName)
+        sys.exit(1)
+
+    for outp in output:
+        if not isinstance(outp, ChopProtocol):
+            chop.prettyprnt("YELLOW", "Module %s returned an invalid type" % code.moduleName)
+            sys.exit(1)
+
+        if outp.type not in module.inputs[protocol.type]:
+            chop.prettyprnt("YELLOW", "Module %s returning unregistered type %s" % (code.moduleName, outp.type))
+            sys.exit(1)
+
+        for child in module.children:
+            if outp.type in child.inputs or 'any' in child.inputs:
+                #This ensure each child gets a copy that it can muck with
+                child_copy = outp._clone() 
+                handleProtocol(child, child_copy, protocol)

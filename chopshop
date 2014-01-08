@@ -134,6 +134,8 @@ def main():
         type="string", default=None, help="Location to save carved files")
     optparser.add_option("-S", "--stdout", action="store_true", dest="stdout",
         default=False, help="Explicitly enable output to stdout")
+    optparser.add_option("-t", "--module_tree", action="store_true", dest="modtree",
+        default=False,help="print information about module tree and exit")    
     optparser.add_option("-v", "--version", action="store_true", dest="version",
         default=False,help="print version and exit")
 
@@ -188,7 +190,7 @@ def main():
 
     if chopconfig.gui:
         #Forecefully disable stdout
-        options.stdout = False
+        chopconfig.stdout = False
         chopui.gui = True
 
     if chopconfig.fileout:

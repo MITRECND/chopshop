@@ -26,17 +26,19 @@ from c2utils import packet_timedate
 from optparse import OptionParser
 import json
 
-moduleName="dns_extractor"
+moduleName = 'dns_extractor'
+moduleVersion = '0.1'
+minimumChopLib = '4.0'
 
 class dns_to_dict(json.JSONEncoder):
     def default(self, d):
         return json.JSONEncoder().encode(d)
 
 def module_info():
-    print "Parse DNS and generate JSON or send to mongo"
+    return "Handle DNS messages and print or send to mongo"
 
 def init(module_data):
-    module_options = { 'proto': 'udp' }
+    module_options = { 'proto': [ { 'dns': '' } ] }
     parser = OptionParser()
 
     parser.add_option("-M", "--mongo", action="store_true", dest="mongo",
@@ -67,77 +69,17 @@ def init(module_data):
 
     return module_options
 
-def handleDatagram(udp):
-    ((src, sport), (dst, dport)) = udp.addr
-    if sport != 53 and dport != 53:
-        #chop.tsprnt("STOP: %s:%s->%s:%s (%i:%i)" % (src, sport, dst, dport, len(udp.data), len(udp.ip)))
-        udp.stop()
-        return
+def handleProtocol(chopp):
+    ((src, sport), (dst, dport)) = chopp.addr
+    if sport == 53:
+        data = chopp.serverData
+    elif dport == 53:
+        data = chopp.clientData
 
-    try:
-        o = DNSRecord.parse(udp.data)
-    except KeyError, e:
-        chop.prnt("Key error: %s" % str(e))
-        return
-
-    # Create the dictionary...
-    f = [ o.header.aa and 'AA',
-          o.header.tc and 'TC',
-          o.header.rd and 'RD',
-          o.header.ra and 'RA' ]
-    d = { 'header': {
-                      'id': o.header.id,
-                      'type': QR[o.header.qr],
-                      'opcode': OPCODE[o.header.opcode],
-                      'flags': ",".join(filter(None, f)),
-                      'rcode': RCODE[o.header.rcode],
-                    },
-          'questions': o.questions
-        }
-    if OPCODE[o.header.opcode] == 'UPDATE':
-        f1 = 'zo'
-        f2 = 'pr'
-        f3 = 'up'
-        f4 = 'ad'
-    else:
-        f1 = 'q'
-        f2 = 'a'
-        f3 = 'ns'
-        f4 = 'ar'
-    dhdr = d['header']
-    dhdr[f1] = o.header.q
-    dhdr[f2] = o.header.a
-    dhdr[f3] = o.header.ns
-    dhdr[f4]= o.header.ar
-    d['questions'] = []
-    for q in o.questions:
-        dq = {
-              'qname': str(q.qname),
-              'qtype': QTYPE[q.qtype],
-              'qclass': QTYPE[q.qclass]
-            }
-        d['questions'].append(dq)
-    d['rr'] = []
-    for r in o.rr:
-        dr = {
-              'rname': str(r.rname),
-              'rtype': QTYPE.lookup(r.rtype,r.rtype),
-              'rclass': CLASS[r.rclass],
-              'ttl': r.ttl,
-              'rdata': str(r.rdata)
-            }
-        d['rr'].append(dr)
-   
-    d['timestamp'] = packet_timedate(udp.timestamp)
-    d['src'] = src
-    d['sport'] = sport
-    d['dst'] = dst
-    d['dport'] = dport
-
-    if module_data['mongo']:
-        module_data['db'].insert(d)
-    chop.prnt(d)
-    chop.json(d)
+    if chopp.module_data['mongo']:
+        chopp.module_data['db'].insert(data)
+    chop.prnt(data)
+    chop.json(data)
 
 def shutdown(module_data):
     return

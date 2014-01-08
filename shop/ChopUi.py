@@ -33,7 +33,7 @@ CHOPSHOP_WD = os.path.realpath(os.path.dirname(sys.argv[0]))
 if CHOPSHOP_WD + '/shop' not in sys.path:
     sys.path.append(CHOPSHOP_WD + '/shop')
 
-from ChopException import ChopUiException
+from ChopException import * 
 from ChopUiStd import *
 import ChopShopDebug as CSD
 
@@ -218,18 +218,36 @@ class ChopUi(Thread):
 
             try:
                 if message['type'] == 'ctrl':
-                    if self.stdclass is not None:
-                        self.stdclass.handle_ctrl(message)
-                    if self.uiclass is not None:
-                        self.uiclass.handle_ctrl(message)
-                    if self.fileoclass is not None:
-                        self.fileoclass.handle_ctrl(message)
-                    if self.jsonclass is not None:
-                        self.jsonclass.handle_ctrl(message)
-                    if self.filesclass is not None:
-                        self.filesclass.handle_ctrl(message)
-                    if self.pyobjclass is not None:
-                        self.pyobjclass.handle_ctrl(message)
+                    try:
+                        if self.stdclass is not None:
+                            self.stdclass.handle_ctrl(message)
+                    except Exception, e:
+                        raise ChopUiStdOutException(e)
+                    try:
+                        if self.uiclass is not None:
+                            self.uiclass.handle_ctrl(message)
+                    except Exception, e:
+                        raise ChopUiGuiException(e)
+                    try:
+                        if self.fileoclass is not None:
+                            self.fileoclass.handle_ctrl(message)
+                    except Exception, e:
+                        raise ChopUiFileOutException(e)
+                    try:
+                        if self.jsonclass is not None:
+                            self.jsonclass.handle_ctrl(message)
+                    except Exception, e:
+                        raise ChopUiJsonException(e)
+                    try:
+                        if self.filesclass is not None:
+                            self.filesclass.handle_ctrl(message)
+                    except Exception, e:
+                        raise ChopUiFileSaveException(e)
+                    try:
+                        if self.pyobjclass is not None:
+                            self.pyobjclass.handle_ctrl(message)
+                    except Exception, e:
+                        raise ChopUiPyObjException(e)
 
                     #The GUI is the only thing that doesn't care if the core is no
                     #longer running
@@ -237,30 +255,52 @@ class ChopUi(Thread):
                         self.stop()
                         continue
 
+            except ChopUiException:
+                raise
             except Exception, e:
                 raise ChopUiException(e)
 
             try:
                 if message['type'] == 'text':
-                    if self.stdclass is not None:
-                        self.stdclass.handle_message(message)
-                    if self.uiclass is not None:
-                        self.uiclass.handle_message(message)
-                    if self.fileoclass is not None:
-                        self.fileoclass.handle_message(message)
+                    try:
+                        if self.stdclass is not None:
+                            self.stdclass.handle_message(message)
+                    except Exception, e:
+                        raise ChopUiStdOutException(e)
+                    try:
+                        if self.uiclass is not None:
+                            self.uiclass.handle_message(message)
+                    except Exception, e:
+                        raise ChopUiGuiException(e)
+                    try:
+                        if self.fileoclass is not None:
+                            self.fileoclass.handle_message(message)
+                    except Exception, e:
+                        raise ChopUiFileOutException(e)
 
                 if message['type'] == 'json':
-                    if self.jsonclass is not None:
-                        self.jsonclass.handle_message(message)
-
+                    try:
+                        if self.jsonclass is not None:  
+                            self.jsonclass.handle_message(message)
+                    except Exception, e:
+                        raise ChopUiJsonException(e)
+                
                 if message['type'] == 'filedata':
-                    if self.filesclass is not None:
-                        self.filesclass.handle_message(message)
+                    try:
+                        if self.filesclass is not None:
+                            self.filesclass.handle_message(message) 
+                    except Exception, e:
+                        raise ChopUiFileSaveException(e)
 
                 if message['type'] == 'pyobj':
-                    if self.pyobjclass is not None:
-                        self.pyobjclass.handle_message(message)
+                    try:
+                        if self.pyobjclass is not None:
+                            self.pyobjclass.handle_message(message)
+                    except Exception, e:
+                        raise ChopUiPyObjException(e)
 
+            except ChopUiException:
+                raise
             except Exception, e:
                 raise ChopUiException(e)
 
