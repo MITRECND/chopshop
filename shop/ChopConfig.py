@@ -62,6 +62,7 @@ class ChopConfig():
     interface = ''
     modinfo = False
     modules = None
+    modtree = False
     longrun = False
     port = 8080
     pyobjout = False
@@ -122,13 +123,14 @@ class ChopConfig():
                                 'jsonout',
                                 'longrun',
                                 'modinfo',
+                                'modtree',
                                 'modules',
                                 'pyobjout',
                                 'savefiles',
                                 'stdout',
                                 'text']
                     }
-        bool = ['aslist', 'gui', 'GMT', 'longrun', 'modinfo',
+        bool = ['aslist', 'gui', 'GMT', 'longrun', 'modinfo', 'modtree',
                 'pyobjout', 'savefiles', 'stdout', 'text', 'version']
         for k,v in opt_list.iteritems():
             for i in v:
@@ -164,6 +166,7 @@ class ChopConfig():
             cfg.set('General', 'jsonout', self.jsonout)
             cfg.set('General', 'longrun', self.longrun)
             cfg.set('General', 'modinfo', self.modinfo)
+            cfg.set('General', 'modtree', self.modinfo)
             cfg.set('General', 'modules', self.modules)
             cfg.set('General', 'pyobjout', self.pyobjout)
             cfg.set('General', 'savefiles', self.savefiles)

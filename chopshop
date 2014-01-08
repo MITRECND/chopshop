@@ -152,7 +152,7 @@ def main():
         print "ChopShop Version %s (Choplib: %s)" % (VERSION, choplib.version())
         sys.exit()
 
-    if not chopconfig.modinfo:
+    if not chopconfig.modinfo and not chopconfig.modtree:
         if not chopconfig.interface:
             if not chopconfig.filename:
                 #Nothing is set for input, attempt to read a list of files from stdin
@@ -184,6 +184,7 @@ def main():
     choplib.aslist = chopconfig.aslist
     choplib.longrun = chopconfig.longrun
     choplib.modinfo = chopconfig.modinfo
+    choplib.modtree = chopconfig.modtree
     choplib.GMT = chopconfig.GMT
     choplib.bpf = chopconfig.bpf
     choplib.modules = chopconfig.modules
