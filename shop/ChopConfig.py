@@ -91,12 +91,20 @@ class ChopConfig():
         elif len(args) == 1:
             self.modules = args[0]
         elif len(args) > 1:
-            self.bpf = args[0]
-            self.modules = args[1]
+            if args[0] == 'None':
+                self.bpf = ''
+            elif len(args[0]) > 0:
+                self.bpf = args[0]
+            if args[1] == 'None':
+                raise ChopConfigException("module list required")
+            elif len(args[1]) > 0:
+                self.modules = args[1]
         return
 
 
     def parse_config(self, configfile):
+        if not os.path.exists(configfile):
+            raise ChopConfigException("could not find configuration file: %s" % configfile)
         cfg = ConfigParser.ConfigParser()        
         cfg.read(configfile)
         opt_list = {'Directories': ['mod_dir',
