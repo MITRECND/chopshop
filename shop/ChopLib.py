@@ -24,7 +24,7 @@
 # SUCH DAMAGE.
 
 
-VERSION = 3.1
+VERSION = 4.0 
 
 import sys
 import os
@@ -32,6 +32,8 @@ import imp
 import traceback
 import time
 from threading import Thread, Lock
+import re
+from cStringIO import StringIO
 
 CHOPSHOP_WD = os.path.realpath(os.path.dirname(sys.argv[0]))
 
@@ -42,7 +44,7 @@ from ChopNids import ChopCore
 from ChopHelper import ChopHelper 
 from ChopSurgeon import Surgeon
 from ChopException import ChopLibException
-
+from ChopGrammar import ChopGrammar
 """
     ChopLib is the core functionality of ChopShop. It provides a library interface to the processing side of chopshop
     Any output/UI functionality has been extracted and is not done by this class. ChopLib will output all output onto queue
@@ -77,6 +79,7 @@ class ChopLib(Thread):
                          'longrun': False,
                          'interface': '',
                          'modinfo': False,
+                         'modtree': False,
                          'GMT': False,
                          'savefiles': False, #Should ChopShop handle the saving of files?
                          'text': False,
@@ -182,6 +185,15 @@ class ChopLib(Thread):
     @modinfo.setter
     def modinfo(self, v):
         self.options['modinfo'] = v
+
+    @property
+    def modtree(self):
+        """print information about module tree and exit."""
+        return self.options['modtree']
+
+    @modtree.setter
+    def modtree(self, v):
+        self.options['modtree'] = v
 
     @property
     def GMT(self):
@@ -301,7 +313,7 @@ class ChopLib(Thread):
     def run(self):
         surgeon = None
 
-        if not self.options['modinfo']: #No point in doing surgery if it's modinfo
+        if not self.options['modinfo'] and not self.options['modtree']: #No point in doing surgery if it's modinfo or modtree
             # Figure out where we're reading packets from
             if not self.options['interface']:
                 if not self.options['filename']:
@@ -370,7 +382,19 @@ class ChopLib(Thread):
             #to cleanup nidsp
             self.nidsp.join()
             return
+        elif self.options['modtree']:
+            self.kill_lock.acquire()
+            try:
+                self.tonids.put(['mod_tree'])
+                resp = self.fromnids.get()
+            except AttributeError:
+                pass
+            finally:
+                self.kill_lock.release()
 
+            self.send_finished_msg()
+            self.nidsp.join()
+            return
         else:
             self.kill_lock.acquire()
             try:
@@ -480,6 +504,7 @@ class ChopLib(Thread):
         module_list = []
         ccore = None
         mod_dir = None
+        chopgram = None
 
         #Initialization
         while (True):
@@ -517,74 +542,96 @@ class ChopLib(Thread):
                 chop = chophelper.setup_main()
 
                 #Setup the modules
-                args = options['modules']
-                mods = args.split(';')
+                chopgram = ChopGrammar()
                 try:
-                    for mod in mods:
-                        mod = mod.strip()
-                        sindex = mod.find(' ')
-                        if sindex != -1:
-                            modl = []
-                            modl.append(self.__loadModules_(mod[0:sindex],mod_dir))
-                            modl.append(mod[sindex + 1:])
-                            modl.append(mod[0:sindex])
-                            module_list.append(modl)
-                        else:
-                            modl = []
-                            modl.append(self.__loadModules_(mod,mod_dir))
-                            modl.append("")
-                            modl.append(mod)
-                            module_list.append(modl)
+                    all_modules = chopgram.parseGrammar(options['modules'])
+                except Exception, e:
+                    outq.put(e.args)
+                    sys.exit(1)
+
+
+                if len(all_modules) == 0:
+                    outq.put('Zero Length Module List')
+                    sys.exit(1)
+
+                try:
+                    for mod in all_modules:
+                        mod.code = self.__loadModules_(mod.name, mod_dir)
+                        minchop = '0'
+                        try:
+                            mod_version = mod.code.moduleVersion
+                            minchop = mod.code.minimumChopLib
+
+                        except: #Legacy Module
+                            mod.legacy = True
+                            chop.prnt("Warning Legacy Module %s!" % mod.code.moduleName)
+                    
+                        try:
+                            #TODO more robust version checking
+                            if str(minchop) > str(VERSION):
+                                raise Exception("Module requires ChopLib Version %s or greater" % minchop)
+                        except Exception, e:
+                            outq.put(e.args)
+                            sys.exit(1)
+
                 except Exception, e:
                     outq.put(e)
-                    sys.exit(-1)
+                    sys.exit(1)
 
-                if len(module_list) == 0:
-                    outq.put('Zero Length Module List')
-                    sys.exit(-1)
-
+                module_list = all_modules
 
                 #It got this far, everything should be okay
                 outq.put('ok')
 
             elif data[0] == 'mod_info':
                 #Hijack stdout to support modules that use print
-                from cStringIO import StringIO
                 orig_stdout = sys.stdout #We don't know what the original stdout might have been (__stdout__)
                                          #Although it should be /dev/null
-                sys.stdout = strbuff = StringIO()
-
                 for mod in module_list:
-                    modinf = mod[0].moduleName + ":"
-                    modtxt = None
                     try:
-                        modtxt = mod[0].module_info() 
+                        modinf = "%s (%s) -- requires ChopLib %s or greater:\n" % (mod.code.moduleName, mod.code.moduleVersion, mod.code.minimumChopLib)
+                    except:
+                        modinf = "%s (Legacy Module) -- pre ChopLib 4.0:\n" % mod.code.moduleName
+
+                    modtxt = None
+
+                    try:
+                        modtxt = mod.code.module_info()
                         if modtxt is not None:
                             modtxt = modtxt + "\n"
                         else:
-                            modtxt = strbuff.getvalue()
-                            if modtxt is not None:
-                                modtxt = modtxt + "\n"
+                            raise Exception
                     except Exception, e:
-                        modtxt = "Missing module information for %s\n" % mod[2]
+                        modtxt = "Missing module information for %s\n" % mod.name
+
+                    sys.stdout = strbuff = StringIO()
 
                     try:
-                        sys.argv[0] = mod[0].moduleName
-                        mod[0].init({'args': ['-h']})
+                        sys.argv[0] = mod.code.moduleName
+                        mod.code.init({'args': ['-h']})
                     except SystemExit, e:
                         #OptParse will except as it ends
-                        modtxt = modtxt + strbuff.getvalue() + "\n"
+                        modtxt = modtxt + strbuff.getvalue() 
                         pass
 
-                    chop.prnt(modinf, modtxt)
+                    #Close and free contents
+                    strbuff.close()
+
+                    chop.prnt("%s%s----------\n" % (modinf, modtxt))
 
                 #Restore stdout
                 sys.stdout = orig_stdout 
         
-
                 outq.put('fini')
                 sys.exit(0) 
 
+            elif data[0] == 'mod_tree':
+                tree = chopgram.get_tree()
+                chop.prnt(tree)
+
+
+                outq.put('fini')
+                sys.exit(0)
             elif data[0] == 'cont':
                 break
             elif data[0] == 'stop': #Some error must have occurred

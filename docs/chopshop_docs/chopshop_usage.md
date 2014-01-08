@@ -10,7 +10,7 @@ modules to do so.
 The chopshop program provides the following arguments:
 
 <pre>
-usage: chopshop [options] ["bpf filter"] "list ; of ; modules"
+usage: chopshop [options] ["bpf filter"] "list | (of, many) | modules ; and | more"
 
 options:
   -h, --help            show this help message and exit
@@ -41,9 +41,8 @@ options:
 </pre>
 
 Along with some basic command line options, chopshop requires the names of
-modules it is supposed to run, semi-colon separated. By default chopshop will
-look in the current working directory for a "modules" directory and search for
-modules there.
+modules it is supposed to run. By default chopshop will look in the current 
+working directory for a "modules" directory and search for modules there.
 
 Note that -F, -J, and -s require a formatted string that understands the
 following variables:

@@ -35,7 +35,7 @@ if CHOPSHOP_WD + '/shop' not in sys.path:
 
 
 import ChopShopDebug as CSD
-
+from ChopException import ChopLibException
 
 """
         __parse_filepath__ parses a pseudo format-string passed on the commandline to figure out
@@ -172,7 +172,7 @@ class ChopStdout:
 
     def handle_ctrl(self, message):
         if message['data']['msg'] == 'finished' and message['data']['status'] == 'error':
-            raise Exception(message['data']['errors'])
+            raise ChopLibException(message['data']['errors'])
 
     def stop(self):
         pass
@@ -198,7 +198,7 @@ class ChopGui:
 
         if message['data']['msg'] == 'finished' and message['data']['status'] == 'error':
             self.stop()
-            raise Exception(message['data']['errors'])
+            raise ChopLibException(message['data']['errors'])
     
     def stop(self):
         CSD.debug_out("ChopGui stop called\n")

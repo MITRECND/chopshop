@@ -1,4 +1,4 @@
-#! /usr/bin/env python
+#!/usr/bin/env python
 
 # Copyright (c) 2013 The MITRE Corporation. All rights reserved.
 #
@@ -23,34 +23,43 @@
 # OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
 # SUCH DAMAGE.
 
-class ChopException(BaseException):
-    def __init__(self, value = ""):
-        self.value = value
 
-    def __str__(self):
-        return repr(self.value)
+import copy
 
-class ChopUiException(ChopException):
-    pass
+class ChopProtocol(object):
 
-class ChopUiStdOutException(ChopUiException):
-    pass
+    def __init__(self, type):
+        self.addr = None
+        self.timestamp = None
+        self.clientData = None
+        self.serverData = None
 
-class ChopUiGuiException(ChopUiException):
-    pass
+        #These should not be modified on the fly
+        #or directly touched by module authors
+        self.type = type
+        self.sval = False
+        self.unique = None
 
-class ChopUiFileOutException(ChopUiException):
-    pass
+    #If your data is complex enough
+    #you MUST inherit from ChopProtocol and redefine _clone
+    def _clone(self):
+        return copy.deepcopy(self)
 
-class ChopUiJsonException(ChopUiException):
-    pass
+    def setUniqueId(self, unique):
+        self.unique = unique
 
-class ChopUiFileSaveException(ChopUiException):
-    pass
+    def setAddr(self, addr):
+        self.addr = addr
 
-class ChopUiPyObjException(ChopUiException):
-    pass
+    def setTimeStamp(self, timestamp):
+        self.timestamp = timestamp
 
-class ChopLibException(ChopException):
-    pass
+    def setClientData(self, data):
+        self.clientData = data
+
+    def setServerData(self, data):
+        self.serverData = data
+
+    def stop(self):
+        self.sval = True
 
