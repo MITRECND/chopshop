@@ -547,7 +547,7 @@ class ChopLib(Thread):
                 try:
                     all_modules = chopgram.parseGrammar(options['modules'])
                 except Exception, e:
-                    outq.put(e.args)
+                    outq.put(traceback.format_exc())
                     sys.exit(1)
 
 

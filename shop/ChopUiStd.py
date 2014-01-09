@@ -172,7 +172,8 @@ class ChopStdout:
 
     def handle_ctrl(self, message):
         if message['data']['msg'] == 'finished' and message['data']['status'] == 'error':
-            raise ChopLibException(message['data']['errors'])
+            print message['data']['errors']
+            raise ChopLibException("Error Shown Above")
 
     def stop(self):
         pass
