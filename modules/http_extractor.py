@@ -42,6 +42,8 @@ def init(module_data):
         dest="carve_request", default=False, help="Save request body")
     parser.add_option("-f", "--fields", action="store", dest="fields",
         default=[], help="Comma separated list of fields to extract")
+    parser.add_option("-m", "--hash_body", action="store_true", dest="hash_body",
+        default=False, help="Save hash of body and throw contents away")
     parser.add_option("-v", "--verbose", action="store_true", dest="verbose",
         default=False, help="Be verbose about incoming packets")
 
@@ -52,8 +54,9 @@ def init(module_data):
     module_data['carve_request'] = options.carve_request
     module_data['carve_response'] = options.carve_response
     module_data['verbose'] = options.verbose
+    module_data['hash_body'] = options.hash_body
+    module_data['fields'] = []
 
-    module_data['fields'] = options.fields
     if options.fields:
         fields = options.fields.split(',')
         for field in fields:
@@ -70,35 +73,68 @@ def handleProtocol(protocol):
     module_data = protocol.module_data
     data = {'request': protocol.clientData, 'response': protocol.serverData}
 
+    if data['request']['body'] is None:
+        del data['request']['body']
+        del data['request']['body_hash']
+    elif module_data['hash_body']:
+        del data['request']['body']
+
+    if data['response']['body'] is None:
+        del data['response']['body']
+        del data['response']['body_hash']
+    elif module_data['hash_body']:
+        del data['response']['body']
+
+    del data['request']['truncated']
+    del data['request']['body_len']
+    del data['request']['hash_fn']
+
+    del data['response']['truncated']
+    del data['response']['body_len']
+    del data['response']['hash_fn']
+
     fields = module_data['fields']
     if fields:
+        req_fields = fields + ['uri', 'method']
         new_headers = {}
         for header in data['request']['headers']:
-            if header in fields:
+            if header in req_fields:
                new_headers[header] = data['request']['headers'][header] 
+
+        for element in data['request'].keys():
+            if element not in req_fields:
+                del data['request'][element]
+
+        #Set the new headers dictionary
         data['request']['headers'] = new_headers
 
+        res_fields = fields + ['status']
         new_headers = {}
         for header in data['response']['headers']:
-            if header in fields:
+            if header in res_fields:
                 new_headers[header] = data['response']['headers'][header]
+
+        for element in data['response'].keys():
+            if element not in res_fields:
+                del data['response'][element]
+
         data['response']['headers'] = new_headers
             
-    if module_data['carve_request'] and data['request']['body'] is not None:
+    if module_data['carve_request'] and 'body' in data['request']:
         chop.prnt("DUMPING REQUEST: %s (%i)" % (sanitize_filename(data['request']['uri']['path'][1:] + '.request.' + str(module_data['counter'])), len(data['request']['body'])))
         chop.savefile(sanitize_filename(data['request']['uri']['path'][1:] + '.request.' + str(module_data['counter'])), data['request']['body'])
         module_data['counter'] += 1
 
-    if module_data['carve_response'] and data['response']['body'] is not None:
+    if module_data['carve_response'] and 'body' in data['response']:
         chop.prnt("DUMPING RESPONSE: %s (%i)" % (sanitize_filename(data['request']['uri']['path'][1:] + '.response.' + str(module_data['counter'])), len(data['response']['body'])))
         chop.savefile(sanitize_filename(data['request']['uri']['path'][1:] + '.response.' + str(module_data['counter'])), data['response']['body'])
         module_data['counter'] += 1
 
     # Convert the body to base64 encoded data, if it exists.
-    if data['request']['body'] is not None:
+    if 'body' in data['request']:
         data['request']['body'] = b64encode(data['request']['body'])
         data['request']['body_encoding'] = 'base64'
-    if data['response']['body'] is not None:
+    if 'body' in data['response']:
         data['response']['body'] = b64encode(data['response']['body'])
         data['response']['body_encoding'] = 'base64'
 
