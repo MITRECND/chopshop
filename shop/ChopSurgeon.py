@@ -32,6 +32,7 @@ import time
 import tempfile
 from multiprocessing import Process
 from ChopSuture import Suture
+import signal
 
 import ChopShopDebug as CSD
 
@@ -78,9 +79,9 @@ class Surgeon:
 
     def operate(self, flist = False):
         if flist:
-            self.p = Process(target=self.__surgeon_proc_list_, args = (self.files[0], self.fname, self.long,)) 
+            self.p = Process(target=self.__surgeon_proc_list_, args = (self.files[0], self.fname,)) 
         else:
-            self.p = Process(target=self.__surgeon_proc_, args = (self.files,self.fname,))
+            self.p = Process(target=self.__surgeon_proc_, args = (self.files, self.fname,))
         self.p.start()
 
     def __surgeon_proc_(self, files, fname):
@@ -88,9 +89,21 @@ class Surgeon:
         suture = Suture(files, False, fname)
         suture.process_files()
 
-    def __surgeon_proc_list_(self, file, fname, long):
+    def __surgeon_proc_list_(self, file, fname):
+        def abrt_signal_handler(signal, frame):
+            # terminate loop when no more data found
+            self.long = False
+
+        def int_signal_handler(signal, frame):
+            # immediate stop
+            self.stopread = True
+
+        # register signal handlers
+        signal.signal(signal.SIGABRT, abrt_signal_handler)
+        signal.signal(signal.SIGINT, int_signal_handler)
+
         os.setpgrp()
-        stopread = False
+        self.stopread = False
 
         try:
             flist = open(file, 'r')
@@ -100,7 +113,7 @@ class Surgeon:
         suture = Suture([], False, fname)
         suture.prepare_bunch()
         while(True):
-            if stopread:
+            if self.stopread:
                 break
 
             files = []
@@ -113,7 +126,7 @@ class Surgeon:
             if len(files) > 0:
                 suture.process_bunch(files)
 
-            if not long:
+            if not self.long:
                 break
             time.sleep(.1)
 
