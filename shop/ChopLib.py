@@ -415,8 +415,8 @@ class ChopLib(Thread):
             except Queue.Empty, e:
                 if not self.nidsp.is_alive():
                     break
-                #if self.stopped:
-                #    self.nidsp.terminate()
+                if self.stopped:
+                    self.nidsp.terminate()
                 continue
             except AttributeError:
                 break

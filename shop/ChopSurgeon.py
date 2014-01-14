@@ -79,7 +79,7 @@ class Surgeon:
 
     def operate(self, flist = False):
         if flist:
-            self.p = Process(target=self.__surgeon_proc_list_, args = (self.files[0], self.fname,)) 
+            self.p = Process(target=self.__surgeon_proc_list_, args = (self.files[0], self.fname, self.long,)) 
         else:
             self.p = Process(target=self.__surgeon_proc_, args = (self.files, self.fname,))
         self.p.start()
@@ -89,7 +89,7 @@ class Surgeon:
         suture = Suture(files, False, fname)
         suture.process_files()
 
-    def __surgeon_proc_list_(self, file, fname):
+    def __surgeon_proc_list_(self, file, fname, long):
         def abrt_signal_handler(signal, frame):
             # terminate loop when no more data found
             self.long = False
@@ -104,6 +104,7 @@ class Surgeon:
 
         os.setpgrp()
         self.stopread = False
+        self.long = long
 
         try:
             flist = open(file, 'r')
@@ -112,10 +113,7 @@ class Surgeon:
 
         suture = Suture([], False, fname)
         suture.prepare_bunch()
-        while(True):
-            if self.stopread:
-                break
-
+        while(not self.stopread):
             files = []
             while(True):
                 line = flist.readline()

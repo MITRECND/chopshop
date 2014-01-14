@@ -79,8 +79,7 @@ def signal_handler(signal, frame):
         try:
             CSD.debug_out("Signal Caught\n")
             choplib.stop()
-            # when in longrun, nids and surgeon need special handling
-            os.kill(choplib.surgeon.p.pid, signal)
+            # when in longrun, surgeon needs special handling
             os.kill(choplib.nidsp.pid, signal)
 
             chopui.stop()

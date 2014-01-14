@@ -358,11 +358,9 @@ class ChopCore(Thread):
                 try:
                     if options['longrun']: #long running don't stop until the proces is killed externally
                         while not self.stopped:
-                            if self.interrupt: #exit immediately if sigint
-                                break
-                            if not nids.next() and self.abort: #exit if sigabrt if no other data
-                                break
-                            elif not nids.next():
+                            if not nids.next():
+                                if self.abort: #exit if sigabrt if no other data
+                                    break
                                 time.sleep(.001)
                     else:
                         while not self.stopped and nids.next():
