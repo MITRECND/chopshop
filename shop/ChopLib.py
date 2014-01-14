@@ -496,7 +496,7 @@ class ChopLib(Thread):
         #Note that even though this is within the class it is being used irrespective
         #of the Process 1 class, so 'self' is never used for data
 
-        # these signals pass varialbs to nids which acts accordingly
+        # these signals pass variables to nids, which acts accordingly
         def abrt_signal_handler(signal, frame):
             ccore.abort = True
 
