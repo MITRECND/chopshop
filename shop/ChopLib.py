@@ -35,6 +35,7 @@ import time
 from threading import Thread, Lock
 import re
 from cStringIO import StringIO
+import signal
 
 CHOPSHOP_WD = os.path.realpath(os.path.dirname(sys.argv[0]))
 
@@ -103,6 +104,7 @@ class ChopLib(Thread):
         self.nidsp.start()
 
         self.chop = None
+        self.surgeon = None
 
         self.kill_lock = Lock()
 
@@ -312,8 +314,6 @@ class ChopLib(Thread):
             self.kill_lock.release()
 
     def run(self):
-        surgeon = None
-
         if not self.options['modinfo'] and not self.options['modtree']: #No point in doing surgery if it's modinfo or modtree
             # Figure out where we're reading packets from
             if not self.options['interface']:
@@ -322,9 +322,9 @@ class ChopLib(Thread):
                         self.send_finished_msg({'status':'error','errors': 'No input Specified'}, True)
                         return
                     else:
-                        surgeon = Surgeon(self.options['filelist'])
-                        self.options['filename'] = surgeon.create_fifo()
-                        surgeon.operate()
+                        self.surgeon = Surgeon(self.options['filelist'])
+                        self.options['filename'] = self.surgeon.create_fifo()
+                        self.surgeon.operate()
                 else:
                     if not os.path.exists(self.options['filename']):
                         self.send_finished_msg({'status':'error','errors':"Unable to find file '%s'" % self.options['filename']}, True)
@@ -332,10 +332,10 @@ class ChopLib(Thread):
 
                     if self.options['aslist']:
                         #input file is a listing of files to process
-                        surgeon = Surgeon([self.options['filename']], self.options['longrun'])
-                        self.options['filename'] = surgeon.create_fifo()
+                        self.surgeon = Surgeon([self.options['filename']], self.options['longrun'])
+                        self.options['filename'] = self.surgeon.create_fifo()
                         #TODO operate right away or later?
-                        surgeon.operate(True)
+                        self.surgeon.operate(True)
 
         #Send options to Process 2 and tell it to setup
         self.kill_lock.acquire()
@@ -415,8 +415,8 @@ class ChopLib(Thread):
             except Queue.Empty, e:
                 if not self.nidsp.is_alive():
                     break
-                #if self.stopped:
-                #    self.nidsp.terminate()
+                if self.stopped:
+                    self.nidsp.terminate()
                 continue
             except AttributeError:
                 break
@@ -444,8 +444,8 @@ class ChopLib(Thread):
 
         ###Teardown of the program
         #Join with Surgeon
-        if surgeon is not None:
-            surgeon.stop()
+        if self.surgeon is not None:
+            self.surgeon.stop()
 
         #Join with Nids Process
         self.nidsp.join()
@@ -495,6 +495,12 @@ class ChopLib(Thread):
     def __nids_core_runner_(self, inq, outq, dataq, autostart = True):
         #Note that even though this is within the class it is being used irrespective
         #of the Process 1 class, so 'self' is never used for data
+
+        # these signals pass variables to nids, which acts accordingly
+        def abrt_signal_handler(signal, frame):
+            ccore.abort = True
+
+        signal.signal(signal.SIGABRT, abrt_signal_handler)
 
         #Responsible for creating "chop" classes and
         #keeping track of the individual output handlers
