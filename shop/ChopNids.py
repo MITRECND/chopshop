@@ -168,7 +168,6 @@ class ChopCore(Thread):
         self.stopped = False
         self.complete = False
         self.abort = False
-        self.interrupt = False
 
         global chop
         chop = chp

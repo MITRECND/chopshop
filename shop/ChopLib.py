@@ -500,11 +500,7 @@ class ChopLib(Thread):
         def abrt_signal_handler(signal, frame):
             ccore.abort = True
 
-        def int_signal_handler(signal, frame):
-            ccore.interrupt = True
-
         signal.signal(signal.SIGABRT, abrt_signal_handler)
-        signal.signal(signal.SIGINT, int_signal_handler)
 
         #Responsible for creating "chop" classes and
         #keeping track of the individual output handlers
