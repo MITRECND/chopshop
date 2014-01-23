@@ -30,9 +30,8 @@ import sys
 import os
 import time
 import tempfile
-from multiprocessing import Process
+from multiprocessing import Process, Queue
 from ChopSuture import Suture
-import signal
 
 import ChopShopDebug as CSD
 
@@ -43,6 +42,7 @@ class Surgeon:
         self.tdir = None
         self.fname = None
         self.long = long
+        self.tosurgeon = Queue()
 
     def __del__(self):
         self.cleanup_fifo()
@@ -72,14 +72,21 @@ class Surgeon:
     def stop(self):
         #Forcefully Terminate since otherwise this might hang unnecessarily
         try:
+            self.tosurgeon.put('kill')
             self.p.terminate()
             self.p.join()
         except Exception, e:
             pass
 
+    def abort(self):
+        try:
+            self.tosurgeon.put('abort')
+        except Exception, e:
+            pass
+
     def operate(self, flist = False):
         if flist:
-            self.p = Process(target=self.__surgeon_proc_list_, args = (self.files[0], self.fname, self.long,)) 
+            self.p = Process(target=self.__surgeon_proc_list_, args = (self.files[0], self.fname, self.long, self.tosurgeon,)) 
         else:
             self.p = Process(target=self.__surgeon_proc_, args = (self.files, self.fname,))
         self.p.start()
@@ -89,19 +96,7 @@ class Surgeon:
         suture = Suture(files, False, fname)
         suture.process_files()
 
-    def __surgeon_proc_list_(self, file, fname, long):
-        def abrt_signal_handler(signal, frame):
-            # terminate loop when no more data found
-            self.long = False
-
-        def int_signal_handler(signal, frame):
-            # immediate stop
-            self.stopread = True
-
-        # register signal handlers
-        signal.signal(signal.SIGABRT, abrt_signal_handler)
-        signal.signal(signal.SIGINT, int_signal_handler)
-
+    def __surgeon_proc_list_(self, file, fname, long, inq):
         os.setpgrp()
         self.stopread = False
         self.long = long
@@ -116,6 +111,17 @@ class Surgeon:
         while(not self.stopread):
             files = []
             while(True):
+                data = None
+                try:
+                    data = inq.get(True, .01)
+                except Queue.Empty:
+                    pass
+
+                if data == 'abort':
+                    self.long = False
+                elif data == 'kill':
+                    self.stopread = True
+
                 line = flist.readline()
                 if line == "":
                     break
