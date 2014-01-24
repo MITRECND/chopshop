@@ -512,6 +512,7 @@ class ChopLib(Thread):
         ccore = None
         mod_dir = None
         chopgram = None
+        abort = False
 
         #Initialization
         while (True):
@@ -642,6 +643,9 @@ class ChopLib(Thread):
                 break
             elif data[0] == 'stop': #Some error must have occurred
                 sys.exit(0)
+            elif data[0] == 'abort': #Process any data we have
+                abort = True
+                break
             else:
                 #FIXME custom exception?
                 raise Exception("Unknown message")
@@ -658,6 +662,9 @@ class ChopLib(Thread):
 
         if autostart:
             ccore.start()
+
+        #If received abort during init, this is true
+        ccore.abort = abort
 
         while (True):
             if ccore.complete:
