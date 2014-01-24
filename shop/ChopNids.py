@@ -351,9 +351,7 @@ class ChopCore(Thread):
             nids.register_udp(handleUdpDatagrams)
             nids.register_ip(handleIpPackets)
 
-            while(True): #This overall while prevents exceptions from halting the long running reading
-                if self.stopped:
-                    break
+            while(not self.stopped): #This overall while prevents exceptions from halting the long running reading
                 try:
                     if options['longrun']: #long running don't stop until the proces is killed externally
                         while not self.stopped:
@@ -366,11 +364,10 @@ class ChopCore(Thread):
                             pass
                     self.stopped = True #Force it to true and exit
                 except Exception, e:
+                    chop.prnt("Error processing packets", e)
                     if not options['longrun']:
                         self.stopped = True #Force it to true and exit
-                    chop.prnt("Error processing packets", e)
-                    raise
-
+                        raise # only raise if not in longrun
 
         chop.prettyprnt("RED", "Shutting Down Modules ...")
 

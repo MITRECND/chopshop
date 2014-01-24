@@ -35,7 +35,6 @@ import time
 from threading import Thread, Lock
 import re
 from cStringIO import StringIO
-import signal
 
 CHOPSHOP_WD = os.path.realpath(os.path.dirname(sys.argv[0]))
 
@@ -280,8 +279,13 @@ class ChopLib(Thread):
         global VERSION
         return VERSION
 
+    def abort(self):
+        self.tonids.put(['abort'])
+        self.surgeon.abort()
+
     def stop(self):
         self.stopped = True
+        self.surgeon.stop()
 
     def setup_local_chop(self, name = "ChopShop", pid = -1):
         #This allows Process 1 to access Chops, note that it has
@@ -496,11 +500,7 @@ class ChopLib(Thread):
         #Note that even though this is within the class it is being used irrespective
         #of the Process 1 class, so 'self' is never used for data
 
-        # these signals pass variables to nids, which acts accordingly
-        def abrt_signal_handler(signal, frame):
-            ccore.abort = True
-
-        signal.signal(signal.SIGABRT, abrt_signal_handler)
+        os.setpgrp()
 
         #Responsible for creating "chop" classes and
         #keeping track of the individual output handlers
@@ -672,6 +672,8 @@ class ChopLib(Thread):
                 ccore.start()
             elif data[0] == 'stop':
                 ccore.stop()
+            elif data[0] == 'abort':
+                ccore.abort = True
 
         ccore.join()
 
