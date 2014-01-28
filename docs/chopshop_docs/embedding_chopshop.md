@@ -156,26 +156,29 @@ essentially what people type in at the commandline
 
 ChopLib has the following functions that are useful for embedding:
 
-ChopLib.start() -- Kicks of ChopLib to start processing
+<pre>
+start() -- Kicks of ChopLib to start processing
 
-ChopLib.finish() -- Should be called to properly kill intra-communication
+finish() -- Should be called to properly kill intra-communication
 channels
 
-ChopLib.join() -- Inherited from Thread, should be called to properly join
+join() -- Inherited from Thread, should be called to properly join
+</pre>
 
 The above functions are the ones used by chopshop but other functions are
 available depending on what functionality is desired:
 
-ChopLib.get_message_queue() -- returns the interprocess message queue that is
+<pre>
+get_message_queue() -- returns the interprocess message queue that is
 used for output
 
-ChopLib.get_stop_fn() -- returns the stop function used to stop the Library
+get_stop_fn() -- returns the stop function used to stop the Library
 
-ChopLib.version() -- returns the version of ChopLib
+version() -- returns the version of ChopLib
 
-ChopLib.setup_local_chop(name = "ChopShop", pid = -1) -- usually not needed
+setup_local_chop(name = "ChopShop", pid = -1) -- usually not needed
 but allows the calling program (e.g., chopshop) to get its own local 'chop' library
-
+</pre>
 
 
 ChopUi:
