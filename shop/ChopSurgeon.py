@@ -46,6 +46,10 @@ class Surgeon:
 
     def __del__(self):
         self.cleanup_fifo()
+        try:
+            self.tosurgeon.close()
+        except:
+            pass
 
     def create_fifo(self):
         self.tdir = tempfile.mkdtemp()
