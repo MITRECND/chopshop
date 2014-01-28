@@ -8,7 +8,7 @@ order to be recognized by the framework.
 
 newmod.sh
 ---------
-ChopShop provides a shell script to setup a module stub for you. You can use
+ChopShop provides a shell script to setup a simple module stub for you. You can use
 'newmod.sh' to create this stub and open an editor for you to get right to
 work. The newmod.sh script takes two arguments. The first is the name of the
 module you want to create and the second is a string (either 'tcp' or 'udp')
@@ -17,6 +17,45 @@ depending upon the layer 4 payload you intend to parse.
 <code>
 ./newmod.sh awesome_decoder tcp
 </code>
+
+
+ChopShop 4.0 Changes
+----------
+A few changes have been introduced with ChopShop 4.0, the majority of which will not
+change or break functionality and should be mostly un-obtrusive to module authors:
+
+<code>
+Usage of 'print' in module_info has been removed -- it was deprecated in 3.0. 
+Module Authors should return a string instead
+
+ChopShop 4.0 modules require 'moduleVersion' and 'minimumChopLib' to be defined 
+alongside 'moduleName'
+
+The module_args['proto'] element is now different to support multiple protocols and
+chaining. It now looks like 'proto' : [{'input', 'output'}]. Note that the old style
+'proto' : 'tcp' will still work fine for old/legacy modules.
+</code>
+
+Transitioning Your Module
+----------
+If you'd like to transition your module to ChopShop 4.0, there's only a few steps
+to follow:
+
+<code>
+Add 'minimumVersion' and 'minimumChopLib' to your module
+
+Modify the 'proto' element in module_args as described above. 
+Tcp modules will look like:
+
+module_args = {'proto': [{'tcp', ''}]}
+
+Udp modules will look like:
+
+module_args = {'proto': [{'udp', ''}]}
+
+</code>
+
+
 
 tcp_data structure
 ------------------
@@ -92,6 +131,41 @@ The udp_data structure has the following functions:
 <b>stop()</b> -- tells ChopShop that this quad-tuple should be ignored for the
 lifetime of the module
 
+ip_data structure
+__________________
+New to ChopShop 4.0 ip data is now available and contains elements cooresponding to the ip header spec:
+    
+<b>version</b> - The version of ip (note that libnids doesn't support v6 so this should always be 4)
+
+<b>ihl</b> - Internet Header Length
+
+<b>dscp</b> - Differentiated Services Code Point
+
+<b>ecn</b> - Explicit Congestion Notification
+
+<b>length</b> - Total packet length including header and data (as according to the packet)
+
+<b>identification</b> - Identification field from packet
+
+<b>flags</b> - Fragmentation Flags
+
+<b>frag_offset</b> - Fragmentation Offset
+
+<b>ttl</b> - The Time To Live of the packet
+
+<b>protocol</b> - The protocol this is carrying (e.g., icmp or tcp)
+
+<b>checksum</b> - The header checksum
+
+<b>src</b> - The ip source
+
+<b>dst</b> - The ip destination
+
+<b>raw</b> - This is the raw ip packet
+
+<b>addr</b> - A quadtuple containing source and destination elements. Note that the port values are blank.
+
+
 ChopProtocol structure
 ----------------------
 The ChopProtocol base class is what secondary modules will receive through the
@@ -113,6 +187,9 @@ from the client
 
 <b>serverData</b> - arbitrary python data structure defined by primary modules for data
 from the server
+
+
+
 
 
 Variables
@@ -155,7 +232,7 @@ packets.
             E.g., proto = [ {'tcp' : ''}]
                   proto = [ {'tcp' : 'http'}]
             Note: 'tcp', 'udp', and 'ip' are considered pre-defined types and should
-            not be used as return types (further note, 'ip' has not been implemented yet)
+            not be used as return types
 
     Optional: the return dictionary may also include:
         'error': indicates an error in the module has occured
@@ -196,11 +273,11 @@ gives the module one last chance to do what it needs to.
 
 
 ###Primary Modules
-Modules that ingest the core types 'tcp' and 'udp' can return an instance of ChopProtocol to
-be consumed by secondary modules (see below). Before use, ChopProtocl must be imported by doing:
+Modules that ingest the core types 'tcp', 'udp', and 'ip' can return an instance of ChopProtocol to
+be consumed by secondary modules (see below). Before use, ChopProtocol must be imported by doing:
 
 <pre>
-from ChopProtcol import ChopProtocl
+from ChopProtcol import ChopProtocol
 </pre>
 
 To instantiate an instance of ChopProtocol you can do something like:
@@ -214,11 +291,15 @@ After instantiating an object based on ChopProtocol you have access to the follo
 <b>setAddr</b> - Set the quadtuple containing source ip/port and destination ip/port -- this
 will be auto set by the framework if you do not
 
-<b>setTimestamp</b> - Set variable that contains the timestamp of the protoco -- this will be autoset to the timestamp of whatever packet you return data on if you do not set it
+<b>setTimestamp</b> - Set variable that contains the timestamp of the protocol -- this will be autoset to the timestamp of whatever packet you return data on if you do not set it
 
 <b>setClientData</b> - Set the arbitrary data structure for the data coming from the client
 
 <b>setServerData</b> - Set the arbitrary python data structure for the data coming from the server
+
+Note that the format of ChopProtocol is not meant to be restrictive. You can and should override or ignore
+some functionality if it doesn't fit your model of how data should be handled (e.g., creating a 'data' element instead
+of having client and server elements)
 
 
 _clone function
@@ -226,7 +307,7 @@ _clone function
 
 ChopLib requires the ability to create copies of ChopProtocol to provide modules with their
 own unique copy. By default ChopProtocol contains a _clone function that uses copy's 'deepcopy'
-function. If your data (in clientData and serverData) are complex enough, this might no be enough
+function. If your data (in clientData and serverData) are complex enough, this might not be enough
 to copy your data. In these instances you should create an inherited class based on ChopProtocol
 and redefine the _clone function.
 
@@ -235,7 +316,7 @@ and redefine the _clone function.
 
 ###Secondary Modules
 With ChopShop 4.0, it is now possible to chain modules allowing more generic work
-to be done by one module and then passed to multiple children module for further processing.
+to be done by one module and then passed to multiple children modules for further processing.
 For example, if you want to write a decoder for a protcol that runs on top of http, normally
 you would first parse the http traffic out and then proceed to parse the protocol that you
 were <b>actually</b> trying to decode. With 4.0 though, you can pass the data through a primary
@@ -246,7 +327,7 @@ Secondary modules have one function they must define to handle data:
 <b>handleProtocol(protocol)</b> -- Protocol data, partially defined by primary module
 
 
-Secondar modules can further return data to be used by other, downstream secondary modules
+Secondary modules can further return data to be used by other, downstream secondary modules
 
 
 

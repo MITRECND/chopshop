@@ -61,12 +61,14 @@ fi
 
 cat << _EOF >> "${MODDIR}/${MODFILE}" || exit 1
 moduleName="${MODNAME}"
+moduleVersion="0.1"
+minimumChopLib="4.0"
 
 def module_info():
     pass
 
 def init(module_data):
-    module_options = { 'proto': '${ARG}' }
+    module_options = { 'proto': [{'${ARG}', ''} }
     return module_options
 
 def ${HANDLE}(${ARG}):
