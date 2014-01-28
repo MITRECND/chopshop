@@ -89,7 +89,7 @@ def process_ip_data(ip):
     iplocal.dscp = data[1] >> 2
     iplocal.ecn = data[1] & 0x03 # 0b0011
     iplocal.length = data[2]
-    iplocal.identifiation = data[3]
+    iplocal.identification = data[3]
     iplocal.flags = data[4] >> 13
     iplocal.frag_offset = data[4] & 0x1fff # 0b0001111111111111
     iplocal.ttl = data[5]
