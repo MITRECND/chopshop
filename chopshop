@@ -107,7 +107,7 @@ def main():
     chopconfig = ChopConfig()
 
 
-    optparser = OptionParser(usage='usage: %prog [options] ["bpf filter"] "list ; of ; modules"')
+    optparser = OptionParser(usage='usage: %prog [options] ["bpf filter"] "list | (of, many) | modules ; and | more"')
     optparser.add_option("-B", "--base_dir", dest = "base_dir", default=None,
         help = "Base directory to load modules and external libraries from")
     optparser.add_option("-c", "--configfile", action="store", dest="configfile",

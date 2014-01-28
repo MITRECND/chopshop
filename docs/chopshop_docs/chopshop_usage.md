@@ -10,34 +10,41 @@ modules to do so.
 The chopshop program provides the following arguments:
 
 <pre>
-usage: chopshop [options] ["bpf filter"] "list | (of, many) | modules ; and | more"
+Usage: chopshop [options] ["bpf filter"] "list ; of ; modules"
 
-options:
+Options:
   -h, --help            show this help message and exit
   -B BASE_DIR, --base_dir=BASE_DIR
-                        Base directory to load modules and external libraries from
+                        Base directory to load modules and external libraries
+                        from
+  -c CONFIGFILE, --configfile=CONFIGFILE
+                        Import a config file
+  -C SAVECONFIG, --saveconfig=SAVECONFIG
+                        Save current arguments to a config file
   -E EXT_DIR, --ext_dir=EXT_DIR
                         Directory to load external libraries from
-  -M MOD_DIR, --mod_dir=MOD_DIR
-                        Directory to load modules from
   -f FILENAME, --file=FILENAME
                         input pcap file
-  -l, --aslist          Treat filename as a file containing a list of files
-  -L, --long            Read from filename forever even if there's no more
-                        pcap data
-  -i INTERFACE, --interface=INTERFACE
-                        interface to listen on
-  -m, --module_info     print information about module(s) and exit
-  -G, --GMT             timestamps in GMT (tsprnt and tsprettyprnt only)
-  -v, --version         print version and exit
-  -g, --gui             Enable ChopShop Gui
-  -S, --stdout          Explicitly enable output to stdout
   -F FILEOUT, --fileout=FILEOUT
                         Enable File Output
-  -s SAVEDIR, --savedir=SAVEDIR
-                        Location to save carved files
+  -g, --gui             Enable ChopShop Gui
+  -G, --GMT             timestamps in GMT (tsprnt and tsprettyprnt only)
+  -i INTERFACE, --interface=INTERFACE
+                        interface to listen on
   -J JSONOUT, --jsonout=JSONOUT
                         Enable JSON Output
+  -l, --aslist          Treat FILENAME as a file containing a list of files
+  -L, --long            Read from FILENAME forever even if there's no more
+                        pcap data
+  -m, --module_info     print information about module(s) and exit
+  -M MOD_DIR, --mod_dir=MOD_DIR
+                        Directory to load modules from
+  -s SAVEDIR, --savedir=SAVEDIR
+                        Location to save carved files
+  -S, --stdout          Explicitly enable output to stdout
+  -t, --module_tree     print information about module tree and exit
+  -v, --version         print version and exit
+
 </pre>
 
 Along with some basic command line options, chopshop requires the names of
