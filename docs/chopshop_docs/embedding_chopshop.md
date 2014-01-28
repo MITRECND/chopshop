@@ -25,6 +25,7 @@ There are two high-level types of messages that are sent across the queue,
 'Control' messages and 'Data' messages. All messages are python data objects.
 Control messages have the following structure:
 
+<pre>
 ctrl_message = { 'type' : 'ctrl',
                  'data' : { 'msg': 'X', 
                              other dependant on 'X'}
@@ -37,14 +38,16 @@ ctrl_message = { 'type' : 'ctrl',
         'id'  : "module id"
     if 'X' == 'stop':
         no other elements
+</pre>
 
 Data messages have the following format:
 
+<pre>
 message = { 'type'   : 'txt'|'json'|'filedata'
             'module' : 'module name',
             'id'     : 'module id',
             'time'   : 'packet timestamp',
-            'addr'   : TODO XXX FIXME,
+            'addr'   : (('src','srcprt'),('dst','dstprt')),
             'proto'  : 'tcp'|'udp',
             'data'   : {type dependant data dictionary}
           }
@@ -63,6 +66,7 @@ message = { 'type'   : 'txt'|'json'|'filedata'
                    'mode' : requested write mode (w|a),
                    'finalize': True|False -- whether this is the final write and the file should be closed
                  }
+</pre>
 
 The 'type' and 'data' fields are the only consistent names across all of
 messages and any usage of a message should at the least check the type before
@@ -80,15 +84,17 @@ is more than likely what you'll want, at the least.
 
 An instance of ChopLib is instantiated like any other python class:
 
-<code>
+
+```python
 #The following line assumes the shop is in your path
 from ChopLib import ChopLib
 
 choplib = ChopLib()
-</code>
+```
 
 ChopLib has the following options:
 
+<pre>
 mod_dir -- The directory to load modules from. Defaults to ChopShop's working
 directory + /modules. If overriden will be relative to base_dir if set, if not
 should be set to an absolute path
@@ -146,7 +152,7 @@ savedir -- Sets the save directory for files carved by ChopLli
 modules -- The list of modules that is going to be processed. This is
 essentially what people type in at the commandline
 <default: ''>
-
+</pre>
 
 ChopLib has the following functions that are useful for embedding:
 
@@ -168,7 +174,7 @@ ChopLib.get_stop_fn() -- returns the stop function used to stop the Library
 ChopLib.version() -- returns the version of ChopLib
 
 ChopLib.setup_local_chop(name = "ChopShop", pid = -1) -- usually not needed
-but allows the calling program (e.g., chopshp) to get its own local 'chop' library
+but allows the calling program (e.g., chopshop) to get its own local 'chop' library
 
 
 
@@ -181,66 +187,72 @@ overriden by specifying an alternative object.
 
 ChopUi has the following options:
 
-ChopUi.stdout - Set to True to enable handling of output to stdout, set to an
+<pre>
+stdout - Set to True to enable handling of output to stdout, set to an
 Object to override the stdout handler.
 <default: False>
 
-ChopUi.gui - Set to True to enable hanlding of output to gui, set to an Object
+gui - Set to True to enable hanlding of output to gui, set to an Object
 to override the gui handler.
 <default: False>
 
-ChopUi.fileout - Set to True to enable handling of text output to a file, set to an
+fileout - Set to True to enable handling of text output to a file, set to an
 Object to override the handler.
 <default: False>
 
-ChopUi.filedir - Set to the format string to where the file should be saved
+filedir - Set to the format string to where the file should be saved
 <default: None>
 
-ChopUi.savefiles - Set to True to enable handling of file saving, set to an
+savefiles - Set to True to enable handling of file saving, set to an
 Object to override the handler.
 <default: False>
 
-ChopUi.savedir - Set to the format string as to where to save files
+savedir - Set to the format string as to where to save files
 <default: None>
 
-ChopUi.jsonout - Set to True to enable handling of json output data, set to an
+jsonout - Set to True to enable handling of json output data, set to an
 Object to override the handler.
 <default: False>
 
-ChopUi.jsondir - Set to a format string as to where to save json output data
+jsondir - Set to a format string as to where to save json output data
 <default: None>
-
+</pre>
 
 The following functions are useful when using ChopUi:
 
-ChopUi.start() - Kicks of the ui
+<pre>
+start() - Kicks off the ui
 
-ChopUi.bind(ChopLib_Instance) - 'Binds' a ChopLib instance to this ui instance
+bind(ChopLib_Instance) - 'Binds' a ChopLib instance to this ui instance
 
-ChopUi.stop() - Stops the ui
+stop() - Stops the ui
+</pre>
 
 A few other functions exist that shouldn't be needed for regular operations:
 
-ChopUi.set_message_queue(message_queue) - Sets the message queue to be
+<pre>
+set_message_queue(message_queue) - Sets the message queue to be
 consumed from -- called by ChopUi.bind()
 
-ChopUi.set_library_stop_fn(lib_stop_fn) - Sets the library stop function --
+set_library_stop_fn(lib_stop_fn) - Sets the library stop function --
 called by ChopUi.bind()
+</pre>
 
 
 Putting it together, we create a program like chopshop. As the glue chopshop
 as the following responsibilities:
 
-Parse all command line arguments
-Handle reading from stdin if necesary
-Handle signals
-Setting up options to the library and ui
-Starting the ui and the library
-Cleaning up properly
+* Parse all command line arguments
+* Handle reading from stdin if necesary
+* Handle signals
+* Setting up options to the library and ui
+* Starting the ui and the library
+* Cleaning up properly
 
 Overriding UI handlers:
 All Ui handlers need four functions to be defined to be callable by ChopUi:
 
+<pre>
 Handler.__init__(ui_stop_fn, lib_stop_fn) -- This function will start up the
 handler, giving it functions to stop either the Ui or the Library if
 necessary. Most handlers will ignore those variables
@@ -254,14 +266,16 @@ messages
 
 Handler.stop() -- This function is called with ChopUi is ending and gives the
 handler a chance to shutdown properly
+</pre>
 
 To override the handler, you simply need to assign the handler you want to
 override with the object you want to replace it. For example:
 
-
+```python
 from ChopUi import ChopUi
 chopui = ChopUi()
 chopui.stdout = MyAwesomeStdoutHandler
+```
 
 As long as that object 'MyAwesomeStdoutHandler' has the four required
 functions, it will be used without issue to handle any 'txt' data
