@@ -285,7 +285,8 @@ class ChopLib(Thread):
 
     def stop(self):
         self.stopped = True
-        self.surgeon.stop()
+        if self.surgeon:
+            self.surgeon.stop()
 
     def setup_local_chop(self, name = "ChopShop", pid = -1):
         #This allows Process 1 to access Chops, note that it has
