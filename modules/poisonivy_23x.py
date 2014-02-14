@@ -37,7 +37,7 @@ import lznt1
 
 moduleName="poisonivy_23x"
 
-def portlist(data):
+def portlist(data, tcp):
     statuses = {2 : 'LISTENING', 5 : 'ESTABLISHED'}
     chop.tsprnt("*** Active Ports Listing Sent ***")
     #big endian short, UDP == 1, TCP == 0
@@ -91,7 +91,7 @@ def portlist(data):
                        pid,
                        procname))
 
-def dirEnt(data):
+def dirEnt(data, tcp):
     # Print either the directory name (if) or it's contents (else)
     if data[:10] == '\x00\x00\x00\x00\x00\x00\x00\x00\x00\x01':
         chop.prnt("%s" % data[10:])
@@ -111,15 +111,16 @@ def dirEnt(data):
             dirEnt(data)
     return
 
-def heartbeat(data):
+def heartbeat(data, tcp):
     return
 
-def shell(data):
+def shell(data, tcp):
     chop.tsprnt("*** Shell Session ***")
     chop.prnt(data)
     return
 
-def dirlist(data):
+def dirlist(data, tcp):
+    module_data = tcp.module_data
     chop.tsprnt("*** Directory Listing Sent ***")
     if module_data['savelistings']:
         filename = "PI-directory-listing-%d.txt" % module_data['filecount']
@@ -129,7 +130,7 @@ def dirlist(data):
     dirEnt(data)
     return
 
-def hostinfo(data):
+def hostinfo(data, tcp):
     chop.tsprnt("*** Host Information ***")
     str_regex = r"^([\w\x20\t\\\:\-\.\&\%\$\#\@\!\(\)\*]+)$"
     profilegroup = ""
@@ -203,7 +204,8 @@ def hostinfo(data):
 
     return
 
-def reglist(data):
+def reglist(data, tcp):
+    module_data = tcp.module_data
     chop.tsprnt("*** Registry Listing Sent ***")
     if module_data['savelistings']:
         filename = "PI-registry-listing-%d.txt" % module_data['filecount']
@@ -212,7 +214,8 @@ def reglist(data):
         chop.prnt("%s saved.." % filename)
     return
 
-def servicelist(data):
+def servicelist(data, tcp):
+    module_data = tcp.module_data
     chop.tsprnt("*** Service Listing Sent ***")
     if module_data['savelistings']:
         filename = "PI-service-listing-%d.txt" % module_data['filecount']
@@ -221,7 +224,8 @@ def servicelist(data):
         chop.prnt("%s saved.." % filename)
     return
 
-def proclist(data):
+def proclist(data, tcp):
+    module_data = tcp.module_data
     chop.tsprnt("*** Process Listing Sent ***")
     if module_data['savelistings']:
         filename = "PI-process-listing-%d.txt" % module_data['filecount']
@@ -230,7 +234,8 @@ def proclist(data):
         chop.prnt("%s saved.." % filename)
     return
 
-def devicelist(data):
+def devicelist(data, tcp):
+    module_data = tcp.module_data
     chop.tsprnt("*** Device Listing Sent ***")
     if module_data['savelistings']:
         filename = "PI-device-listing-%d.txt" % module_data['filecount']
@@ -239,7 +244,8 @@ def devicelist(data):
         chop.prnt("%s saved.." % filename)
     return
 
-def windowlist(data):
+def windowlist(data, tcp):
+    module_data = tcp.module_data
     chop.tsprnt("*** Window Listing Sent ***")
     if module_data['savelistings']:
         filename = "PI-window-listing-%d.txt" % module_data['filecount']
@@ -248,7 +254,8 @@ def windowlist(data):
         chop.prnt("%s saved.." % filename)
     return
 
-def installedlist(data):
+def installedlist(data, tcp):
+    module_data = tcp.module_data
     chop.tsprnt("*** Installed Application Listing Sent ***")
     if module_data['savelistings']:
         filename = "PI-installed-listing-%d.txt" % module_data['filecount']
@@ -257,7 +264,8 @@ def installedlist(data):
         chop.prnt("%s saved.." % filename)
     return
 
-def passwordlist(data):
+def passwordlist(data, tcp):
+    module_data = tcp.module_data
     if len(data) == 0:
         chop.tsprnt("*** Password Listing Request - Nothing Found ***")
         return
@@ -270,15 +278,15 @@ def passwordlist(data):
         chop.prnt("%s saved.." % filename)
     return
 
-def nofilesearchresults(data):
+def nofilesearchresults(data, tcp):
     chop.tsprnt("*** End of File Search Results ***")
     return
 
-def noregsearchresults(data):
+def noregsearchresults(data, tcp):
     chop.tsprnt("*** End of Registry Search Results ***")
     return
 
-def filesearchresults(data):
+def filesearchresults(data, tcp):
     chop.tsprnt("*** File Search Results ***")
     dirlen = ord(data[0])
     endofdir = 1 + dirlen
@@ -293,7 +301,7 @@ def filesearchresults(data):
         data = data[endoffile+20:]
     return
 
-def regsearchresults(data):
+def regsearchresults(data, tcp):
     chop.tsprnt("*** Registry Search Results ***")
     keylen = ord(data[0])
     endofkey = 1 + keylen
@@ -357,14 +365,15 @@ def regsearchresults(data):
 
     return
 
-def skip(data):
+def skip(data, tcp):
     return
 
-def remotedesktop(data):
+def remotedesktop(data, tcp):
     chop.tsprnt("*** Remote Desktop Session ***")
     return
 
-def webcam(data):
+def webcam(data, tcp):
+    module_data = tcp.module_data
     chop.tsprnt("*** Web Cam Capture Sent ***")
     if module_data['savecaptures']:
         filename = "PI-extracted-file-%d-webcam.bmp" % module_data['filecount']
@@ -374,6 +383,7 @@ def webcam(data):
     return
 
 def audio(data, tcp):
+    module_data = tcp.module_data
     chop.tsprnt("*** Audio Capture Sent ***")
     if module_data['savecaptures']:
         filename = "PI-extracted-file-%d-audio.raw" % module_data['filecount']
@@ -382,7 +392,8 @@ def audio(data, tcp):
         chop.prnt("audio capture was saved in RAW format as %s" % filename)
     return
 
-def screenshot(data):
+def screenshot(data, tcp):
+    module_data = tcp.module_data
     chop.tsprnt("*** Screen Capture Sent ***")
     if module_data['savecaptures']:
         filename = "PI-extracted-file-%d-screenshot.bmp" % module_data['filecount']
@@ -391,7 +402,8 @@ def screenshot(data):
         chop.prnt("%s saved.." % filename)
     return
 
-def keylog(data):
+def keylog(data, tcp):
+    module_data = tcp.module_data
     if len(data) == 0:
         chop.tsprnt("*** Keystroke Data Request - Nothing Found ***")
         return
@@ -404,7 +416,8 @@ def keylog(data):
         chop.prnt("%s saved.." % filename)
     return
 
-def cachedpwlist(data):
+def cachedpwlist(data, tcp):
+    module_data = tcp.module_data
     if len(data) == 0:
         chop.tsprnt("*** Cached Password Request - Nothing Found ***")
         return
@@ -417,7 +430,7 @@ def cachedpwlist(data):
         chop.prnt("%s saved.." % filename)
     return
 
-def ntlmhashlist(data):
+def ntlmhashlist(data, tcp):
     if len(data) == 0:
         chop.tsprnt("*** NT/NTLM Hash Listing Request - Nothing Found ***")
         return
@@ -435,7 +448,8 @@ def ntlmhashlist(data):
         data = data[36 + userlen:]
     return
 
-def wirelesspwlist(data):
+def wirelesspwlist(data, tcp):
+    module_data = tcp.module_data
     if len(data) == 0:
         chop.tsprnt("*** Wireless Listing Request - Nothing Found ***")
         return
@@ -448,6 +462,7 @@ def wirelesspwlist(data):
     return
 
 def analyzeCode(code, type, tcp=None):
+    module_data = tcp.module_data
     if module_data['debug']:
         chop.tsprnt("code:\n%s" % hexdump(code))
 
@@ -698,11 +713,11 @@ def analyzeCode(code, type, tcp=None):
 #returns listid and bool for new PI stream
 def getHeaders(direction, buf, tcp):
     sd = tcp.stream_data
-
-    buf = CamelliaDecrypt(buf, module_data['camcrypt'], sd.get('xor', None))
+    md = tcp.module_data
+    buf = CamelliaDecrypt(buf, md['camcrypt'], sd.get('xor', None))
     (type, listid) = unpack("<II", buf[0:8])
     newstream = False
-    if module_data['debug']:
+    if md['debug']:
         chop.tsprnt("%s headers:\n%s" % (direction, hexdump(buf)))
     if direction == "in":
         if sd['inbound_type'].get(listid, -1) != type:
@@ -762,7 +777,7 @@ def CamelliaDecrypt(buf, camobj, xor=None):
 def TryKeyList(keylist, challenge, response, camobj, xor=None):
     #just in case admin is not included in the list
     camobj.keygen(256, "admin" + "\x00" * 27)
-    if response == CamelliaEncrypt(challenge, module_data['camcrypt'], xor):
+    if response == CamelliaEncrypt(challenge, camobj, xor):
         chop.prnt("Key found: admin")
         return True
 
@@ -780,7 +795,7 @@ def TryKeyList(keylist, challenge, response, camobj, xor=None):
             if len(key) < 32:
                 key += "\x00" * (32 - len(key))
             camobj.keygen(256, key)
-            if response == CamelliaEncrypt(challenge, module_data['camcrypt'], xor):
+            if response == CamelliaEncrypt(challenge, camobj, xor):
                 chop.prnt("Key found: %s" % line)
                 return True
 
@@ -1149,10 +1164,7 @@ def handleStream(tcp):
                             chop.tsprnt("outbound data:\n%s" % hexdump(sd['server_collect_buffer'].get(listid)))
 
                         try:
-                            if sd['outbound_type'].get(listid) == 0x5c:
-                                md['cmdhandler'][sd['outbound_type'].get(listid)](sd['server_collect_buffer'].get(listid), tcp)
-                            else:
-                                md['cmdhandler'][sd['outbound_type'].get(listid)](sd['server_collect_buffer'].get(listid))
+                            md['cmdhandler'][sd['outbound_type'].get(listid)](sd['server_collect_buffer'].get(listid), tcp)
                         except:
                             if md['verbose'] or md['debug']:
                                 chop.tsprnt("unrecognized command..")
