@@ -52,16 +52,18 @@ def portlist(data, tcp):
     # little endian int PID
     #1 byte proc name length
     chop.prnt("Protocol\tLocal IP\tLocal Port\tRemote IP\tRemote Port\tStatus\tPID\tProc Name")
+    #chop.prnt("data len: %d" % len(data))
     while data != "":
         (proto, localip, localport) = unpack('>H4sH', data[:8])
         if proto == 1:
             proto = "UDP"
         else:
             proto = "TCP"
-        localip = socket.inet_ntoa(data[:4])
+        #localip = socket.inet_ntoa(data[:4])
+        localip = socket.inet_ntoa(localip)
         data = data[10:] # Skipping 2 bytes
         if proto == "TCP":
-            (remoteip, reportport, status) = unpack('>4sHxxB', data[:6])
+            (remoteip, remoteport, status) = unpack('>4sHxxB', data[:9])
             remoteip = socket.inet_ntoa(remoteip)
             data = data[9:]
             if remoteip == "0.0.0.0":
