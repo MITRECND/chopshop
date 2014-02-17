@@ -3,34 +3,53 @@ A module to extract TCP streams and UDP datagrams from network traffic.
 Extracted buffer is passed on to Libemu for shellcode detection.
 """
 
-import pylibemu
+from optparse import OptionParser
 from c2utils import hexdump
 
-moduleName = 'shellcode_test'
+moduleName = 'shellcode_detector'
 moduleVersion = '0.1'
 minimumChopLib = '4.0'
 
 
-emu = pylibemu.Emulator()
-
-
 def init(module_data):
-    module_options = {'proto': []}
+    module_options = { 'proto': [{'tcp' : ''}, {'udp': ''}] }
 
-    tcp = {'tcp': ''}
-    udp = {'udp': ''}
+    module_data['emu'] = None
+    module_data['shellprofile'] = False
+    module_data['hexdump'] = False
 
-    module_options['proto'].append(tcp)
-    module_options['proto'].append(udp)
+    module_data['cliargs'] = { 'shellprofile': False, 'hexdump': False }
+
+    parse_args(module_data)
+
+    try:
+        import pylibemu
+        module_data['emu'] = pylibemu.Emulator()
+    except ImportError, e:
+        module_options['error'] = str(e)
 
     return module_options
+
+
+def parse_args(module_data):
+    parser = OptionParser()
+
+    parser.add_option("-p", "--profile", action="store_true", dest="shellprofile", default=False, help="Enable shellcode profile output")
+    parser.add_option("-x", "--hexdump", action="store_true", dest="hexdump", default=False, help="Enable hexdump output")
+
+    (options, lo) = parser.parse_args(module_data['args'])
+
+    if options.shellprofile:
+        module_data['shellprofile'] = True
+
+    if options.hexdump:
+        module_data['hexdump'] = True
 
 
 def taste(tcp):
     ((src, sport), (dst, dport)) = tcp.addr
 
     chop.tsprnt("TCP %s:%s - %s:%s [NEW]" % (src, sport, dst, dport))
-
     return True
 
 
@@ -39,7 +58,6 @@ def handleStream(tcp):
 
     direction = "NA"
     count = 0
-    color = "WHITE"
 
     if tcp.server.count_new > 0:
         buffer = tcp.server.data[:tcp.server.count_new]
@@ -48,7 +66,6 @@ def handleStream(tcp):
         tcp.discard(server_count)
         direction = "CTS"
         count = server_count
-        color = "RED"
     else:
         buffer = tcp.client.data[:tcp.client.count_new]
         client_count = tcp.client.count_new
@@ -56,23 +73,31 @@ def handleStream(tcp):
         tcp.discard(client_count)
         direction = "STC"
         count = client_count
-        color = "BLUE"
 
-    offset = emu.shellcode_getpc_test(buffer)
+    offset = tcp.module_data['emu'].shellcode_getpc_test(buffer)
     if offset >= 0:
-        emu.prepare(buffer, offset)
-        emu.test()
-        buffer_profile = emu.emu_profile_output
-        data = hexdump(buffer[offset:])
-        chop.tsprnt("TCP %s:%s - %s:%s contains shellcode in %s[0:%d] @ offset %d \n\n%s \n%s" % (src, sport, dst, dport, direction, count, offset, data, buffer_profile))
+        tcp.stop()
+        tcp.module_data['emu'].prepare(buffer, offset)
+        tcp.module_data['emu'].test()
+        chop.tsprnt("TCP %s:%s - %s:%s contains shellcode in %s[0:%d] @ offset %d" % (src, sport, dst, dport, direction, count, offset))
 
-    emu.free()
+        if tcp.module_data['hexdump']:
+            chop.prnt("")
+            data = hexdump(buffer[offset:])
+            chop.prnt(data)
+
+        if tcp.module_data['shellprofile']:
+            chop.prnt("")
+            buffer_profile = tcp.module_data['emu'].emu_profile_output
+            chop.prnt(buffer_profile)
+
+    tcp.module_data['emu'].free()
 
 
 def teardown(tcp):
     ((src, sport), (dst, dport)) = tcp.addr
 
-    chop.tsprnt("TCP %s:%s - %s:%s (CLOSE)" % (src, sport, dst, dport))
+    chop.tsprnt("TCP %s:%s - %s:%s [CLOSE]" % (src, sport, dst, dport))
 
     return True
 
@@ -80,15 +105,25 @@ def teardown(tcp):
 def handleDatagram(udp):
     ((src, sport), (dst, dport)) = udp.addr
 
-    buffer = udp.data
-    offset = emu.shellcode_getpc_test(buffer)
-    if offset >= 0:
-        emu.prepare(buffer, offset)
-        emu.test()
-        buffer_profile = emu.emu_profile_output
-        chop.tsprnt("UDP %s:%s - %s:%s contains shellcode @ offset %d \n\n %s" % (src, sport, dst, dport, offset, buffer_profile))
+    chop.tsprnt("UDP %s:%s - %s:%s (%dB)" % (src, sport, dst, dport, len(udp.data)))
 
-    emu.free()
+    buffer = udp.data
+    offset = udp.module_data['emu'].shellcode_getpc_test(buffer)
+    if offset >= 0:
+        udp.stop
+        udp.module_data['emu'].prepare(buffer, offset)
+        udp.module_data['emu'].test()
+        chop.tsprnt("UDP %s:%s - %s:%s contains shellcode in [0:%d] @ offset %d" % (src, sport, dst, dport, len(udp.data), offset))
+
+        if udp.module_data['shellprofile']:
+            buffer_profile = udp.module_data['emu'].emu_profile_output
+            chop.prnt(buffer_profile)
+
+        if udp.module_data['hexdump']:
+            data = hexdump(buffer[offset:])
+            chop.prnt(data)
+
+    udp.module_data['emu'].free()
 
 
 def module_info():
