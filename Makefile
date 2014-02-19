@@ -1,4 +1,4 @@
-# Copyright (c) 2013 The MITRE Corporation. All rights reserved.
+# Copyright (c) 2014 The MITRE Corporation. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -27,7 +27,7 @@ SED_ARGS=	-i '' -Ee
 INSTALL=	/usr/bin/install
 INSTALLDATA=	/usr/bin/install -m 644
 
-VERSION=	3.0-BETA
+VERSION=	4.0
 RELEASE_NAME=	chopshop-${VERSION}
 RELEASE_DIR=	release
 RELEASE_FILE=	${RELEASE_DIR}/${RELEASE_NAME}.tbz2
@@ -83,9 +83,9 @@ PY_MAJ:=	$(word 2,$(subst ., ,${PY_VER}))
 PY_MIN:=	$(word 3,$(subst ., ,${PY_VER}))
 PY_TEST:=	$(shell [ ${PY_MAJ} -eq 2 -a ${PY_MIN} -ge 6 ] && echo true)
 
-DNSLIB_MODULES=	dns_extractor
+DNSLIB_MODULES=	dns
 
-HTPY_MODULES=	http_extractor
+HTPY_MODULES=	http
 
 MONGO_MODULES=	dns_extractor \
 		http_extractor
