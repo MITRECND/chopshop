@@ -36,28 +36,10 @@ moduleVersion = '0.1'
 minimumChopLib = '4.0'
 
 
-def parse_args(module_data):
-    parser = OptionParser()
-
-    parser.add_option("-p", "--profile", action="store_true", dest="shellprofile", default=False, help="Enable shellcode profile output")
-    parser.add_option("-x", "--hexdump", action="store_true", dest="hexdump", default=False, help="Enable hexdump output")
-
-    (options, lo) = parser.parse_args(module_data['args'])
-
-    if options.shellprofile:
-        module_data['shellprofile'] = True
-
-    if options.hexdump:
-        module_data['hexdump'] = True
-
-
 def init(module_data):
     module_options = { 'proto': [{'tcp': ''}, {'udp': ''}] }
 
     module_data['emu'] = None
-    module_data['shellprofile'] = False
-    module_data['hexdump'] = False
-
     module_data['cliargs'] = { 'shellprofile': False, 'hexdump': False }
 
     parse_args(module_data)
@@ -69,6 +51,21 @@ def init(module_data):
         module_options['error'] = str(e)
 
     return module_options
+
+
+def parse_args(module_data):
+    parser = OptionParser()
+
+    parser.add_option("-p", "--profile", action="store_true", dest="shellprofile", default=False, help="Enable shellcode profile output")
+    parser.add_option("-x", "--hexdump", action="store_true", dest="hexdump", default=False, help="Enable hexdump output")
+
+    (options, lo) = parser.parse_args(module_data['args'])
+
+    if options.shellprofile:
+        module_data['cliargs']['shellprofile'] = True
+
+    if options.hexdump:
+        module_data['cliargs']['hexdump'] = True
 
 
 def taste(tcp):
@@ -106,15 +103,13 @@ def handleStream(tcp):
         tcp.module_data['emu'].test()
         chop.tsprnt("TCP %s:%s - %s:%s contains shellcode in %s[0:%d] @ offset %d" % (src, sport, dst, dport, direction, count, offset))
 
-        if tcp.module_data['hexdump']:
-            chop.prnt("")
+        if tcp.module_data['cliargs']['hexdump']:
             data = hexdump(buffer[offset:])
-            chop.prnt(data)
+            chop.prnt("\n" + data)
 
-        if tcp.module_data['shellprofile']:
-            chop.prnt("")
+        if tcp.module_data['cliargs']['shellprofile']:
             buffer_profile = tcp.module_data['emu'].emu_profile_output
-            chop.prnt(buffer_profile)
+            chop.prnt("\n" + buffer_profile)
 
     tcp.module_data['emu'].free()
 
@@ -140,13 +135,13 @@ def handleDatagram(udp):
         udp.module_data['emu'].test()
         chop.tsprnt("UDP %s:%s - %s:%s contains shellcode in [0:%d] @ offset %d" % (src, sport, dst, dport, len(udp.data), offset))
 
-        if udp.module_data['shellprofile']:
-            buffer_profile = udp.module_data['emu'].emu_profile_output
-            chop.prnt(buffer_profile)
-
-        if udp.module_data['hexdump']:
+        if udp.module_data['cliargs']['hexdump']:
             data = hexdump(buffer[offset:])
-            chop.prnt(data)
+            chop.prnt("\n" + data)
+
+        if udp.module_data['cliargs']['shellprofile']:
+            buffer_profile = udp.module_data['emu'].emu_profile_output
+            chop.prnt("\n" + buffer_profile)
 
     udp.module_data['emu'].free()
 
