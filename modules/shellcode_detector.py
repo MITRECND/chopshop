@@ -1,3 +1,28 @@
+# Copyright (c) 2014, Ankur Tyagi. All rights reserved.
+# Copyright (c) 2014, The MITRE Corporation. All rights reserved.
+#
+# Redistribution and use in source and binary forms, with or without
+# modification, are permitted provided that the following conditions
+# are met:
+# 1. Redistributions of source code must retain the above copyright
+# notice, this list of conditions and the following disclaimer.
+# 2. Redistributions in binary form must reproduce the above copyright
+# notice, this list of conditions and the following disclaimer in the
+# documentation and/or other materials provided with the distribution.
+#
+# THIS SOFTWARE IS PROVIDED BY THE AUTHOR AND CONTRIBUTORS ``AS IS'' AND
+# ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+# IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+# ARE DISCLAIMED. IN NO EVENT SHALL THE AUTHOR OR CONTRIBUTORS BE LIABLE
+# FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+# DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS
+# OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION)
+# HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
+# LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY
+# OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
+# SUCH DAMAGE.
+
+
 """
 A module to extract TCP streams and UDP datagrams from network traffic.
 Extracted buffer is passed on to Libemu for shellcode detection.
@@ -11,8 +36,23 @@ moduleVersion = '0.1'
 minimumChopLib = '4.0'
 
 
+def parse_args(module_data):
+    parser = OptionParser()
+
+    parser.add_option("-p", "--profile", action="store_true", dest="shellprofile", default=False, help="Enable shellcode profile output")
+    parser.add_option("-x", "--hexdump", action="store_true", dest="hexdump", default=False, help="Enable hexdump output")
+
+    (options, lo) = parser.parse_args(module_data['args'])
+
+    if options.shellprofile:
+        module_data['shellprofile'] = True
+
+    if options.hexdump:
+        module_data['hexdump'] = True
+
+
 def init(module_data):
-    module_options = { 'proto': [{'tcp' : ''}, {'udp': ''}] }
+    module_options = { 'proto': [{'tcp': ''}, {'udp': ''}] }
 
     module_data['emu'] = None
     module_data['shellprofile'] = False
@@ -29,21 +69,6 @@ def init(module_data):
         module_options['error'] = str(e)
 
     return module_options
-
-
-def parse_args(module_data):
-    parser = OptionParser()
-
-    parser.add_option("-p", "--profile", action="store_true", dest="shellprofile", default=False, help="Enable shellcode profile output")
-    parser.add_option("-x", "--hexdump", action="store_true", dest="hexdump", default=False, help="Enable hexdump output")
-
-    (options, lo) = parser.parse_args(module_data['args'])
-
-    if options.shellprofile:
-        module_data['shellprofile'] = True
-
-    if options.hexdump:
-        module_data['hexdump'] = True
 
 
 def taste(tcp):
