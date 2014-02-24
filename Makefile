@@ -27,11 +27,6 @@ SED_ARGS=	-i '' -Ee
 INSTALL=	/usr/bin/install
 INSTALLDATA=	/usr/bin/install -m 644
 
-VERSION=	4.0
-RELEASE_NAME=	chopshop-${VERSION}
-RELEASE_DIR=	release
-RELEASE_FILE=	${RELEASE_DIR}/${RELEASE_NAME}.tbz2
-
 # Define this if you want to install into your home directory.
 # make install PREFIX=/home/wshields
 PREFIX?=	/usr/local
@@ -92,6 +87,8 @@ MONGO_MODULES=	dns_extractor \
 
 YARA_MODULES=	yarashop
 
+PYLIBEMU_MODULES=	shellcode_extractor
+
 dependency-check:
 	@echo "Checking dependencies..."
 	@echo "Checking python..."
@@ -133,10 +130,18 @@ endif
 	@echo "Checking yaraprocessor..."
 	@if ${PYTHON} -c 'import yaraprocessor'; then \
 		echo "yaraprocessor OK"; \
-    else \
+	else \
 		echo "yaraprocessor BAD"; \
 		echo "These modules will not work:"; \
 		echo "${YARA_MODULES}"; \
+	fi
+	@echo "Checking pylibemu..."
+	@if ${PYTHON} -c 'import pylibemu'; then \
+		echo "pylibemu OK"; \
+	else \
+		echo "pylibemu BAD"; \
+		echo "These modules will not work:"; \
+		echo "${PYLIBEMU_MODULES}"; \
 	fi
 
 # When installing we need to modify the chopshop working directory
@@ -153,11 +158,3 @@ install:
 	@${INSTALLDATA} -v -o ${OWNER} -g ${GROUP} modules/* ${MOD_DIR}
 	@${INSTALL} -v -d ${EXT_LIBS_DIR}
 	@${INSTALLDATA} -v -o ${OWNER} -g ${GROUP} ext_libs/* ${EXT_LIBS_DIR}
-
-# Using COPYFILE_DISABLE=true causes OS X to not copy the resource forks.
-# Transformations are not applied to resource forks so we had a couple of bad
-# entries in the released tarballs because of this.
-release:
-	@/bin/rm -rf ./${RELEASE_DIR}
-	@/bin/mkdir ./${RELEASE_DIR}
-	@COPYFILE_DISABLE=true ${TAR} -cvj --transform=s,^,${RELEASE_NAME}/, --exclude ${RELEASE_DIR} --exclude ".git*" --exclude "*.swp" --exclude "*.pyc" -f ${RELEASE_FILE} .
