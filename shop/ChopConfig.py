@@ -39,21 +39,21 @@ if CHOPSHOP_WD + '/shop' not in sys.path:
 
 """
     ChopConfig handles parsing configuration options which can be leveraged by
-    other parts of ChopShop and ChopWeb.
+    different parts of ChopShop.
 """
 
 class ChopConfig():
 
     global CHOPSHOP_WD
 
-    base_dir = ''
+    base_dir = None 
     configfile = ''
-    ext_dir = CHOPSHOP_WD + '/ext_libs/'
-    mod_dir = CHOPSHOP_WD + '/modules/'
+    ext_dir = [CHOPSHOP_WD + '/ext_libs/']
+    mod_dir = [CHOPSHOP_WD + '/modules/']
     savedir = '/tmp/'
     aslist = False
-    bpf = ''
-    filelist = ''
+    bpf = None
+    filelist = None
     filename = ''
     fileout = ''
     host = ''
@@ -139,7 +139,12 @@ class ChopConfig():
                         o = cfg.getboolean(k, i)
                     else:
                         o = cfg.get(k, i)
-                    setattr(self, i, o)
+
+                    if (i == "mod_dir" or i == "ext_dir"):
+                        dlist = o.split(',')
+                        setattr(self, i, dlist)
+                    else:
+                        setattr(self, i, o)
                 except:
                     pass
         return
@@ -151,13 +156,16 @@ class ChopConfig():
             cfg = ConfigParser.ConfigParser()
             cfg.add_section('Directories')
             cfg.add_section('General')
-            cfg.set('Directories', 'base_dir', self.base_dir)
-            cfg.set('Directories', 'ext_dir', self.ext_dir)
-            cfg.set('Directories', 'mod_dir', self.mod_dir)
+            if self.base_dir is not None:
+                cfg.set('Directories', 'base_dir', self.base_dir)
+            cfg.set('Directories', 'ext_dir', ','.join(self.ext_dir))
+            cfg.set('Directories', 'mod_dir', ','.join(self.mod_dir))
             cfg.set('Directories', 'savedir', self.savedir)
             cfg.set('General', 'aslist', self.aslist)
-            cfg.set('General', 'bpf', self.bpf)
-            cfg.set('General', 'filelist', self.filelist)
+            if self.bpf is not None:
+                cfg.set('General', 'bpf', self.bpf)
+            if self.filelist is not None:
+                cfg.set('General', 'filelist', self.filelist)
             cfg.set('General', 'filename', self.filename)
             cfg.set('General', 'fileout', self.fileout)
             cfg.set('General', 'GMT', self.GMT)

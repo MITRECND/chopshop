@@ -70,8 +70,8 @@ class ChopLib(Thread):
         from Queue import Empty
         Queue.Empty = Empty #I'd prefer to keep this scoped to Queue
 
-        self.options = { 'mod_dir': CHOPSHOP_WD + '/modules/',
-                         'ext_dir': CHOPSHOP_WD + '/ext_libs/',
+        self.options = { 'mod_dir': [CHOPSHOP_WD + '/modules/'],
+                         'ext_dir': [CHOPSHOP_WD + '/ext_libs/'],
                          'base_dir': None,
                          'filename': '',
                          'filelist': None,
@@ -487,7 +487,7 @@ class ChopLib(Thread):
 
     def __loadModules_(self, name, path):
         try:
-            (file, pathname, description) = imp.find_module(name, [path])
+            (file, pathname, description) = imp.find_module(name, path)
             loaded_mod = imp.load_module(name, file, pathname, description)
         except Exception, e:
             tb = traceback.format_exc()
@@ -538,13 +538,14 @@ class ChopLib(Thread):
                 #Set up the module directory and the external libraries directory
                 if options['base_dir'] is not None:
                     base_dir = os.path.realpath(options['base_dir'])
-                    mod_dir = base_dir + "/modules/"
-                    ext_dir = base_dir + "/ext_libs"
+                    mod_dir = [base_dir + "/modules/"]
+                    ext_dir = [base_dir + "/ext_libs"]
                 else:
                     mod_dir = options['mod_dir']
                     ext_dir = options['ext_dir']
 
-                sys.path.append(os.path.realpath(ext_dir))
+                for ed_path in ext_dir:
+                    sys.path.append(os.path.realpath(ed_path))
 
                 #Setup the chophelper
                 chophelper = ChopHelper(dataq, options)
