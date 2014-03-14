@@ -32,7 +32,7 @@ TODO
 """
 
 
-VERSION = "4.0"
+VERSION = "4.1"
 
 import sys
 import signal
@@ -122,16 +122,19 @@ def main():
     chopui = ChopUi()
     chopconfig = ChopConfig()
 
+    user_config = os.path.expanduser("~") + "/.chopshop.cfg"
+    if os.path.isfile(user_config):
+        chopconfig.parse_config(user_config)
 
     optparser = OptionParser(usage='usage: %prog [options] ["bpf filter"] "list | (of, many) | modules ; and | more"', option_class=CustomOption)
-    optparser.add_option("-B", "--base_dir", dest = "base_dir", default=None,
-        help = "Base directory to load modules and external libraries from")
+    optparser.add_option("-B", "--base_dir", dest = "base_dir", default=None, action="store_list",
+        help = "Base directory to load modules and external libraries from. Option prioritized over -M and -E")
     optparser.add_option("-c", "--configfile", action="store", dest="configfile",
         type="string", default=None, help="Import a config file")
     optparser.add_option("-C", "--saveconfig", action="store", dest="saveconfig",
         type="string", default=None, help="Save current arguments to a config file")
     optparser.add_option("-E", "--ext_dir", dest = "ext_dir", action="store_list", type="string",
-        default=[], help = "Directory to load external libraries from")
+        default=None, help = "Directory to load external libraries from")
     optparser.add_option("-f", "--file", action="store", dest="filename",
         type="string", help="input pcap file")
     optparser.add_option("-F", "--fileout", action="store", dest="fileout",
@@ -151,7 +154,7 @@ def main():
     optparser.add_option("-m", "--module_info", action="store_true", dest="modinfo",
         default=False,help="print information about module(s) and exit")
     optparser.add_option("-M", "--mod_dir", dest = "mod_dir", action="store_list", type="string",
-        default=[], help = "Directory to load modules from")
+        default=None, help = "Directory to load modules from")
     optparser.add_option("-s", "--savedir", action="store", dest="savedir",
         type="string", default=None, help="Location to save carved files")
     optparser.add_option("-S", "--stdout", action="store_true", dest="stdout",
@@ -163,10 +166,9 @@ def main():
 
     (options, args) = optparser.parse_args()
 
-    #Append default paths
-    options.ext_dir.append(CHOPSHOP_WD + '/ext_libs/')
-    options.mod_dir.append(CHOPSHOP_WD + '/modules/')
-
+    if options.version:
+        print "ChopShop Version %s (Choplib: %s)" % (VERSION, choplib.version())
+        sys.exit()
 
     # Parse options and arguments.
     try:
@@ -175,8 +177,53 @@ def main():
         print e
         sys.exit(1)
 
-    if options.version:
-        print "ChopShop Version %s (Choplib: %s)" % (VERSION, choplib.version())
+    choplib.base_dir = chopconfig.base_dir
+    choplib.mod_dir = chopconfig.mod_dir
+    choplib.ext_dir = chopconfig.ext_dir
+
+    choplib.aslist = chopconfig.aslist
+    choplib.longrun = chopconfig.longrun
+    choplib.modinfo = chopconfig.modinfo
+    choplib.modtree = chopconfig.modtree
+    choplib.GMT = chopconfig.GMT
+    choplib.bpf = chopconfig.bpf
+    choplib.modules = chopconfig.modules
+
+    if chopconfig.gui:
+        #Forecefully disable stdout
+        chopconfig.stdout = False
+        chopui.gui = True
+
+    if chopconfig.fileout:
+        chopui.fileout = True
+        chopui.filedir = chopconfig.fileout
+
+    if chopconfig.jsonout:
+        chopui.jsonout = True
+        chopui.jsondir = chopconfig.jsonout
+        choplib.jsonout = True
+
+    #If any of the other outputs are not chosen, enable stdout
+    if (not chopconfig.gui and
+        not chopconfig.fileout and
+        not chopconfig.jsonout):
+        chopconfig.stdout = True
+
+    if chopconfig.stdout or chopconfig.gui or chopconfig.fileout:
+        choplib.text = True
+
+    if chopconfig.stdout:
+        #ChopStdout.prepend_module_name = True
+        chopui.stdout = True
+
+    if chopconfig.savedir:
+        chopui.savefiles = True
+        chopui.savedir = chopconfig.savedir
+        choplib.savefiles = True
+
+    if options.saveconfig:
+        print "Saving config to %s" % options.saveconfig
+        chopconfig.save_config(options.saveconfig)
         sys.exit()
 
     if not chopconfig.modinfo and not chopconfig.modtree:
@@ -204,53 +251,6 @@ def main():
                 choplib.filename = chopconfig.filename
         else:
             choplib.interface = chopconfig.interface
-
-    choplib.base_dir = chopconfig.base_dir
-    choplib.mod_dir = chopconfig.mod_dir
-    choplib.ext_dir = chopconfig.ext_dir
-    choplib.aslist = chopconfig.aslist
-    choplib.longrun = chopconfig.longrun
-    choplib.modinfo = chopconfig.modinfo
-    choplib.modtree = chopconfig.modtree
-    choplib.GMT = chopconfig.GMT
-    choplib.bpf = chopconfig.bpf
-    choplib.modules = chopconfig.modules
-
-    if chopconfig.gui:
-        #Forecefully disable stdout
-        chopconfig.stdout = False
-        chopui.gui = True
-
-    if chopconfig.fileout:
-        chopui.fileout = True
-        chopui.filedir = chopconfig.fileout
-
-    if chopconfig.jsonout:
-        chopui.jsonout = True
-        chopui.jsondir = chopconfig.jsonout
-        choplib.jsonout = True
-
-    #If any of the other outputs are not chosen, enable stdout
-    if (not chopconfig.gui and
-        not options.fileout and
-        not options.jsonout):
-        chopconfig.stdout = True
-
-    if chopconfig.stdout or chopconfig.gui or chopconfig.fileout:
-        choplib.text = True
-
-    if chopconfig.stdout:
-        #ChopStdout.prepend_module_name = True
-        chopui.stdout = True
-
-    if chopconfig.savedir:
-        chopui.savefiles = True
-        chopui.savedir = chopconfig.savedir
-        choplib.savefiles = True
-
-    if chopconfig.saveconfig:
-        chopconfig.save_config(chopconfig.saveconfig)
-        sys.exit()
 
     chopui.bind(choplib)
 

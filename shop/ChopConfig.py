@@ -42,64 +42,310 @@ if CHOPSHOP_WD + '/shop' not in sys.path:
     different parts of ChopShop.
 """
 
-class ChopConfig():
+DEFAULT_MODULE_DIRECTORY = CHOPSHOP_WD + '/modules/'
+DEFAULT_EXTLIB_DIRECTORY = CHOPSHOP_WD + '/ext_libs/'
 
-    global CHOPSHOP_WD
+class ChopOption(object):
+    def __init__(self, type, parent = None, default = None):
+        self.type = type
+        self.parent = parent
+        self.value = default 
 
-    base_dir = None 
-    configfile = ''
-    ext_dir = [CHOPSHOP_WD + '/ext_libs/']
-    mod_dir = [CHOPSHOP_WD + '/modules/']
-    savedir = '/tmp/'
-    aslist = False
-    bpf = None
-    filelist = None
-    filename = ''
-    fileout = ''
-    host = ''
-    GMT = False
-    gui = False
-    interface = ''
-    modinfo = False
-    modules = None
-    modtree = False
-    longrun = False
-    port = 8080
-    pyobjout = False
-    jsonout = ''
-    saveconfig = ''
-    savefiles = False
-    stdout = False
-    text = False
+class ChopConfig(object):
 
 
     def __init__(self):
-        pass
+        self.options = {
+                            #Config related options
+                            'configfile' :  ChopOption('string'),
+                            'saveconfig' :  ChopOption('string'),
+
+                            #ChopLib options
+                            'mod_dir' :     ChopOption('list', 'Directories'),
+                            'ext_dir' :     ChopOption('list', 'Directories'),
+                            'base_dir' :    ChopOption('list', 'Directories'), 
+                            'filename' :    ChopOption('string', 'General'),
+                            'filelist' :    ChopOption('string', 'General'),
+                            'bpf' :         ChopOption('string', 'General'),
+                            'aslist' :      ChopOption('bool', 'General'),
+                            'longrun' :     ChopOption('bool', 'General'),
+                            'interface' :   ChopOption('string', 'General'),
+                            'modinfo' :     ChopOption('bool', 'General'),
+                            'modtree' :     ChopOption('bool', 'General'),
+                            'GMT' :         ChopOption('bool', 'General'),
+                            'savefiles' :   ChopOption('bool', 'General'),
+                            'text' :        ChopOption('bool', 'General'),
+                            'pyobjout' :    ChopOption('bool', 'General'),
+                            'jsonout' :     ChopOption('string', 'General'),
+                            'savedir' :     ChopOption('string', 'Directories'),
+                            'modules' :     ChopOption('string', 'General'),
+
+                            #UI options
+                            'stdout' :      ChopOption('bool', 'General'),
+                            'gui' :         ChopOption('bool', 'General'),
+                            'fileout' :     ChopOption('string', 'General'),
+                            'host' :        ChopOption('string', 'General'),
+                            'port' :        ChopOption('int', 'General'),
+                       }
+
+    @property
+    def configfile(self):
+        return self.options['configfile'].value
+
+    @configfile.setter
+    def configfile(self, v):
+        self.options['configfile'].value = v
+
+    @property
+    def mod_dir(self):
+        """Directory to load modules from."""
+        return self.options['mod_dir'].value
+
+    @mod_dir.setter
+    def mod_dir(self, v):
+        self.options['mod_dir'].value = v
+
+    @property
+    def ext_dir(self):
+        """Directory to load external libraries from."""
+        return self.options['ext_dir'].value
+
+    @ext_dir.setter
+    def ext_dir(self, v):
+        self.options['ext_dir'].value = v
+
+    @property
+    def base_dir(self):
+        """Base directory to load modules and external libraries."""
+        return self.options['base_dir'].value
+
+    @base_dir.setter
+    def base_dir(self, v):
+        self.options['base_dir'].value = v
+
+    @property
+    def filename(self):
+        """input pcap file."""
+        return self.options['filename'].value
+
+    @filename.setter
+    def filename(self, v):
+        self.options['filename'].value = v
+
+    @property
+    def filelist(self):
+        """list of files to process"""
+        return self.options['filelist'].value
+
+    @filelist.setter
+    def filelist(self, v):
+        self.options['filelist'].value = v
+
+    @property
+    def aslist(self):
+        """Treat filename as a file containing a list of files."""
+        return self.options['aslist'].value
+
+    @aslist.setter
+    def aslist(self, v):
+        self.options['aslist'].value = v
+
+    @property
+    def longrun(self):
+        """Read from filename forever even if there's no more pcap data."""
+        return self.options['longrun'].value
+
+    @longrun.setter
+    def longrun(self, v):
+        self.options['longrun'].value = v
+
+    @property
+    def interface(self):
+        """interface to listen on."""
+        return self.options['interface'].value
+
+    @interface.setter
+    def interface(self, v):
+        self.options['interface'].value = v
+
+    @property
+    def modinfo(self):
+        """print information about module(s) and exit."""
+        return self.options['modinfo'].value
+
+    @modinfo.setter
+    def modinfo(self, v):
+        self.options['modinfo'].value = v
+
+    @property
+    def modtree(self):
+        """print information about module tree and exit."""
+        return self.options['modtree'].value
+
+    @modtree.setter
+    def modtree(self, v):
+        self.options['modtree'].value = v
+
+    @property
+    def GMT(self):
+        """timestamps in GMT (tsprnt and tsprettyprnt only)."""
+        return self.options['GMT'].value
+
+    @GMT.setter
+    def GMT(self, v):
+        self.options['GMT'].value = v
+
+    @property
+    def savefiles(self):
+        """Handle the saving of files. """
+        return self.options['savefiles'].value
+
+    @savefiles.setter
+    def savefiles(self, v):
+        self.options['savefiles'].value = v
+
+    @property
+    def text(self):
+        """Handle text/printable output. """
+        return self.options['text'].value
+
+    @text.setter
+    def text(self, v):
+        self.options['text'].value = v
+
+    @property
+    def pyobjout(self):
+        """Handle raw python objects"""
+        return self.options['pyobjout'].value
+
+    @pyobjout.setter
+    def pyobjout(self, v):
+        self.options['pyobjout'].value = v
+
+    @property
+    def jsonout(self):
+        """Handle JSON Data (chop.json)."""
+        return self.options['jsonout'].value
+
+    @jsonout.setter
+    def jsonout(self, v):
+        self.options['jsonout'].value = v
+
+    @property
+    def savedir(self):
+        """Location to save carved files."""
+        return self.options['savedir'].value
+
+    @savedir.setter
+    def savedir(self, v):
+        self.options['savedir'].value = v
+
+    @property
+    def modules(self):
+        """String of Modules to execute"""
+        return self.options['modules'].value
+
+    @modules.setter
+    def modules(self, v):
+        self.options['modules'].value = v
+
+    @property
+    def bpf(self):
+        """BPF string to pass to Nids"""
+        return self.options['bpf'].value
+
+    @bpf.setter
+    def bpf(self, v):
+        self.options['bpf'].value = v
+
+    @property
+    def stdout(self):
+        return self.options['stdout'].value
+
+    @stdout.setter
+    def stdout(self, v):
+        self.options['stdout'].value = v
+
+    @property
+    def gui(self):
+        return self.options['gui'].value
+
+    @gui.setter
+    def gui(self, v):
+        self.options['gui'].value = v
+
+    @property
+    def fileout(self):
+        return self.options['fileout'].value
+
+    @fileout.setter
+    def fileout(self, v):
+        self.options['fileout'].value = v
+
+    @property
+    def host(self):
+        return self.options['host'].value
+
+    @host.setter
+    def host(self, v):
+        self.options['host'].value = v
+
+    @property
+    def port(self):
+        return self.options['port'].value
+
+    @port.setter
+    def port(self, v):
+        self.options['port'].value = v
 
 
     def __str__(self):
-        return pformat(self.__dict__)
+        flat  = {}
+        for key in self.options.keys():
+            flat[key] = self.options[key].value
+        return pformat(flat)
 
 
     def parse_opts(self, options, args=[]):
+        global CHOPSHOP_WD
+        global DEFAULT_MODULE_DIRECTORY
+        global DEFAULT_EXTLIB_DIRECTORY
+
+        #Parse config file first
         if options.configfile:
             self.parse_config(options.configfile)
+
+        #Commandline options should override config file options
         for opt, val in options.__dict__.items():
-            if val:
-                setattr(self, opt, val)
-        if len(args) <= 0 and not options.configfile:
+            if opt in self.options and val is not None:
+                self.options[opt].value = val
+        
+        if self.base_dir is not None and CHOPSHOP_WD not in self.base_dir:
+            self.base_dir.append(CHOPSHOP_WD)
+
+        if self.mod_dir is not None and DEFAULT_MODULE_DIRECTORY not in self.mod_dir:
+            self.mod_dir.append(DEFAULT_MODULE_DIRECTORY)
+        elif self.base_dir is None and self.mod_dir is None:
+            self.mod_dir = [DEFAULT_MODULE_DIRECTORY]
+
+        if self.ext_dir is not None and DEFAULT_EXTLIB_DIRECTORY not in self.ext_dir:
+            self.ext_dir.append(DEFAULT_EXTLIB_DIRECTORY)
+        elif self.base_dir is None and self.ext_dir is None:
+            self.ext_dir = [DEFAULT_EXTLIB_DIRECTORY]
+
+        if len(args) <= 0 and not options.configfile and not options.saveconfig:
             raise ChopConfigException("Module List Required")
         elif len(args) == 1:
             self.modules = args[0]
         elif len(args) > 1:
-            if args[0] == 'None':
-                self.bpf = ''
-            elif len(args[0]) > 0:
+            if len(args[0]) > 0 and args[0] != 'None':
                 self.bpf = args[0]
+
             if args[1] == 'None':
                 raise ChopConfigException("module list required")
             elif len(args[1]) > 0:
                 self.modules = args[1]
+
         return
 
 
@@ -108,45 +354,22 @@ class ChopConfig():
             raise ChopConfigException("could not find configuration file: %s" % configfile)
         cfg = ConfigParser.ConfigParser()        
         cfg.read(configfile)
-        opt_list = {'Directories': ['mod_dir',
-                                    'ext_dir',
-                                    'base_dir',
-                                    'savedir'],
-                    'General': ['aslist',
-                                'bpf',
-                                'filelist',
-                                'filename',
-                                'fileout',
-                                'GMT',
-                                'gui',
-                                'interface',
-                                'jsonout',
-                                'longrun',
-                                'modinfo',
-                                'modtree',
-                                'modules',
-                                'pyobjout',
-                                'savefiles',
-                                'stdout',
-                                'text']
-                    }
-        bool = ['aslist', 'gui', 'GMT', 'longrun', 'modinfo', 'modtree',
-                'pyobjout', 'savefiles', 'stdout', 'text', 'version']
-        for k,v in opt_list.iteritems():
-            for i in v:
-                try:
-                    if i in bool:
-                        o = cfg.getboolean(k, i)
-                    else:
-                        o = cfg.get(k, i)
+        cfg.optionxform = str
 
-                    if (i == "mod_dir" or i == "ext_dir"):
-                        dlist = o.split(',')
-                        setattr(self, i, dlist)
-                    else:
-                        setattr(self, i, o)
-                except:
-                    pass
+        for opts in self.options.keys():
+            try:
+                if self.options[opts].parent is None:
+                    continue
+
+                if self.options[opts].type == "bool":
+                    self.options[opts].value = cfg.getboolean(self.options[opts].parent, opts)
+                elif self.options[opts].type == "list":
+                    self.options[opts].value = cfg.get(self.options[opts].parent, opts).split(',')
+                else: #assume string for now
+                    self.options[opts].value = cfg.get(self.options[opts].parent, opts)
+            except:
+                pass
+    
         return
 
 
@@ -154,32 +377,18 @@ class ChopConfig():
         try:
             fp = open(filepath, 'w')
             cfg = ConfigParser.ConfigParser()
+            cfg.optionxform = str
+
             cfg.add_section('Directories')
             cfg.add_section('General')
-            if self.base_dir is not None:
-                cfg.set('Directories', 'base_dir', self.base_dir)
-            cfg.set('Directories', 'ext_dir', ','.join(self.ext_dir))
-            cfg.set('Directories', 'mod_dir', ','.join(self.mod_dir))
-            cfg.set('Directories', 'savedir', self.savedir)
-            cfg.set('General', 'aslist', self.aslist)
-            if self.bpf is not None:
-                cfg.set('General', 'bpf', self.bpf)
-            if self.filelist is not None:
-                cfg.set('General', 'filelist', self.filelist)
-            cfg.set('General', 'filename', self.filename)
-            cfg.set('General', 'fileout', self.fileout)
-            cfg.set('General', 'GMT', self.GMT)
-            cfg.set('General', 'gui', self.gui)
-            cfg.set('General', 'interface', self.interface)
-            cfg.set('General', 'jsonout', self.jsonout)
-            cfg.set('General', 'longrun', self.longrun)
-            cfg.set('General', 'modinfo', self.modinfo)
-            cfg.set('General', 'modtree', self.modinfo)
-            cfg.set('General', 'modules', self.modules)
-            cfg.set('General', 'pyobjout', self.pyobjout)
-            cfg.set('General', 'savefiles', self.savefiles)
-            cfg.set('General', 'stdout', self.stdout)
-            cfg.set('General', 'text', self.text)
+
+            for opts in self.options.keys():
+                if self.options[opts].value is not None and self.options[opts].parent is not None:
+                    if self.options[opts].type == "list":
+                        cfg.set(self.options[opts].parent, opts, ','.join(self.options[opts].value))
+                    else:
+                        cfg.set(self.options[opts].parent, opts, self.options[opts].value)
+
             cfg.write(fp)
             fp.close()
         except IOError, e:

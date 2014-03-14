@@ -24,7 +24,7 @@
 # SUCH DAMAGE.
 
 
-VERSION = 4.0 
+VERSION = 4.1 
 
 import ConfigParser
 import sys
@@ -41,6 +41,9 @@ CHOPSHOP_WD = os.path.realpath(os.path.dirname(sys.argv[0]))
 if CHOPSHOP_WD + '/shop' not in sys.path:
     sys.path.append(CHOPSHOP_WD + '/shop')
 
+DEFAULT_MODULE_DIRECTORY = CHOPSHOP_WD + '/modules/'
+DEFAULT_EXTLIB_DIRECTORY = CHOPSHOP_WD + '/ext_libs/'
+
 from ChopNids import ChopCore
 from ChopHelper import ChopHelper
 from ChopSurgeon import Surgeon
@@ -56,7 +59,8 @@ class ChopLib(Thread):
     daemon = True
     def __init__(self):
         Thread.__init__(self, name = 'ChopLib')
-        global CHOPSHOP_WD
+        global DEFAULT_MODULE_DIRECTORY
+        global DEFAULT_EXTLIB_DIRECTORY
 
         pyversion = sys.version_info
         pyversion = float(str(pyversion[0]) + "." + str(pyversion[1]))
@@ -70,8 +74,8 @@ class ChopLib(Thread):
         from Queue import Empty
         Queue.Empty = Empty #I'd prefer to keep this scoped to Queue
 
-        self.options = { 'mod_dir': [CHOPSHOP_WD + '/modules/'],
-                         'ext_dir': [CHOPSHOP_WD + '/ext_libs/'],
+        self.options = { 'mod_dir': [DEFAULT_MODULE_DIRECTORY],
+                         'ext_dir': [DEFAULT_EXTLIB_DIRECTORY],
                          'base_dir': None,
                          'filename': '',
                          'filelist': None,
@@ -511,7 +515,8 @@ class ChopLib(Thread):
         options = None
         module_list = []
         ccore = None
-        mod_dir = None
+        mod_dir = []
+        ext_dir = []
         chopgram = None
         abort = False
 
@@ -537,9 +542,10 @@ class ChopLib(Thread):
 
                 #Set up the module directory and the external libraries directory
                 if options['base_dir'] is not None:
-                    base_dir = os.path.realpath(options['base_dir'])
-                    mod_dir = [base_dir + "/modules/"]
-                    ext_dir = [base_dir + "/ext_libs"]
+                    for base in options['base_dir']:
+                        real_base = os.path.realpath(base)
+                        mod_dir.append(real_base + "/modules/")
+                        ext_dir.append(real_base + "/ext_libs")
                 else:
                     mod_dir = options['mod_dir']
                     ext_dir = options['ext_dir']
