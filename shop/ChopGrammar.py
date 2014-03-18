@@ -60,16 +60,17 @@ class __ChopModule__:
 
 class ChopGrammar:
 
+    #TODO Add support for escaped sequences?
     scanner=re.Scanner([
-        (r"\"[^\t\n\r\f\v\"]*\"",               lambda scanner, token:("QUOTED", token)),
-        (r"\'[^\t\n\r\f\v\']*\'",               lambda scanner, token:("QUOTED", token)),
+        (r'"((?:[^\t\n\r\f\v"])*)"',               lambda scanner, token:("QUOTED", token)),
+        (r"'((?:[^\t\n\r\f\v'])*)'",               lambda scanner, token:("QUOTED", token)),
         (r"[ ]",                                lambda scanner, token:("SPACE", token)),
         (r"\;",                                 lambda scanner, token:("SEMICOLON", token)),
         (r"\(",                                 lambda scanner, token:("BTEE", token)),
         (r"\)",                                 lambda scanner, token:("ETEE", token)),
         (r"\|",                                 lambda scanner, token:("PIPE", token)),
         (r"\,",                                 lambda scanner, token:("COMMA", token)),
-        (r"[^\t\n\r\f\v;()|,-][^ \t\n\r\f\v;()|,]*",  
+        (r"[^\t\n\r\f\v'\";()|,-][^ \t\n\r\f\v'\";()|,]*",
                                                 lambda scanner, token:("STRING", token)),
         (r"--[a-zA-Z0-9_-]+",                   lambda scanner, token:("OPTION", token)),
         (r"-[a-zA-Z0-9]+",                      lambda scanner, token:("OPTION", token)),
