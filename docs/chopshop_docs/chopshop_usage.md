@@ -6,11 +6,8 @@ to be created that do the processing of network data. ChopShop, by itself, does
 not do any processing of pcap data -- it provides the facilities for the
 modules to do so.
 
-
-The chopshop program provides the following arguments:
-
 <pre>
-Usage: chopshop [options] ["bpf filter"] "list ; of ; modules"
+Usage: chopshop [options] ["bpf filter"] "list ; (of, many) | modules; and | more"
 
 Options:
   -h, --help            show this help message and exit
@@ -61,6 +58,46 @@ following variables:
 
 This enables files to be output to a location of the program invoker's
 choosing, more info can be found below in the examples.
+
+User Defined Directories
+==============
+Users have the option to override the default directories ChopShop uses to look for 
+modules and external libraries. ChopShop provides three options to override default values.
+The first is called the base directory, the argument for this in chopshop is -B or --base_dir.
+Up until ChopShop 4.1 (more on this below), this parameter took a string to a base path to look for both modules 
+and external libraries (ext_libs). So if you passed "/usr/local/chopshop-partner" as the base 
+directory, ChopShop would assume the 'modules' directory and the 'ext_libs' directory were
+located in that directory (e.g, '/usr/local/chopshop-partner/modules'). The other two options 
+are -M or --mod_dir and -E or --ext_dir. Both allow you to individually override the location of
+modules or external libraries as desired. For example, if you only need to override the default location
+of modules but are okay with the default location of external libraries, you can pass 
+"-M '/usr/local/chopshop-partner/modules/'" as an argument which will tell ChopShop to look in that
+directory for modules.
+
+As of ChopShop 4.1, the behavior of these parameters are slightly different and now allow you to specify
+multiple directories which will be checked be in priority order. ChopShop will also append the default path to
+the list automatically so if nothing is found in the list given by the user it will fall back to the built-in
+paths. Taking the example for base_dir from above, if a user passes "/usr/local/chopshop-partner" it should work
+the same way as before. But if, as an example, that base directory didn't contain the gh0st decoder, a user
+would not be able to call it. But now, they can call gh0st because ChopShop will automatically search the default
+path after failing to find the module in the path specified at commandline. To specify multiple directories
+on the commandline comma separate the paths 
+(e.g., "/usr/local/chopshop-development,/usr/local/chopshop-partner"). Again, as mentioned, ChopShop will 
+automatically append the default path to the end so adding it is not necessary.
+
+
+Configuration Files
+===============
+ChopShop introduced rough support for configuration files for 4.0, but as of 4.1 the usage 
+and design has been finalized and should make things easier for users. The chopshop program provides two
+relevant flags that allow you to create and consume configuration files. To create a configuration file
+based on the given commandline arguments just pass the -C flag to chopshop with a destination filename. 
+Then to consume that config file just use -c and chopshop will parse the given configuration file. 
+Further, chopshop will now check for a default file in the user's home directory, called .chopshop.cfg 
+for default config parameters. For users who often use the -B or -M/-E parameters this should save them 
+some time. Note that config files passed at the commandline override any config parameters found 
+in .chopshop.cfg and command line args override paramters from config files.
+
 
 User Interface
 ==============
@@ -184,3 +221,25 @@ chopshop -f myfilelist -l -L "host 192.168.1.10" "payloads -c -r"
 
 If 'myfilelist' is a fifo, we can feed it a list of files and have chopshop
 process those files.
+
+Example 6
+---------
+Module chaining is achieved by using the pipe (|) character. An example using
+the provided http and http_extractor modules would look like:
+
+<code>
+chopshop -f foo.pcap "http | http_extractor"
+</code>
+
+
+Example 7
+_________
+ChopShop 4.0 also supports tees and reverse tees using parens and commas
+allowing you to feed the output of a module to multiple modules or vice 
+versa. A simple example follows below. Note that a child module (any module
+on the right hand side of a pipe) needs to be able to accept the types of
+data that the parents are creating.
+
+<code>
+chopshop -f malware.pcap "(dns, icmp) | malware_detector"
+</code>

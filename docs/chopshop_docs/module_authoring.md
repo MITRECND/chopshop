@@ -29,7 +29,8 @@ Usage of 'print' in module_info has been removed -- it was deprecated in 3.0.
 Module Authors should return a string instead
 
 ChopShop 4.0 modules require 'moduleVersion' and 'minimumChopLib' to be defined 
-alongside 'moduleName'
+alongside 'moduleName' -- note that if you do not specify these two extra variables
+your module will be assumed to be a ChopShop 3.x module (legacy).
 
 The module_args['proto'] element is now different to support multiple protocols and
 chaining. It now looks like 'proto' : [{'input', 'output'}]. Note that the old style
@@ -132,7 +133,7 @@ The udp_data structure has the following functions:
 lifetime of the module
 
 ip_data structure
-__________________
+------------------
 New to ChopShop 4.0 ip data is now available and contains elements cooresponding to the ip header spec:
     
 <b>version</b> - The version of ip (note that libnids doesn't support v6 so this should always be 4)
@@ -206,7 +207,7 @@ Every module <b>must</b> define the following global variables:
 Modules will not function without "moduleName"
 Any module that does not define 'moduleVersion' or 'minimumChopLib'
 will be considerd 'legacy' (pre 4.0) and will not be able to access
-module pipelining
+module pipelining and some other newer features.
 
 
 Required Functions
@@ -258,20 +259,35 @@ nids.register_tcp().
 udp.stop() tells ChopShop to ignore this quad-tuple for the lifetime of the
 module. This is very different from TCP behavior, so be aware!
 
+
+###IP MODULES
+<b>handlePacket(ip)</b> -- handler for ip data -- refer to above structure
+to understand what data is passed
+
+
+###SECONDARY MODULES
+<b>handleProtocol(protocol)</b> -- handler for secondary, module-defined
+types. Refer to documentation above for the structure of data passed to
+this function (more below on module chaning)
+
 Optional Functions
 ------------------
 Modules do not need to define the following functions but doing so provides
 extra functionality or information.
 
+###ALL MODULES
 <b>shutdown(module_data)</b> -- Called when ChopShop is shutting down;
 gives the module one last chance to do what it needs to.
 
 
-<b>teardown(tcp_data)</b> -- TCP-only, called when a stream is closed (RST, etc.)
+###TCP MODULES
+<b>teardown(tcp_data)</b> -- Called when a stream is closed (RST, etc.)
   Treat tcp_data like the object sent to callbacks for nids' register_tcp.
   (ex: o.addr, o.client.count_new, o.discard(0))
 
 
+Module Chaining
+__________________
 ###Primary Modules
 Modules that ingest the core types 'tcp', 'udp', and 'ip' can return an instance of ChopProtocol to
 be consumed by secondary modules (see below). Before use, ChopProtocol must be imported by doing:
@@ -307,7 +323,7 @@ _clone function
 
 ChopLib requires the ability to create copies of ChopProtocol to provide modules with their
 own unique copy. By default ChopProtocol contains a _clone function that uses copy's 'deepcopy'
-function. If your data (in clientData and serverData) are complex enough, this might not be enough
+function. If your data (e.g., clientData and serverData) are complex enough, this might not be enough
 to copy your data. In these instances you should create an inherited class based on ChopProtocol
 and redefine the _clone function.
 
@@ -322,7 +338,7 @@ you would first parse the http traffic out and then proceed to parse the protoco
 were <b>actually</b> trying to decode. With 4.0 though, you can pass the data through a primary
 module that takes tcp and turns it into http and then focus on only the protocol you care about
 
-Secondary modules have one function they must define to handle data:
+As documented above, secondary modules have one function they must define to handle data:
 
 <b>handleProtocol(protocol)</b> -- Protocol data, partially defined by primary module
 

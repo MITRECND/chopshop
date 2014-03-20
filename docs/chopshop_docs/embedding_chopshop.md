@@ -96,19 +96,25 @@ ChopLib has the following options:
 
 <pre>
 mod_dir -- The directory to load modules from. Defaults to ChopShop's working
-directory + /modules. If overriden will be relative to base_dir if set, if not
-should be set to an absolute path
+directory + /modules. Should be set to an absolute path
 <default: CHOPSHOP_WD + '/modules/'>
 
+NEW: In ChopLib 4.1 mod_dir is now an array of strings. For backwards
+compatibility it will accept a string and auto-convert to an array
 
 ext_dir -- The directory to load external libraries from. Defaults to
-ChopShop's working directory + /ext_libs. If overriden will be relative to
-base_dir if set, if not should be set to an absolute path
+ChopShop's working directory + /ext_libs. Should be set to an absolute path
 <default: CHOPSHOP_WD + '/ext_libs/'>
 
-base_dir -- The base directory to look for modules/ext_libs. By default this
-is not set and is ignored
+NEW: In ChopLib 4.1 ext_dir is now an array of strings. For backwards
+compatibility it will accept a string and auto-convert to an array
+
+base_dir -- The base directory to look for modules/ext_libs. This parameter
+takes precedence over mod_dir and ext_dir
 <default: None>
+
+NEW: In ChopLib 4.1 base_dir is now an array of strings. For backwards
+compatibility it will accept a string and auto-convert to an array
 
 filename -- Pcap file to use as input
 <default: ''>
@@ -134,6 +140,10 @@ modinfo -- This instance of the ChopLib should only read the module_info and
 then exit
 <default: False>
 
+modtree -- This instance of ChopLib should output a tree of how modules would
+chain together and then exit
+<default: False>
+
 GMT -- Timestamps should be in GMT
 <default: False>
 
@@ -157,7 +167,7 @@ essentially what people type in at the commandline
 ChopLib has the following functions that are useful for embedding:
 
 <pre>
-start() -- Kicks of ChopLib to start processing
+start() -- Kicks off ChopLib to start processing
 
 finish() -- Should be called to properly kill intra-communication
 channels
@@ -185,7 +195,7 @@ ChopUi:
 
 ChopUi is a wrapper around other functions and classes. It is designed to be
 overridable and simple. By default, ChopUi will use the output handlers
-available in ChopUiStd for all functionality but all of those handler can be
+available in ChopUiStd for all functionality but all of those handlers can be
 overriden by specifying an alternative object.
 
 ChopUi has the following options:
@@ -243,7 +253,7 @@ called by ChopUi.bind()
 
 
 Putting it together, we create a program like chopshop. As the glue chopshop
-as the following responsibilities:
+has the following responsibilities:
 
 * Parse all command line arguments
 * Handle reading from stdin if necesary
@@ -267,7 +277,7 @@ messages and should never get 'json' messages
 Handler.handle_ctrl(message) -- This function is meant to handle 'ctrl'
 messages
 
-Handler.stop() -- This function is called with ChopUi is ending and gives the
+Handler.stop() -- This function is called when ChopUi is ending and gives the
 handler a chance to shutdown properly
 </pre>
 
