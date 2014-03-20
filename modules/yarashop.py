@@ -37,7 +37,7 @@ moduleName = "yarashop"
 
 
 def module_info():
-    print "Process TCP session payloads with Yara."
+    return "Process TCP session payloads with Yara."
 
 
 def init(module_data):

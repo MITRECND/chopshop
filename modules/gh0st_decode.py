@@ -772,7 +772,7 @@ def teardown(tcp):
     pass
 
 def module_info():
-    print "Decode and display Gh0st backdoor commands and responses"
+    return "Decode and display Gh0st backdoor commands and responses"
 
 def shutdown(module_data):
     pass
