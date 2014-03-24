@@ -73,12 +73,13 @@ class ChopConfig(object):
                             'modinfo' :     ChopOption('bool', 'General'),
                             'modtree' :     ChopOption('bool', 'General'),
                             'GMT' :         ChopOption('bool', 'General'),
-                            'savefiles' :   ChopOption('bool', 'General'),
                             'text' :        ChopOption('bool', 'General'),
-                            'pyobjout' :    ChopOption('bool', 'General'),
-                            'jsonout' :     ChopOption('string', 'General'),
-                            'savedir' :     ChopOption('string', 'Directories'),
                             'modules' :     ChopOption('string', 'General'),
+
+                            #Shared options
+                            'savedir' :     ChopOption('string', 'Directories'),
+                            'jsonout' :     ChopOption('string', 'General'),
+                            'pyobjout' :    ChopOption('bool', 'General'),
 
                             #UI options
                             'stdout' :      ChopOption('bool', 'General'),
@@ -194,15 +195,6 @@ class ChopConfig(object):
     @GMT.setter
     def GMT(self, v):
         self.options['GMT'].value = v
-
-    @property
-    def savefiles(self):
-        """Handle the saving of files. """
-        return self.options['savefiles'].value
-
-    @savefiles.setter
-    def savefiles(self, v):
-        self.options['savefiles'].value = v
 
     @property
     def text(self):
