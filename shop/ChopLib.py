@@ -90,7 +90,6 @@ class ChopLib(Thread):
                          'text': False,
                          'pyobjout': False,
                          'jsonout': False,
-                         'savedir': '/tmp/',
                          'modules': ''
                        }
 
@@ -254,15 +253,6 @@ class ChopLib(Thread):
     @jsonout.setter
     def jsonout(self, v):
         self.options['jsonout'] = v
-
-    @property
-    def savedir(self):
-        """Location to save carved files."""
-        return self.options['savedir']
-
-    @savedir.setter
-    def savedir(self, v):
-        self.options['savedir'] = v
 
     @property
     def modules(self):

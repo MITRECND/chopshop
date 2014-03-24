@@ -156,9 +156,6 @@ text -- If set to True, will enable ChopLib's hanlding of text data
 jsonout -- If set to True, will enable ChopLib's handling of json data
 <default: False>
 
-savedir -- Sets the save directory for files carved by ChopLli
-<default: '/tmp/'>
-
 modules -- The list of modules that is going to be processed. This is
 essentially what people type in at the commandline
 <default: ''>
