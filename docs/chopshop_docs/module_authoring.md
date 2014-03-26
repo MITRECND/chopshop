@@ -48,11 +48,11 @@ Add 'minimumVersion' and 'minimumChopLib' to your module
 Modify the 'proto' element in module_args as described above. 
 Tcp modules will look like:
 
-module_args = {'proto': [{'tcp', ''}]}
+module_args = {'proto': [{'tcp': ''}]}
 
 Udp modules will look like:
 
-module_args = {'proto': [{'udp', ''}]}
+module_args = {'proto': [{'udp': ''}]}
 
 </code>
 
