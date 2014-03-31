@@ -622,6 +622,9 @@ class ChopLib(Thread):
                     sys.stdout = strbuff = StringIO()
 
                     try:
+                        #Instantiate a dummy 'chop' accessor for each module in case
+                        #they use it in init
+                        mod.code.chop = chophelper.setup_dummy()
                         sys.argv[0] = mod.code.moduleName
                         mod.code.init({'args': ['-h']})
                     except SystemExit, e:

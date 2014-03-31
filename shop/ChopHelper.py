@@ -135,14 +135,15 @@ class chops:
 
     def savefile(self, filename, data, finalize = True, prepend_timestamp = False):
         if prepend_timestamp:
-            ts = self.core.getptime()
-            if self.GMT:
-                fmt = "%Y%m%d%H%M%SZ"
-                ts = time.gmtime(ts)
-            else:
-                fmt = "%Y%m%d%H%M%S%Z"
-                ts = time.localtime(ts)
-            filename = "%s-%s" % (time.strftime(fmt, ts).strip(), filename)
+            if self.core is not None:
+                ts = self.core.getptime()
+                if self.GMT:
+                    fmt = "%Y%m%d%H%M%SZ"
+                    ts = time.gmtime(ts)
+                else:
+                    fmt = "%Y%m%d%H%M%S%Z"
+                    ts = time.localtime(ts)
+                filename = "%s-%s" % (time.strftime(fmt, ts).strip(), filename)
         self.appendfile(filename,data,finalize,'w')
         return filename
 
@@ -310,4 +311,13 @@ class ChopHelper:
 
         self.tocaller.put(message)
         return chop 
+
+    def setup_dummy(self):
+        chop = chops(-1, 'dummy', self.tocaller, self.core)
+        chop.to_outs = {'text': False,
+                        'json': False,
+                        'savefiles': False,
+                        'pyobj': False
+                       }
+        return chop
 
