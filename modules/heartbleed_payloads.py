@@ -79,21 +79,16 @@ def taste(tcp):
 
 def handleStream(tcp):
     ((src, sport), (dst, dport)) = parse_addr(tcp)
-    if tcp.server.count_new > 0:
-        data = tcp.server.data[:tcp.server.count_new]
-        count = tcp.server.count_new
-        tcp.discard(count)
-      	return
-    else:
+    if tcp.client.count_new > 0:
         data = tcp.client.data[:tcp.client.count_new]
         count = tcp.client.count_new
         if tcp.stream_data['dump']:
-          chop.tsprnt("%s:%s -> %s:%s %i bytes" % (src, sport, dst, dport, count,))
-          chop.prnt(hexdump(data))
+            chop.tsprnt("%s:%s -> %s:%s %i bytes" % (src, sport, dst, dport, count,))
+            chop.prnt(hexdump(data))
         if data[:3] in ['\x18\x03\x00', '\x18\x03\x01', '\x18\x03\x02', '\x18\x03\x03']:
-          chop.tsprnt("%s:%s -> %s:%s %i bytes" % (src, sport, dst, dport, count,))
-          chop.prnt(hexdump(data[8:]))
-          tcp.stream_data['dump'] = True
+            chop.tsprnt("%s:%s -> %s:%s %i bytes" % (src, sport, dst, dport, count,))
+            chop.prnt(hexdump(data[8:]))
+            tcp.stream_data['dump'] = True
 
     tcp.discard(count)
 
