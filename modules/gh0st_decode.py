@@ -228,6 +228,7 @@ def handleStream(tcp):
 def find_flag(data, tcp):
     ((src, sport), (dst, dport)) = parse_addr(tcp)
     flag = ''
+    module_data = tcp.module_data
 
     for i in range(tcp.module_data['wsize'] - 3):
         compressed_len = struct.unpack('<I', data[i:i + 4])[0]
