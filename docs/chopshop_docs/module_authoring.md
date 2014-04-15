@@ -43,7 +43,7 @@ If you'd like to transition your module to ChopShop 4.0, there's only a few step
 to follow:
 
 <code>
-Add 'minimumVersion' and 'minimumChopLib' to your module
+Add 'moduleVersion' and 'minimumChopLib' to your module
 
 Modify the 'proto' element in module_args as described above. 
 Tcp modules will look like:
