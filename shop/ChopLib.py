@@ -117,7 +117,7 @@ class ChopLib(Thread):
 
     @mod_dir.setter
     def mod_dir(self, v):
-        if isinstance(v, str):
+        if isinstance(v, basestring):
             self.options['mod_dir'] = [v]
         else:
             self.options['mod_dir'] = v
@@ -129,7 +129,7 @@ class ChopLib(Thread):
 
     @ext_dir.setter
     def ext_dir(self, v):
-        if isinstance(v, str):
+        if isinstance(v, basestring):
             self.options['ext_dir'] = [v]
         else:
             self.options['ext_dir'] = v
@@ -141,7 +141,7 @@ class ChopLib(Thread):
 
     @base_dir.setter
     def base_dir(self, v):
-        if isinstance(v,str):
+        if isinstance(v, basestring):
             self.options['base_dir'] = [v]
         else:
             self.options['base_dir'] = v
