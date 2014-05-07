@@ -72,7 +72,7 @@ def parse_args(module_data):
     module_data['oneshot_split'] = opts.oneshot_split
 
     if opts.xor_key:
-        module_data['xor_key'] = opts.xor_key[2:]
+        module_data['xor_key'] = opts.xor_key
 
     return opts
 
