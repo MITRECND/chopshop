@@ -68,7 +68,7 @@ def module_info():
     pass
 
 def init(module_data):
-    module_options = { 'proto': [{'${ARG}', ''} }
+    module_options = { 'proto': [{'${ARG}', ''}] }
     return module_options
 
 def ${HANDLE}(${ARG}):
