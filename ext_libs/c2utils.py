@@ -98,6 +98,8 @@ def sanitize_filename(inf):
             fname += '_'
         else:
             fname += c
+    if not fname:
+        fname = 'NONAME'
     return fname
 
 def replace_nonascii(line, repl):
