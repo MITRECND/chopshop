@@ -35,9 +35,8 @@ from optparse import OptionParser
 from c2utils import multibyte_xor, hexdump, parse_addr, entropy
 
 moduleName = 'payloads'
-moduleVersion = '2.0'
+moduleVersion = '2.1'
 minimumChopLib = '4.0'
-
 
 def parse_args(module_data):
     parser = OptionParser()
@@ -52,16 +51,17 @@ def parse_args(module_data):
     parser.add_option("-o", "--xor", action="store",
         dest="xor_key", default=None, help="XOR packet payloads with this key")
     parser.add_option("-O", "--oneshot", action="store_true",
-        dest="oneshot", default=False, help="Buffer entire flow until teardown (TCP)")
+        dest="oneshot", default=False,
+        help="Buffer entire flow until teardown (TCP)")
     parser.add_option("-S", "--oneshot_split", action="store_true",
         dest="oneshot_split", default=False,
         help="Buffer each side of flow until teardown (TCP)")
     parser.add_option("-u", "--udp-disable", action="store_true",
-        dest="disable_udp", default=False,
-        help="Disable UDP support")
+        dest="disable_udp", default=False, help="Disable UDP support")
     parser.add_option("-t", "--tcp-disable", action="store_true",
-        dest="disable_tcp", default=False,
-        help="Disable TCP support")
+        dest="disable_tcp", default=False, help="Disable TCP support")
+    parser.add_option("-r", "--raw-disable", action="store_true",
+        dest="disable_raw", default=False, help="Disable raw support")
 
     (opts,lo) = parser.parse_args(module_data['args'])
 
@@ -84,8 +84,9 @@ def init(module_data):
 
     module_options = {'proto': []}
 
-    tcp = {'tcp' : ''}
-    udp = {'udp' : ''}
+    tcp = {'tcp': ''}
+    udp = {'udp': ''}
+    raw = {'raw': ''}
 
     if not opts.disable_tcp:
         module_options['proto'].append(tcp)
@@ -93,14 +94,25 @@ def init(module_data):
     if not opts.disable_udp:
         module_options['proto'].append(udp)
 
-    if len(module_options['proto']) == 0: #They disabled both?
-        module_options['error'] = "Cannot disable both UDP *AND* TCP"
-    
-    
+    if not opts.disable_raw:
+        module_options['proto'].append(raw)
+
+    if len(module_options['proto']) == 0: # They disabled all?
+        module_options['error'] = "Must leave one protocol enabled."
+
     return module_options
 
+# RAW
+def handleProtocol(chopp):
+    if chopp.type != 'raw':
+        return
 
-#TCP
+    if chopp.clientData:
+        handle_bytes(chopp.clientData, 'GREEN', 'to_client', chopp.module_data)
+    if chopp.serverData:
+        handle_bytes(chopp.serverData, 'RED', 'to_server', chopp.module_data)
+
+# TCP
 def taste(tcp):
     ((src, sport), (dst, dport)) = tcp.addr
 
@@ -140,19 +152,21 @@ def handleStream(tcp):
     if tcp.module_data['oneshot'] or tcp.module_data['oneshot_split']:
         return
 
-    if 'xor_key' in tcp.module_data:
-        data = multibyte_xor(data, tcp.module_data['xor_key'])
+    handle_bytes(data, color, direction, tcp.module_data)
+    tcp.discard(count)
 
-    if tcp.module_data['hexdump']:
+def handle_bytes(data, color, direction, module_data):
+    if 'xor_key' in module_data:
+        data = multibyte_xor(data, module_data['xor_key'])
+
+    if module_data['hexdump']:
         data = hexdump(data)
 
-    if tcp.module_data['base64']:
+    if module_data['base64']:
         data = b64encode(data)
 
     chop.prettyprnt(color, data)
     chop.json({'payload': data, 'direction': direction})
-
-    tcp.discard(count)
 
 def teardown(tcp):
     if not tcp.module_data['oneshot'] and not tcp.module_data['oneshot_split']:
@@ -181,8 +195,7 @@ def alter_data(module_data, data):
 
     return data
 
-
-#UDP
+# UDP
 def handleDatagram(udp):
 	# collect time and IP metadata
 	((src, sport), (dst, dport)) = udp.addr
@@ -196,7 +209,6 @@ def handleDatagram(udp):
         if udp.module_data['hexdump']:
             data = hexdump(data)
         chop.prettyprnt("RED", data)
-
 
 def module_info():
     return "A module to dump raw packet payloads from a stream.\nMeant to be used to watch netcat reverse shells and other plaintext\nbackdoors."

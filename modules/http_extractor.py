@@ -118,13 +118,15 @@ def handleProtocol(protocol):
         data['response']['headers'] = new_headers
             
     if module_data['carve_request'] and 'body' in data['request']:
-        chop.prnt("DUMPING REQUEST: %s (%i)" % (sanitize_filename(data['request']['uri']['path'][1:] + '.request.' + str(module_data['counter'])), len(data['request']['body'])))
-        chop.savefile(sanitize_filename(data['request']['uri']['path'][1:] + '.request.' + str(module_data['counter'])), data['request']['body'])
+        fname = sanitize_filename(data['request']['uri']['path'][1:]) + '.request.' + str(module_data['counter'])
+        chop.prnt("DUMPING REQUEST: %s (%i)" % (fname, len(data['request']['body'])))
+        chop.savefile(fname, data['request']['body'])
         module_data['counter'] += 1
 
     if module_data['carve_response'] and 'body' in data['response']:
-        chop.prnt("DUMPING RESPONSE: %s (%i)" % (sanitize_filename(data['request']['uri']['path'][1:] + '.response.' + str(module_data['counter'])), len(data['response']['body'])))
-        chop.savefile(sanitize_filename(data['request']['uri']['path'][1:] + '.response.' + str(module_data['counter'])), data['response']['body'])
+        fname = sanitize_filename(data['request']['uri']['path'][1:]) + '.response.' + str(module_data['counter'])
+        chop.prnt("DUMPING RESPONSE: %s (%i)" % (fname, len(data['response']['body'])))
+        chop.savefile(fname, data['response']['body'])
         module_data['counter'] += 1
 
     # Convert the body to base64 encoded data, if it exists.

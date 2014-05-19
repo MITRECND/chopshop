@@ -7,7 +7,7 @@ from c2utils import parse_addr
 
 from ChopProtocol import ChopProtocol
 
-moduleName="ssl"
+moduleName="chop_ssl"
 moduleVersion="1.0"
 minimumChopLib="4.0"
 
