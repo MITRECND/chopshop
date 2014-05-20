@@ -315,11 +315,7 @@ def handleProtocol(chopp):
     if chopp.type != 'sslim':
         return
 
-    if chopp.addr in chopp.stream_data:
-        stream_data = chopp.stream_data[chopp.addr]
-    else:
-        chopp.stream_data[chopp.addr] = {}
-        stream_data = chopp.stream_data[chopp.addr]
+    stream_data = chopp.stream_data
 
     if 'htpy_obj' not in stream_data:
         stream_data['htpy_obj'] = {
@@ -336,7 +332,6 @@ def handleProtocol(chopp):
 
     if chopp.clientData:
         try:
-            #chop.prnt(chopp.clientData)
             stream_data['connparser'].req_data(chopp.clientData)
         except htpy.stop:
             chopp.stop()
@@ -347,7 +342,6 @@ def handleProtocol(chopp):
 
     if chopp.serverData:
         try:
-            #chop.prnt(chopp.serverData)
             stream_data['connparser'].res_data(chopp.serverData)
         except htpy.stop:
             chopp.stop()
