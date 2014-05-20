@@ -102,16 +102,6 @@ def init(module_data):
 
     return module_options
 
-# RAW
-def handleProtocol(chopp):
-    if chopp.type != 'sslim':
-        return
-
-    if chopp.clientData:
-        handle_bytes(chopp.clientData, 'GREEN', 'to_client', chopp.module_data)
-    if chopp.serverData:
-        handle_bytes(chopp.serverData, 'RED', 'to_server', chopp.module_data)
-
 # TCP
 def taste(tcp):
     ((src, sport), (dst, dport)) = tcp.addr
@@ -154,6 +144,16 @@ def handleStream(tcp):
 
     handle_bytes(data, color, direction, tcp.module_data)
     tcp.discard(count)
+
+# sslim
+def handleProtocol(chopp):
+    if chopp.type != 'sslim':
+        return
+
+    if chopp.clientData:
+        handle_bytes(chopp.clientData, 'GREEN', 'to_client', chopp.module_data)
+    if chopp.serverData:
+        handle_bytes(chopp.serverData, 'RED', 'to_server', chopp.module_data)
 
 def handle_bytes(data, color, direction, module_data):
     if 'xor_key' in module_data:

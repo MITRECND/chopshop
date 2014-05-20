@@ -182,6 +182,18 @@ def response_complete(cp, obj):
 
     return htpy.HTP_OK
 
+def register_connparser():
+    connparser = htpy.init()
+    connparser.register_log(log)
+    connparser.register_request_headers(request_headers)
+    connparser.register_response_headers(response_headers)
+    connparser.register_request_body_data(request_body)
+    connparser.register_response_body_data(response_body)
+    connparser.register_request_complete(request_complete)
+    connparser.register_response_complete(response_complete)
+    return connparser
+
+
 def module_info():
     return "Takes in TCP traffic and outputs parsed HTTP traffic for use by secondary modules. Refer to the docs for output format"
 
@@ -254,16 +266,50 @@ def taste(tcp):
     tcp.stream_data['connparser'].set_obj(tcp.stream_data['htpy_obj'])
     return True
 
-def register_connparser():
-    connparser = htpy.init()
-    connparser.register_log(log)
-    connparser.register_request_headers(request_headers)
-    connparser.register_response_headers(response_headers)
-    connparser.register_request_body_data(request_body)
-    connparser.register_response_body_data(response_body)
-    connparser.register_request_complete(request_complete)
-    connparser.register_response_complete(response_complete)
-    return connparser
+def handleStream(tcp):
+    chopp = ChopProtocol('http')
+    ((src, sport), (dst, dport)) = parse_addr(tcp)
+    tcp.stream_data['htpy_obj']['timestamp'] = tcp.timestamp
+    if tcp.server.count_new > 0:
+        if tcp.module_data['options']['verbose']:
+            chop.tsprnt("%s:%s->%s:%s (%i)" % (src, sport, dst, dport, tcp.server.count_new))
+        try:
+            tcp.stream_data['connparser'].req_data(tcp.server.data[:tcp.server.count_new])
+        except htpy.stop:
+            tcp.stop()
+        except htpy.error:
+            chop.prnt("Stream error in htpy.")
+            tcp.stop()
+        tcp.discard(tcp.server.count_new)
+    elif tcp.client.count_new > 0:
+        if tcp.module_data['options']['verbose']:
+            chop.tsprnt("%s:%s->%s:%s (%i)" % (src, sport, dst, dport, tcp.client.count_new))
+        try:
+            tcp.stream_data['connparser'].res_data(tcp.client.data[:tcp.client.count_new])
+        except htpy.stop:
+            tcp.stop()
+        except htpy.error:
+            chop.prnt("Stream error in htpy.")
+            tcp.stop()
+        tcp.discard(tcp.client.count_new)
+
+    if tcp.stream_data['htpy_obj']['ready']:
+        trans = tcp.stream_data['htpy_obj']['transaction']
+        chopp.setClientData(trans['request'])
+        chopp.setServerData(trans['response'])
+        chopp.setTimeStamp(trans['timestamp'])
+        chopp.setAddr(tcp.addr)
+        chopp.flowStart = tcp.stream_data['htpy_obj']['flowStart']
+        tcp.stream_data['htpy_obj']['ready'] = False
+        return chopp
+
+    return None
+
+def teardown(tcp):
+    return
+
+def shutdown(module_data):
+    return
 
 def handleProtocol(chopp):
     if chopp.type != 'sslim':
@@ -320,48 +366,3 @@ def handleProtocol(chopp):
         new_chopp.flowStart = stream_data['htpy_obj']['flowStart']
         stream_data['htpy_obj']['ready'] = False
         return new_chopp
-
-def handleStream(tcp):
-    chopp = ChopProtocol('http')
-    ((src, sport), (dst, dport)) = parse_addr(tcp)
-    tcp.stream_data['htpy_obj']['timestamp'] = tcp.timestamp
-    if tcp.server.count_new > 0:
-        if tcp.module_data['options']['verbose']:
-            chop.tsprnt("%s:%s->%s:%s (%i)" % (src, sport, dst, dport, tcp.server.count_new))
-        try:
-            tcp.stream_data['connparser'].req_data(tcp.server.data[:tcp.server.count_new])
-        except htpy.stop:
-            tcp.stop()
-        except htpy.error:
-            chop.prnt("Stream error in htpy.")
-            tcp.stop()
-        tcp.discard(tcp.server.count_new)
-    elif tcp.client.count_new > 0:
-        if tcp.module_data['options']['verbose']:
-            chop.tsprnt("%s:%s->%s:%s (%i)" % (src, sport, dst, dport, tcp.client.count_new))
-        try:
-            tcp.stream_data['connparser'].res_data(tcp.client.data[:tcp.client.count_new])
-        except htpy.stop:
-            tcp.stop()
-        except htpy.error:
-            chop.prnt("Stream error in htpy.")
-            tcp.stop()
-        tcp.discard(tcp.client.count_new)
-
-    if tcp.stream_data['htpy_obj']['ready']:
-        trans = tcp.stream_data['htpy_obj']['transaction']
-        chopp.setClientData(trans['request'])
-        chopp.setServerData(trans['response'])
-        chopp.setTimeStamp(trans['timestamp'])
-        chopp.setAddr(tcp.addr)
-        chopp.flowStart = tcp.stream_data['htpy_obj']['flowStart']
-        tcp.stream_data['htpy_obj']['ready'] = False
-        return chopp
-
-    return None
-
-def teardown(tcp):
-    return
-
-def shutdown(module_data):
-    return
