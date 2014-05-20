@@ -1,4 +1,4 @@
-# Copyright (c) 2012 The MITRE Corporation. All rights reserved.
+# Copyright (c) 2014 The MITRE Corporation. All rights reserved.
 
 # From a module authors perspective the API to SSLim is very minimal:
 #  - Instantiate one sslim object for the lifetime of your module.

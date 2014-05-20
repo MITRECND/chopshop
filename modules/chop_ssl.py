@@ -1,4 +1,4 @@
-# Copyright (c) 2012 The MITRE Corporation. All rights reserved.
+# Copyright (c) 2014 The MITRE Corporation. All rights reserved.
 
 from optparse import OptionParser
 
