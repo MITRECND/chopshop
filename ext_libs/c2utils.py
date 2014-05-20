@@ -90,7 +90,7 @@ def multibyte_xor(data, key):
         output += chr(byte ^ key_byte)
     return output
 
-def sanitize_filename(inf):
+def sanitize_filename(inf, default='NONAME'):
     fname = ""
     bad = [ '/', '\\', ':', '~', '*' ]
     for c in inf:
@@ -98,6 +98,8 @@ def sanitize_filename(inf):
             fname += '_'
         else:
             fname += c
+    if not fname:
+        fname = default
     return fname
 
 def replace_nonascii(line, repl):

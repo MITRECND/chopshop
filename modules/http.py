@@ -35,7 +35,7 @@ import Queue
 from ChopProtocol import ChopProtocol
 
 
-#TODO 
+#TODO
 # Add more error checking
 # See if any useful information is missing
 
@@ -44,7 +44,6 @@ moduleVersion ='0.1'
 minimumChopLib ='4.0'
 
 __hash_function__ = None
-
 
 def log(cp, msg, level, obj):
     if level == htpy.HTP_LOG_ERROR:
@@ -55,7 +54,6 @@ def log(cp, msg, level, obj):
     else:
         chop.prnt("%i - %s" % (level, msg))
     return htpy.HTP_OK
-
 
 # The request and response body callbacks are treated identical with one
 # exception: the location in the output dictionary where the data is stored.
@@ -72,7 +70,7 @@ def body(data, length, obj, direction):
 
     trans[direction]['body_len'] += length
 
-    if length == 0: 
+    if length == 0:
         return htpy.HTP_OK
 
     trans[direction]['tmp_hash'].update(data)
@@ -94,7 +92,6 @@ def body(data, length, obj, direction):
     if obj['options']['length'] > 0 and len(trans[direction]['body']) > obj['options']['length']:
         trans[direction]['body'] = trans[direction]['body'][:(obj['options']['length'])]
         trans[direction]['truncated'] = True
-    
 
     return htpy.HTP_OK
 
@@ -185,11 +182,23 @@ def response_complete(cp, obj):
 
     return htpy.HTP_OK
 
+def register_connparser():
+    connparser = htpy.init()
+    connparser.register_log(log)
+    connparser.register_request_headers(request_headers)
+    connparser.register_response_headers(response_headers)
+    connparser.register_request_body_data(request_body)
+    connparser.register_response_body_data(response_body)
+    connparser.register_request_complete(request_complete)
+    connparser.register_response_complete(response_complete)
+    return connparser
+
+
 def module_info():
     return "Takes in TCP traffic and outputs parsed HTTP traffic for use by secondary modules. Refer to the docs for output format"
 
 def init(module_data):
-    module_options = { 'proto': [ {'tcp': 'http'}]}
+    module_options = { 'proto': [ {'tcp': 'http'}, { 'sslim': 'http' } ] }
     parser = OptionParser()
 
     parser.add_option("-v", "--verbose", action="store_true", dest="verbose",
@@ -216,17 +225,15 @@ def init(module_data):
         options.hash_function = 'md5'
         __hash_function__ = hashlib.md5
 
-
     ports = options.ports.split(",")
     try: #This will except if ports is empty or malformed
         ports = [int(port) for port in ports]
     except:
         ports = []
 
-
     module_data['counter'] = 0
-    module_data['options'] = { 
-                                'verbose' : options.verbose, 
+    module_data['options'] = {
+                                'verbose' : options.verbose,
                                 'no-body' : options.nobody,
                                 'length' : options.length,
                                 'hash_function' : options.hash_function,
@@ -248,23 +255,15 @@ def taste(tcp):
 
     tcp.stream_data['htpy_obj'] = {
                                     'options': tcp.module_data['options'],
-                                    'timestamp': None, 
+                                    'timestamp': None,
                                     'temp': {},
                                     'transaction': {},
                                     'lines': Queue.Queue(),
                                     'ready': False,
                                     'flowStart': tcp.timestamp
                                    }
-
-    tcp.stream_data['connparser'] = htpy.init()
+    tcp.stream_data['connparser'] = register_connparser()
     tcp.stream_data['connparser'].set_obj(tcp.stream_data['htpy_obj'])
-    tcp.stream_data['connparser'].register_log(log)
-    tcp.stream_data['connparser'].register_request_headers(request_headers)
-    tcp.stream_data['connparser'].register_response_headers(response_headers)
-    tcp.stream_data['connparser'].register_request_body_data(request_body)
-    tcp.stream_data['connparser'].register_response_body_data(response_body)
-    tcp.stream_data['connparser'].register_request_complete(request_complete)
-    tcp.stream_data['connparser'].register_response_complete(response_complete)
     return True
 
 def handleStream(tcp):
@@ -297,7 +296,7 @@ def handleStream(tcp):
     if tcp.stream_data['htpy_obj']['ready']:
         trans = tcp.stream_data['htpy_obj']['transaction']
         chopp.setClientData(trans['request'])
-        chopp.setServerData(trans['response']) 
+        chopp.setServerData(trans['response'])
         chopp.setTimeStamp(trans['timestamp'])
         chopp.setAddr(tcp.addr)
         chopp.flowStart = tcp.stream_data['htpy_obj']['flowStart']
@@ -311,3 +310,53 @@ def teardown(tcp):
 
 def shutdown(module_data):
     return
+
+def handleProtocol(chopp):
+    if chopp.type != 'sslim':
+        return
+
+    stream_data = chopp.stream_data
+
+    if 'htpy_obj' not in stream_data:
+        stream_data['htpy_obj'] = {
+                                    'options': chopp.module_data['options'],
+                                    'timestamp': chopp.timestamp,
+                                    'temp': {},
+                                    'transaction': {},
+                                    'lines': Queue.Queue(),
+                                    'ready': False,
+                                    'flowStart': None
+                                  }
+        stream_data['connparser'] = register_connparser()
+        stream_data['connparser'].set_obj(stream_data['htpy_obj'])
+
+    if chopp.clientData:
+        try:
+            stream_data['connparser'].req_data(chopp.clientData)
+        except htpy.stop:
+            chopp.stop()
+        except htpy.error:
+            chop.prnt("Stream error in htpy.")
+            chopp.stop()
+            return
+
+    if chopp.serverData:
+        try:
+            stream_data['connparser'].res_data(chopp.serverData)
+        except htpy.stop:
+            chopp.stop()
+        except htpy.error:
+            chop.prnt("Stream error in htpy.")
+            chopp.stop()
+            return
+
+    if stream_data['htpy_obj']['ready']:
+        new_chopp = ChopProtocol('http')
+        trans = stream_data['htpy_obj']['transaction']
+        new_chopp.setClientData(trans['request'])
+        new_chopp.setServerData(trans['response'])
+        new_chopp.setTimeStamp(trans['timestamp'])
+        new_chopp.setAddr(chopp.addr)
+        new_chopp.flowStart = stream_data['htpy_obj']['flowStart']
+        stream_data['htpy_obj']['ready'] = False
+        return new_chopp
