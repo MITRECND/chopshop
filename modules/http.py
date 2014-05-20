@@ -186,7 +186,7 @@ def module_info():
     return "Takes in TCP traffic and outputs parsed HTTP traffic for use by secondary modules. Refer to the docs for output format"
 
 def init(module_data):
-    module_options = { 'proto': [ {'tcp': 'http'}, { 'raw': 'http' } ] }
+    module_options = { 'proto': [ {'tcp': 'http'}, { 'sslim': 'http' } ] }
     parser = OptionParser()
 
     parser.add_option("-v", "--verbose", action="store_true", dest="verbose",
@@ -266,7 +266,7 @@ def register_connparser():
     return connparser
 
 def handleProtocol(chopp):
-    if chopp.type != 'raw':
+    if chopp.type != 'sslim':
         return
 
     if chopp.addr in chopp.stream_data:

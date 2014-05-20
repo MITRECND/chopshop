@@ -41,10 +41,10 @@ def sslim_res_callback(data, chopp):
     chopp.setServerData(chopp.serverData + data)
 
 def module_info():
-    return "Decrypt SSL sessions from TCP and pass \"raw\" out."
+    return "Decrypt SSL sessions from TCP and pass \"sslim\" out."
 
 def init(module_data):
-    module_options = { 'proto': [ { 'tcp': 'raw' } ] }
+    module_options = { 'proto': [ { 'tcp': 'sslim' } ] }
 
     parser = OptionParser()
     parser.add_option("-v", "--verbose", action="store_true", dest="verbose",
@@ -111,7 +111,7 @@ def handleStream(tcp):
         # There's probably more to this, but this is good enough for now.
         if data in ('\x16\x03\x00', '\x16\x03\x01', '\x16\x03\x02', '\x16\x03\x03'):
             tcp.stream_data['ssl'] = True
-            tcp.stream_data['chopp'] = ChopProtocol('raw')
+            tcp.stream_data['chopp'] = ChopProtocol('sslim')
             tcp.module_data['sslim'].callback_obj = tcp.stream_data['chopp']
         else:
             chop.tsprnt("%s:%i -> %s:%i: Stopping collection, not really SSL!" % (src, sport, dst, dport))

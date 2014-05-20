@@ -60,8 +60,8 @@ def parse_args(module_data):
         dest="disable_udp", default=False, help="Disable UDP support")
     parser.add_option("-t", "--tcp-disable", action="store_true",
         dest="disable_tcp", default=False, help="Disable TCP support")
-    parser.add_option("-r", "--raw-disable", action="store_true",
-        dest="disable_raw", default=False, help="Disable raw support")
+    parser.add_option("-s", "--sslim-disable", action="store_true",
+        dest="disable_sslim", default=False, help="Disable sslim support")
 
     (opts,lo) = parser.parse_args(module_data['args'])
 
@@ -86,7 +86,7 @@ def init(module_data):
 
     tcp = {'tcp': ''}
     udp = {'udp': ''}
-    raw = {'raw': ''}
+    sslim = {'sslim': ''}
 
     if not opts.disable_tcp:
         module_options['proto'].append(tcp)
@@ -94,8 +94,8 @@ def init(module_data):
     if not opts.disable_udp:
         module_options['proto'].append(udp)
 
-    if not opts.disable_raw:
-        module_options['proto'].append(raw)
+    if not opts.disable_sslim:
+        module_options['proto'].append(sslim)
 
     if len(module_options['proto']) == 0: # They disabled all?
         module_options['error'] = "Must leave one protocol enabled."
@@ -104,7 +104,7 @@ def init(module_data):
 
 # RAW
 def handleProtocol(chopp):
-    if chopp.type != 'raw':
+    if chopp.type != 'sslim':
         return
 
     if chopp.clientData:
