@@ -130,7 +130,8 @@ def handleStream(tcp):
         try:
             tcp.module_data['sslim'].parse_to_server(tcp.server.data[:tcp.server.count_new], tcp.addr)
         except sslimException as e:
-            chop.prnt(e)
+            if tcp.module_data['verbose']:
+                chop.prnt(e)
             tcp.module_data['sslim'].done(tcp.addr)
             tcp.stop()
             return
@@ -141,7 +142,8 @@ def handleStream(tcp):
         try:
             tcp.module_data['sslim'].parse_to_client(tcp.client.data[:tcp.client.count_new], tcp.addr)
         except sslimException as e:
-            chop.prnt(e)
+            if tcp.module_data['verbose']:
+                chop.prnt(e)
             tcp.module_data['sslim'].done(tcp.addr)
             tcp.stop()
             return
