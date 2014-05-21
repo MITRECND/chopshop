@@ -21,7 +21,12 @@
 # OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
 # SUCH DAMAGE.
 
-This module converts 'tcp' data to 'http' data to be used by modules downstream.
+This module converts supported input types to 'http' data to be used by modules downstream.
+
+The supported input types are:
+
+* TCP
+* sslim
 
 The format of the 'http' data follows the ChopProtocol model and looks like:
 

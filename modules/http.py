@@ -320,17 +320,22 @@ def handleProtocol(chopp):
     if 'htpy_obj' not in stream_data:
         stream_data['htpy_obj'] = {
                                     'options': chopp.module_data['options'],
-                                    'timestamp': chopp.timestamp,
+                                    'timestamp': None,
                                     'temp': {},
                                     'transaction': {},
                                     'lines': Queue.Queue(),
                                     'ready': False,
-                                    'flowStart': None
+                                    'flowStart': chopp.timestamp
                                   }
         stream_data['connparser'] = register_connparser()
         stream_data['connparser'].set_obj(stream_data['htpy_obj'])
 
+    ((src, sport),(dst,dport)) = chopp.addr
+    stream_data['htpy_obj']['timestamp'] = chopp.timestamp
+
     if chopp.clientData:
+        if chopp.module_data['options']['verbose']:
+            chop.tsprnt("%s:%s->%s:%s" % (src, sport, dst, dport))
         try:
             stream_data['connparser'].req_data(chopp.clientData)
         except htpy.stop:
@@ -341,6 +346,8 @@ def handleProtocol(chopp):
             return
 
     if chopp.serverData:
+        if chopp.module_data['options']['verbose']:
+            chop.tsprnt("%s:%s->%s:%s" % (dst, dport, src, sport))
         try:
             stream_data['connparser'].res_data(chopp.serverData)
         except htpy.stop:
