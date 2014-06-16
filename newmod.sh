@@ -31,7 +31,7 @@ fi
 
 BASEDIR=$(dirname $0)
 MODDIR="${BASEDIR}/modules"
-DOCSDIR="${BASEDIR}/docs"
+DOCSDIR="${BASEDIR}/docs/module_docs"
 
 MODNAME=$1
 MODFILE="${MODNAME}.py"
