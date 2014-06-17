@@ -58,8 +58,8 @@ def handleDatagram(udp):
           o.header.ra and 'RA' ]
     d = { 'header': {
                       'id': o.header.id,
-                      'type': QR[o.header.qr],
-                      'opcode': OPCODE[o.header.opcode],
+                      'type': QR[o.header.get_qr()],
+                      'opcode': OPCODE[o.header.get_opcode()],
                       'flags': ",".join(filter(None, f)),
                       'rcode': RCODE[o.header.rcode],
                     },
@@ -78,24 +78,36 @@ def handleDatagram(udp):
     dhdr = d['header']
     dhdr[f1] = o.header.q
     dhdr[f2] = o.header.a
-    dhdr[f3] = o.header.ns
+    dhdr[f3] = o.header.auth
     dhdr[f4]= o.header.ar
     d['questions'] = []
     for q in o.questions:
+        qname = str(q.get_qname())
+        # Strip trailing dot.
+        if qname.endswith('.'):
+            qname = qname[:-1]
         dq = {
-              'qname': str(q.qname),
+              'qname': qname,
               'qtype': QTYPE[q.qtype],
-              'qclass': QTYPE[q.qclass]
+              'qclass': CLASS[q.qclass]
             }
         d['questions'].append(dq)
     d['rr'] = []
     for r in o.rr:
+        rname = str(r.get_rname())
+        # Strip trailing dot.
+        if rname.endswith('.'):
+            rname = rname[:-1]
+        rdata = str(r.rdata)
+        # Strip trailing dot.
+        if rdata.endswith('.'):
+            rdata = rdata[:-1]
         dr = {
-              'rname': str(r.rname),
-              'rtype': QTYPE.lookup(r.rtype,r.rtype),
+              'rname': rname,
+              'rtype': QTYPE[r.rtype],
               'rclass': CLASS[r.rclass],
               'ttl': r.ttl,
-              'rdata': str(r.rdata)
+              'rdata': rdata
             }
         d['rr'].append(dr)
 
