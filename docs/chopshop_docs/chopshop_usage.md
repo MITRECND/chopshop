@@ -144,7 +144,7 @@ module called "payloads" to dump the traffic. Someone trying to run chopshop
 against this pcap would type:
 
 <code>
-chopshop -f /pcaps/netcat.pcap "host 192.168.1.10" "payloads -c -r"
+chopshop -f /pcaps/netcat.pcap "host 192.168.1.10" "payloads"
 </code>
 
 The above invocation would run chopshop, load the payloads module, apply a BPF filter and run all traffic in the netcat.pcap file against the module.
@@ -157,7 +157,7 @@ quite sure which one it is and would like to try both.  Someone trying to
 analyze this data with chopshop would do:
 
 <code>
-chopshop -f /pcaps/data.pcap "payloads -c -r; gh0st_decode"
+chopshop -f /pcaps/data.pcap "payloads; gh0st_decode"
 </code>
 
 The above invocation would run chopshop, load both the payloads and
@@ -172,7 +172,7 @@ like to output all data to the output directory in our current working
 directory:
 
 <code>
-chopshop -F "output/%N.txt" -f /pcaps/data.pcap "payloads -c -r; gh0st_decode"
+chopshop -F "output/%N.txt" -f /pcaps/data.pcap "payloads; gh0st_decode"
 </code>
 
 The above invocation would run chopshop, load both the payloads and
@@ -187,7 +187,7 @@ Building upon the last example let's output the modules output to their own
 directories and name each of the files after the module name and timestamp:
 
 <code>
-chopshop -F "output/%N/%N-%T.txt" -f /pcaps/data.pcap "payloads -c -r; gh0st_decode"
+chopshop -F "output/%N/%N-%T.txt" -f /pcaps/data.pcap "payloads; gh0st_decode"
 </code>
 
 The above invocation would do the same thing as the above example but would
@@ -202,7 +202,7 @@ The easiest of which is to pipe their names into chopshop from the command
 line:
 
 <code>
-find /pcaps -name "*.pcap" | sort | chopshop "host 192.168.1.10" "payloads -c -r"
+find /pcaps -name "*.pcap" | sort | chopshop "host 192.168.1.10" "payloads"
 </code>
 
 The chopshop by default, if given no input information (-f or -i), will assume
@@ -216,7 +216,7 @@ process and that it should continuously run until told to cancel (via Ctrl-C or
 'Q' in the gui).
 
 <code>
-chopshop -f myfilelist -l -L "host 192.168.1.10" "payloads -c -r"
+chopshop -f myfilelist -l -L "host 192.168.1.10" "payloads"
 </code>
 
 If 'myfilelist' is a fifo, we can feed it a list of files and have chopshop
