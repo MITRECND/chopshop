@@ -62,6 +62,11 @@ def module_info():
     return 'Process etumbot traffic. Requires "http" parent.'
 
 def init(module_data):
+    chop.prnt("*************************************************************")
+    chop.prnt("WARNING: This module is still experimental and unfinished.")
+    chop.prnt("If you have any PCAPs that contain features that are not")
+    chop.prnt("implemented in this module please send them to me.")
+    chop.prnt("*************************************************************")
     module_options = { 'proto': [{'http': ''}] }
 
     parser = OptionParser()
