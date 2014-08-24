@@ -31,8 +31,7 @@ import hashlib
 moduleName="http_extractor"
 
 def log(cp, msg, level, obj):
-    chop.tsprnt("in log")
-    if level == htpy.HTP_LOG_DEBUG2:
+    if level == htpy.HTP_LOG_ERROR:
         elog = cp.get_last_error()
         if elog == None:
             return htpy.HTP_ERROR
@@ -52,12 +51,9 @@ def response_body(data, length, obj):
     return body(data, length, obj, 'response')
 
 def body(data, length, obj, direction):
-    chop.tsprnt("in the body callback")
     d = obj['d']
 
     if length == 0:
-        chop.tsprnt("my body has length 0")
-
         if 'body' not in d[direction]:
             return htpy.HTP_OK
 
@@ -72,14 +68,11 @@ def body(data, length, obj, direction):
         return htpy.HTP_OK
 
     if 'body' in d[direction]:
-        chop.tsprnt("I have a body and it has data")
         d[direction]['body'] += data
     else:
-        chop.tsprnt("I have a body")
         d[direction]['body'] = data
 
     if obj['module_data']['blen'] != 0 and len(d[direction]['body']) >= obj['module_data']['blen']:
-        chop.tsprnt("I have a body and I am rewriting it")
         d[direction]['body'] = d[direction]['body'][:obj['module_data']['blen']]
     return htpy.HTP_OK
 
@@ -113,11 +106,9 @@ def dump(module_data, d):
     d['response'] = { 'headers': {} }
 
 def request_headers(cp, obj):
-    chop.tsprnt("in req headers")
     d = obj['d']
     d['request'] = { 'headers': {} }
     if not obj['module_data']['fields']:
-        chop.tsprnt("getting all headers")
         d['request']['headers'] = cp.get_all_request_headers()
         d['request']['uri'] = cp.get_uri()
         d['request']['method'] = cp.get_method()
@@ -138,7 +129,6 @@ def request_headers(cp, obj):
     return htpy.HTP_OK
 
 def response_headers(cp, obj):
-    chop.tsprnt("in resp headers")
     d = obj['d']
     d['response'] = { 'headers': {} }
     if not obj['module_data']['fields']:
@@ -253,9 +243,7 @@ def taste(tcp):
           'dst': dst,
           'dport': dport,
         }
-    tcp.stream_data['cfg'] = htpy.config()
-    tcp.stream_data['cfg'].log_level = htpy.HTP_LOG_DEBUG2
-    tcp.stream_data['cp'] = htpy.connp(tcp.stream_data['cfg'])
+    tcp.stream_data['cp'] = htpy.init()
     tcp.stream_data['cp'].set_obj({'module_data': tcp.module_data, 'd': d})
     tcp.stream_data['cp'].register_log(log)
     tcp.stream_data['cp'].register_request_headers(request_headers)
@@ -271,14 +259,8 @@ def handleStream(tcp):
         if tcp.module_data['verbose']:
             chop.tsprnt("%s:%s->%s:%s (%i)" % (src, sport, dst, dport, tcp.server.count_new))
         try:
-            chop.tsprnt("about to set data")
             tcp.stream_data['cp'].req_data(tcp.server.data[:tcp.server.count_new])
-            chop.tsprnt("tried to set data")
         except htpy.stop:
-            chop.tsprnt("stopping")
-            tcp.stop()
-        except htpy.error:
-            chop.prnt("Stream error in htpy.")
             tcp.stop()
         except htpy.error:
             chop.prnt("Stream error in htpy.")
@@ -288,14 +270,8 @@ def handleStream(tcp):
         if tcp.module_data['verbose']:
             chop.tsprnt("%s:%s->%s:%s (%i)" % (src, sport, dst, dport, tcp.client.count_new))
         try:
-            chop.tsprnt("about to set data")
             tcp.stream_data['cp'].res_data(tcp.client.data[:tcp.client.count_new])
-            chop.tsprnt("tried to set data")
         except htpy.stop:
-            chop.tsprnt("stopping")
-            tcp.stop()
-        except htpy.error:
-            chop.prnt("Stream error in htpy.")
             tcp.stop()
         except htpy.error:
             chop.prnt("Stream error in htpy.")
