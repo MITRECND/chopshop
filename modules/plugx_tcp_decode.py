@@ -25,6 +25,21 @@
 # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
+# The purpose of this chopshop module is to decode commands and responses
+# for PlugX backdoors.
+#
+# The typical format for a PlugX stream is:
+# <key><encrypted with keystream depending on crypt function and payload>
+# the key is then applied to the whole stream, resulting in:
+# <new_key><flags><compressed_size><decompressed_size><payload>
+#
+# - key is 4 bytes long
+# - flags is 4 bytes long, and indicates the command and whether the 
+#    payload for the command is compressed or not.
+# - compressed size is the size of the remaining data in this payload segment
+# - uncompressed size is the size after decompressing (if flags specify)
+# - payload is transformed according to the flags, often both encrypted and
+#    compressed
 
 import sys
 import struct
