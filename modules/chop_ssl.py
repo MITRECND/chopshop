@@ -114,7 +114,8 @@ def handleStream(tcp):
             tcp.stream_data['chopp'] = ChopProtocol('sslim')
             tcp.module_data['sslim'].callback_obj = tcp.stream_data['chopp']
         else:
-            chop.tsprnt("%s:%i -> %s:%i: Stopping collection, not really SSL!" % (src, sport, dst, dport))
+            if tcp.module_data['verbose']:
+                chop.tsprnt("%s:%i -> %s:%i: Stopping collection, not really SSL!" % (src, sport, dst, dport))
             tcp.module_data['sslim'].done(tcp.addr)
             tcp.stop()
             return
