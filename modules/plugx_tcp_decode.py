@@ -146,6 +146,7 @@ def init(module_data):
         # Screen
         0x4100 : "SCREEN_CAPTURE_FLAG",
         0x4101 : "SCREEN_CAPTURE_FRAME_FLAG",
+        0x4200 : "SCREENSHOT_FLAG",
         # Process
         0x5000 : "ENUM_RUNNING_PROCS_FLAG",
         0x5001 : "ENUM_RUNNING_PROC_MODULES_FLAG",
