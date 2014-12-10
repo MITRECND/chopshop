@@ -148,7 +148,14 @@ endif
 # so that external libraries and modules are found properly.
 install:
 	@${SED} ${SED_ARGS} 's,^(CHOPSHOP_WD = os.path.realpath\().*(\)),\1"${LIBEXECDIR}"\2,;1,1s,.*,#!${PYTHON},' chopshop
-	@${SED} ${SED_ARGS} 's,^(sys.path.append\().*,\1"${SHOPDIR}"),;1,1s,.*,#!${PYTHON},' suture 
+	@${SED} ${SED_ARGS} 's,^(CHOPSHOP_WD = os.path.realpath\().*(\)),\1"${LIBEXECDIR}"\2,;1,1s,.*,#!${PYTHON},' shop/ChopLib.py
+	@${SED} ${SED_ARGS} 's,^(CHOPSHOP_WD = os.path.realpath\().*(\)),\1"${LIBEXECDIR}"\2,;1,1s,.*,#!${PYTHON},' shop/ChopGrammar.py
+	@${SED} ${SED_ARGS} 's,^(CHOPSHOP_WD = os.path.realpath\().*(\)),\1"${LIBEXECDIR}"\2,;1,1s,.*,#!${PYTHON},' shop/ChopUi.py
+	@${SED} ${SED_ARGS} 's,^(CHOPSHOP_WD = os.path.realpath\().*(\)),\1"${LIBEXECDIR}"\2,;1,1s,.*,#!${PYTHON},' shop/ChopUiStd.py
+	@${SED} ${SED_ARGS} 's,^(CHOPSHOP_WD = os.path.realpath\().*(\)),\1"${LIBEXECDIR}"\2,;1,1s,.*,#!${PYTHON},' shop/ChopWebServer.py
+	@${SED} ${SED_ARGS} 's,^(CHOPSHOP_WD = os.path.realpath\().*(\)),\1"${LIBEXECDIR}"\2,;1,1s,.*,#!${PYTHON},' shop/ChopConfig.py
+	@${SED} ${SED_ARGS} 's,^(CHOPSHOP_WD = os.path.realpath\().*(\)),\1"${LIBEXECDIR}"\2,;1,1s,.*,#!${PYTHON},' chopweb
+	@${SED} ${SED_ARGS} 's,^(sys.path.append\().*,\1"${SHOPDIR}"),;1,1s,.*,#!${PYTHON},' suture
 	@${INSTALL} -v -d ${BINDIR}
 	@${INSTALL} -v -o ${OWNER} -g ${GROUP} chopshop ${BINDIR}
 	@${INSTALL} -v -o ${OWNER} -g ${GROUP} suture ${BINDIR}
