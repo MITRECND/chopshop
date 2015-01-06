@@ -99,11 +99,7 @@ _TRANSFER_DATA_HANDLER_NAME = 'web_socket_transfer_data'
 # 1024 is practically large enough to contain WebSocket handshake lines.
 _MAX_MEMORIZED_LINES = 1024
 
-CHOPSHOP_WD = os.path.realpath(os.path.dirname(sys.argv[0]))
-
-if CHOPSHOP_WD + '/shop' not in sys.path:
-    sys.path.append(CHOPSHOP_WD + '/shop')
-
+from ChopGV import CHOPSHOP_WD
 from ChopLib import ChopLib
 from ChopConfig import ChopConfig
 from ChopException import ChopUiException

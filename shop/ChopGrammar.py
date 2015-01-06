@@ -33,11 +33,6 @@ from threading import Thread, Lock
 import re
 from cStringIO import StringIO
 
-CHOPSHOP_WD = os.path.realpath(os.path.dirname(sys.argv[0]))
-
-if CHOPSHOP_WD + '/shop' not in sys.path: 
-    sys.path.append(CHOPSHOP_WD + '/shop')
-
 from ChopException import ChopLibException
 
 

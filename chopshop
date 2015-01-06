@@ -126,7 +126,11 @@ def main():
     if os.path.isfile(user_config):
         chopconfig.parse_config(user_config)
 
-    optparser = OptionParser(usage='usage: %prog [options] ["bpf filter"] "list | (of, many) | modules ; and | more"', option_class=CustomOption)
+    optparser = OptionParser(
+                        usage='usage: %prog [options] ["bpf filter"] "list | (of, many) | modules ; and | more"', 
+                        option_class=CustomOption, 
+                        description='ChopShop is a MITRE created utility to aid analysts in decoding network traffic'
+                        )
     optparser.add_option("-B", "--base_dir", dest = "base_dir", default=None, action="store_list",
         help = "Base directory to load modules and external libraries from. Option prioritized over -M and -E")
     optparser.add_option("-c", "--configfile", action="store", dest="configfile",

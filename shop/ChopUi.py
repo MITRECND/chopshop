@@ -28,11 +28,6 @@ import os
 from threading import Thread, Lock
 import Queue
 
-CHOPSHOP_WD = os.path.realpath(os.path.dirname(sys.argv[0]))
-
-if CHOPSHOP_WD + '/shop' not in sys.path:
-    sys.path.append(CHOPSHOP_WD + '/shop')
-
 from ChopException import * 
 from ChopUiStd import *
 import ChopShopDebug as CSD

@@ -28,12 +28,6 @@ import time
 import os
 import sys
 
-CHOPSHOP_WD = os.path.realpath(os.path.dirname(sys.argv[0]))
-
-if CHOPSHOP_WD + '/shop' not in sys.path:
-    sys.path.append(CHOPSHOP_WD + '/shop')
-
-
 import ChopShopDebug as CSD
 from ChopException import ChopLibException
 

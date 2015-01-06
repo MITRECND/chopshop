@@ -36,19 +36,17 @@ from threading import Thread, Lock
 import re
 from cStringIO import StringIO
 
-CHOPSHOP_WD = os.path.realpath(os.path.dirname(sys.argv[0]))
 
-if CHOPSHOP_WD + '/shop' not in sys.path:
-    sys.path.append(CHOPSHOP_WD + '/shop')
-
-DEFAULT_MODULE_DIRECTORY = CHOPSHOP_WD + '/modules/'
-DEFAULT_EXTLIB_DIRECTORY = CHOPSHOP_WD + '/ext_libs/'
-
+from ChopGV import CHOPSHOP_WD
 from ChopNids import ChopCore
 from ChopHelper import ChopHelper
 from ChopSurgeon import Surgeon
 from ChopException import ChopLibException
 from ChopGrammar import ChopGrammar
+
+
+DEFAULT_MODULE_DIRECTORY = CHOPSHOP_WD + '/modules/'
+DEFAULT_EXTLIB_DIRECTORY = CHOPSHOP_WD + '/ext_libs/'
 """
     ChopLib is the core functionality of ChopShop. It provides a library interface to the processing side of chopshop
     Any output/UI functionality has been extracted and is not done by this class. ChopLib will output all output onto queue
@@ -661,7 +659,7 @@ class ChopLib(Thread):
                 raise Exception("Unknown message")
 
 
-        chop.prettyprnt("RED", "Starting ChopShop")
+        chop.prettyprnt("RED", "Starting ChopShop (Created by MITRE)")
 
         #Initialize the ChopShop Core
         ccore = ChopCore(options, module_list, chop, chophelper)

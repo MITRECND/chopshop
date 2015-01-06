@@ -82,8 +82,7 @@ DNSLIB_MODULES=	dns
 
 HTPY_MODULES=	http
 
-MONGO_MODULES=	dns_extractor \
-		http_extractor
+MONGO_MODULES=	dns_extractor
 
 YARA_MODULES=	yarashop
 
@@ -148,6 +147,8 @@ endif
 # so that external libraries and modules are found properly.
 install:
 	@${SED} ${SED_ARGS} 's,^(CHOPSHOP_WD = os.path.realpath\().*(\)),\1"${LIBEXECDIR}"\2,;1,1s,.*,#!${PYTHON},' chopshop
+	@${SED} ${SED_ARGS} 's,^(CHOPSHOP_WD = os.path.realpath\().*(\)),\1"${LIBEXECDIR}"\2,;1,1s,.*,#!${PYTHON},' chopweb
+	@${SED} ${SED_ARGS} 's,^(CHOPSHOP_WD = os.path.realpath\().*(\)),\1"${LIBEXECDIR}"\2,;1,1s,.*,#!${PYTHON},' shop/ChopGV.py
 	@${SED} ${SED_ARGS} 's,^(sys.path.append\().*,\1"${SHOPDIR}"),;1,1s,.*,#!${PYTHON},' suture 
 	@${INSTALL} -v -d ${BINDIR}
 	@${INSTALL} -v -o ${OWNER} -g ${GROUP} chopshop ${BINDIR}

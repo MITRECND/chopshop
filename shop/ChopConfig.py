@@ -31,11 +31,7 @@ import os
 from pprint import pformat
 
 from ChopException import ChopConfigException
-
-CHOPSHOP_WD = os.path.realpath(os.path.dirname(sys.argv[0]))
-
-if CHOPSHOP_WD + '/shop' not in sys.path:
-    sys.path.append(CHOPSHOP_WD + '/shop')
+from ChopGV import CHOPSHOP_WD
 
 """
     ChopConfig handles parsing configuration options which can be leveraged by
