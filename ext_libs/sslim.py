@@ -281,6 +281,7 @@ class sslim_parser(sslim):
         self.TLS_RSA_WITH_3DES_EDE_CBC_SHA = 0x000A
         self.TLS_RSA_WITH_AES_128_CBC_SHA = 0x002F
         self.TLS_RSA_WITH_AES_256_CBC_SHA = 0x0035
+        self.TLS_RSA_WITH_AES_128_CBC_SHA256 = 0x003C
         # key_size, mac_size and block_size are in bytes!
         self.cipher_suites = {
             self.TLS_RSA_WITH_RC4_128_MD5: {
@@ -337,6 +338,16 @@ class sslim_parser(sslim):
                 'mac': 'SHA',
                 'mac_size': 20,
                 'km_len': 136,
+                'block_size': 16
+            },
+            self.TLS_RSA_WITH_AES_128_CBC_SHA256: {
+                'key_exch': 'RSA',
+                'algo': 'aes_128_cbc',
+                'cipher': 'block',
+                'key_size': 16,
+                'mac': 'SHA',
+                'mac_size': 32,
+                'km_len': 104,
                 'block_size': 16
             }
         }
@@ -656,7 +667,7 @@ class sslim_parser(sslim):
                 sha_md.__init__('sha1')
                 md5_md.__init__('md5')
             return out
-        elif self.ver == self.TLSv1_0:
+        elif self.ver == self.TLSv1_0 or self.ver == self.TLSv1_1:
             # Split the secret into two halves.
             ls1 = ls2 = int(math.ceil(len(secret) / 2))
             s1 = secret[:ls1]
@@ -733,6 +744,10 @@ class sslim_parser(sslim):
 
     def __decrypt(self, data, cryptobj, zobj, callback):
         clear = cryptobj.update(data)
+        # CBC mode ciphers need to throw away the first block when used
+        # with TLS1.1 and newer.
+        if self.ver >= self.TLSv1_1 and self.cipher_suite['algo'].endswith('cbc'):
+            clear = clear[self.cipher_suite['block_size']:]
         if self.compression == self.DEFLATE_COMPRESSION:
             # Do not strip the MAC and padding because that
             # is done in the decompression step.
