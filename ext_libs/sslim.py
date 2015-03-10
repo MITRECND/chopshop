@@ -746,8 +746,9 @@ class sslim_parser(sslim):
         clear = cryptobj.update(data)
         # CBC mode ciphers need to throw away the first block when used
         # with TLS1.1 and newer.
-        if self.ver >= self.TLSv1_1 and self.cipher_suite['algo'].endswith('cbc'):
-            clear = clear[self.cipher_suite['block_size']:]
+        if self.ver >= self.TLSv1_1:
+            if self.cipher_suite['cipher'] == 'block' and self.cipher_suite['algo'].endswith('cbc'):
+                clear = clear[self.cipher_suite['block_size']:]
         if self.compression == self.DEFLATE_COMPRESSION:
             # Do not strip the MAC and padding because that
             # is done in the decompression step.
