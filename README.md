@@ -15,4 +15,4 @@ Documentation has been moved to the docs folder. Please reference that folder fo
 - Embedding Chopshop
 
 
-Note: There is a known issue when running ChopShop on Ubuntu where the version of pynids obtained via apt causes an ImportError.  Per https://bugs.launchpad.net/ubuntu/+source/python-nids/+bug/795991, this issue affects some variants of at least 11.10 and 12.04.  A workaround is to compile pynids from source which can be obtained from http://jon.oberheide.org/pynids/.
+Note: There is a known issue when running ChopShop on Ubuntu where the version of pynids obtained via apt causes an ImportError.  Per https://bugs.launchpad.net/ubuntu/+source/python-nids/+bug/795991, this issue affects some variants of at least 11.10 and 12.04.  A workaround is to compile pynids from source which can be obtained from https://github.com/MITRECND/pynids/.
