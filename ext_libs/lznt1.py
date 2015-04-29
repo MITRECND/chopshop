@@ -94,11 +94,10 @@ def dCompressBuf(blob):
     unc = ''
     while good:
         try:
-            hdr = blob[0:2]
+            hdr = struct.unpack('H', blob[0:2])[0]
             blob = blob[2:]
 
-            length = struct.unpack('H', hdr)[0]
-            length &= 0xfff
+            length = hdr & 0xfff
             length += 1
             if length > len(blob):
                 raise lznt1Error("invalid block len")
@@ -106,8 +105,11 @@ def dCompressBuf(blob):
             else:
                 y = blob[:length]
                 blob = blob[length:]
-                unc += _dCompressBlock(y)
-        except:
+                if not bool(hdr & 0x8000):
+                    unc += y
+                else:
+                    unc += _dCompressBlock(y)
+        except Exception, e:
             good = False
 
     return unc
