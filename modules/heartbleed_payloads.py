@@ -89,6 +89,8 @@ def handleStream(tcp):
             chop.tsprnt("%s:%s -> %s:%s %i bytes" % (src, sport, dst, dport, count,))
             chop.prnt(hexdump(data[8:]))
             tcp.stream_data['dump'] = True
+    if tcp.client.server_new > 0:
+        count = tcp.server.count_new
 
     tcp.discard(count)
 
