@@ -1,4 +1,4 @@
-# Copyright (c) 2014 The MITRE Corporation. All rights reserved.
+# Copyright (c) 2015 The MITRE Corporation. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -23,14 +23,17 @@
 
 from optparse import OptionParser
 
-from sslim import sslim, sslimException
-from c2utils import parse_addr
-
-from ChopProtocol import ChopProtocol
+from sslim import sslim, sslimException, sslimChopProtocol
+from c2utils import parse_addr, hexdump
 
 moduleName="chop_ssl"
 moduleVersion="1.0"
 minimumChopLib="4.0"
+
+def sslim_metadata_callback(metadata, chopp):
+    # Metadata is appended to a list because there can be multiple TLS records
+    # in a given TCP packet.
+    chopp.metadata.append(metadata)
 
 def sslim_req_callback(data, chopp):
     # Have to append because of multiple SSL records in a single packet.
@@ -57,11 +60,12 @@ def init(module_data):
     module_data['verbose'] = opts.verbose
     module_data['keyfile'] = opts.keyfile
 
-    if module_data['keyfile'] == None:
-        module_options['error'] = "Must provide a keyfile."
-        return module_options
+    #if module_data['keyfile'] == None:
+    #    module_options['error'] = "Must provide a keyfile."
+    #    return module_options
 
     module_data['sslim'] = sslim(module_data['keyfile'])
+    module_data['sslim'].metadata_callback = sslim_metadata_callback
     module_data['sslim'].req_callback = sslim_req_callback
     module_data['sslim'].res_callback = sslim_res_callback
 
@@ -88,7 +92,12 @@ def handleStream(tcp):
             # Check if proxy CONNECT
             if tcp.server.data[:8] == "CONNECT ":
                 if tcp.module_data['verbose']:
-                    chop.tsprnt("%s:%i -> %s:%i (%i) - CONNECT (ignored)" % (src, sport, dst, dport, server_dlen))
+                    chop.tsprnt("%s:%i -> %s:%i (%i) - CONNECT (ignored)" % (
+                                src,
+                                sport,
+                                dst,
+                                dport,
+                                server_dlen))
                 tcp.discard(server_dlen)
                 return
             # Otherwise, prepare to check if SSL handshake
@@ -98,7 +107,12 @@ def handleStream(tcp):
             # Check if proxy CONNECT response
             if tcp.client.data[:6] == "HTTP/1":
                 if tcp.module_data['verbose']:
-                    chop.tsprnt("%s:%i -> %s:%i (%i) - HTTP/1 (ignored)" % (src, sport, dst, dport, client_dlen))
+                    chop.tsprnt("%s:%i -> %s:%i (%i) - HTTP/1 (ignored)" % (
+                                src,
+                                sport,
+                                dst,
+                                dport,
+                                client_dlen))
                 tcp.discard(client_dlen)
                 return
             # Otherwise, prepare to check if SSL handshake
@@ -111,23 +125,33 @@ def handleStream(tcp):
         # There's probably more to this, but this is good enough for now.
         if data in ('\x16\x03\x00', '\x16\x03\x01', '\x16\x03\x02', '\x16\x03\x03'):
             tcp.stream_data['ssl'] = True
-            tcp.stream_data['chopp'] = ChopProtocol('sslim')
+            tcp.stream_data['chopp'] = sslimChopProtocol('sslim')
             tcp.module_data['sslim'].callback_obj = tcp.stream_data['chopp']
         else:
             if tcp.module_data['verbose']:
-                chop.tsprnt("%s:%i -> %s:%i: Stopping collection, not really SSL!" % (src, sport, dst, dport))
+                chop.tsprnt("%s:%i -> %s:%i: Stopping, not really SSL!" % (
+                            src,
+                            sport,
+                            dst,
+                            dport))
             tcp.module_data['sslim'].done(tcp.addr)
             tcp.stop()
             return
 
     # Always clear out any existing data.
-    tcp.stream_data['chopp'].clientData = '' 
+    tcp.stream_data['chopp'].clientData = ''
     tcp.stream_data['chopp'].serverData = ''
+    tcp.stream_data['chopp'].metadata =  []
 
     # We have identified this connection as SSL, so just process the packets
     if tcp.server.count_new > 0:
         if tcp.module_data['verbose']:
-            chop.tsprnt("%s:%s -> %s:%s (%i)" % (src, sport, dst, dport, len(tcp.server.data[:tcp.server.count_new])))
+            chop.tsprnt("%s:%s -> %s:%s (%i)" % (
+                        src,
+                        sport,
+                        dst,
+                        dport,
+                        len(tcp.server.data[:tcp.server.count_new])))
         try:
             tcp.module_data['sslim'].parse_to_server(tcp.server.data[:tcp.server.count_new], tcp.addr)
         except sslimException as e:
@@ -139,7 +163,12 @@ def handleStream(tcp):
         tcp.discard(tcp.server.count_new)
     if tcp.client.count_new > 0:
         if tcp.module_data['verbose']:
-            chop.tsprnt("%s:%s -> %s:%s (%i)" % (src, sport, dst, dport, len(tcp.client.data[:tcp.client.count_new])))
+            chop.tsprnt("%s:%s -> %s:%s (%i)" % (
+                        src,
+                        sport,
+                        dst,
+                        dport,
+                        len(tcp.client.data[:tcp.client.count_new])))
         try:
             tcp.module_data['sslim'].parse_to_client(tcp.client.data[:tcp.client.count_new], tcp.addr)
         except sslimException as e:
@@ -150,7 +179,9 @@ def handleStream(tcp):
             return
         tcp.discard(tcp.client.count_new)
 
-    if tcp.stream_data['chopp'].clientData or tcp.stream_data['chopp'].serverData:
+    if (tcp.stream_data['chopp'].clientData or
+        tcp.stream_data['chopp'].serverData or
+        tcp.stream_data['chopp'].metadata):
         return tcp.stream_data['chopp']
 
     return
