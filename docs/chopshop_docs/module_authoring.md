@@ -21,42 +21,37 @@ depending upon the layer 4 payload you intend to parse.
 
 ChopShop 4.0 Changes
 ----------
-A few changes have been introduced with ChopShop 4.0, the majority of which will not
-change or break functionality and should be mostly un-obtrusive to module authors:
+A few changes have been introduced with ChopShop 4.0, the majority of which
+will not change or break functionality and should be mostly un-obtrusive to
+module authors:
 
-<code>
-Usage of 'print' in module_info has been removed -- it was deprecated in 3.0. 
+Usage of 'print' in module_info has been removed -- it was deprecated in 3.0.
 Module Authors should return a string instead
 
-ChopShop 4.0 modules require 'moduleVersion' and 'minimumChopLib' to be defined 
-alongside 'moduleName' -- note that if you do not specify these two extra variables
-your module will be assumed to be a ChopShop 3.x module (legacy).
+ChopShop 4.0 modules require 'moduleVersion' and 'minimumChopLib' to be defined
+alongside 'moduleName' -- note that if you do not specify these two extra
+variables your module will be assumed to be a ChopShop 3.x module (legacy).
 
-The module_args['proto'] element is now different to support multiple protocols and
-chaining. It now looks like 'proto' : [{'input', 'output'}]. Note that the old style
-'proto' : 'tcp' will still work fine for old/legacy modules.
-</code>
+The module_args['proto'] element is now different to support multiple protocols
+and chaining. It now looks like <code>'proto' : [{'input', 'output'}]</code>.
+Note that the old style <code>'proto' : 'tcp'</code> will still work fine for
+old/legacy modules.
 
 Transitioning Your Module
 ----------
-If you'd like to transition your module to ChopShop 4.0, there's only a few steps
-to follow:
+If you'd like to transition your module to ChopShop 4.0, there's only a few
+steps to follow:
 
-<code>
 Add 'moduleVersion' and 'minimumChopLib' to your module
 
-Modify the 'proto' element in module_args as described above. 
-Tcp modules will look like:
+Modify the 'proto' element in module_args as described above.  Tcp modules will
+look like:
 
-module_args = {'proto': [{'tcp': ''}]}
+<code> module_args = {'proto': [{'tcp': ''}]} </code>
 
 Udp modules will look like:
 
-module_args = {'proto': [{'udp': ''}]}
-
-</code>
-
-
+<code> module_args = {'proto': [{'udp': ''}]} </code>
 
 tcp_data structure
 ------------------
@@ -188,10 +183,6 @@ from the client
 
 <b>serverData</b> - arbitrary python data structure defined by primary modules for data
 from the server
-
-
-
-
 
 Variables
 ---------
