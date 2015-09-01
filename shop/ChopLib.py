@@ -24,7 +24,7 @@
 # SUCH DAMAGE.
 
 
-VERSION = 4.1 
+VERSION = 4.3 
 
 import ConfigParser
 import sys

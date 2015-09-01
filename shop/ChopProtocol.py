@@ -39,6 +39,10 @@ class ChopProtocol(object):
         self.type = type
         self.sval = False
         self.unique = None
+        self._teardown = False
+
+    def setTeardown(self, v = True):
+        self._teardown = v
 
     #If your data is complex enough
     #you MUST inherit from ChopProtocol and redefine _clone
