@@ -725,6 +725,7 @@ def handleProtocol(module, protocol, pp): #pp is parent protocol
 
 def handleChildren(module, protocol, output):
     #Handle any potential children
+    code = module.code
     if isinstance(output, ChopProtocol):
         output = [output]
     elif not isinstance(output, list):
