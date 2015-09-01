@@ -142,5 +142,94 @@ def handleProtocol(protocol):
     
     return
 
+def teardownProtocol(protocol):
+    if protocol.type != 'http':
+        chop.prnt("Error")
+        return
+
+    module_data = protocol.module_data
+    data = {'request': protocol.clientData, 'response': protocol.serverData}
+
+    if data['request'] is not None:
+
+        if data['request']['body'] is None:
+            del data['request']['body']
+            del data['request']['body_hash']
+        elif module_data['hash_body']:
+            del data['request']['body']
+
+        del data['request']['truncated']
+        del data['request']['body_len']
+        del data['request']['hash_fn']
+
+    if data['response'] is not None:
+        if data['response']['body'] is None:
+            del data['response']['body']
+            del data['response']['body_hash']
+        elif module_data['hash_body']:
+            del data['response']['body']
+
+        del data['response']['truncated']
+        del data['response']['body_len']
+        del data['response']['hash_fn']
+
+
+    fields = module_data['fields']
+    if fields:
+        if data['request'] is not None:
+            req_fields = fields + ['uri', 'method']
+            new_headers = {}
+            for header in data['request']['headers']:
+                if header in req_fields:
+                   new_headers[header] = data['request']['headers'][header]
+
+            for element in data['request'].keys():
+                if element not in req_fields:
+                    del data['request'][element]
+
+            #Set the new headers dictionary
+            data['request']['headers'] = new_headers
+
+        if data['response'] is not None:
+            res_fields = fields + ['status']
+            new_headers = {}
+            for header in data['response']['headers']:
+                if header in res_fields:
+                    new_headers[header] = data['response']['headers'][header]
+
+            for element in data['response'].keys():
+                if element not in res_fields:
+                    del data['response'][element]
+
+            data['response']['headers'] = new_headers
+
+    if data['request'] is not None:
+        if module_data['carve_request'] and 'body' in data['request']:
+            fname = sanitize_filename(data['request']['uri']['path'][1:]) + '.request.' + str(module_data['counter'])
+            chop.prnt("DUMPING REQUEST: %s (%i)" % (fname, len(data['request']['body'])))
+            chop.savefile(fname, data['request']['body'])
+            module_data['counter'] += 1
+
+        if 'body' in data['request']:
+            data['request']['body'] = b64encode(data['request']['body'])
+            data['request']['body_encoding'] = 'base64'
+
+    if data['response'] is not None:
+        if module_data['carve_response'] and 'body' in data['response']:
+            fname = sanitize_filename(data['request']['uri']['path'][1:]) + '.response.' + str(module_data['counter'])
+            chop.prnt("DUMPING RESPONSE: %s (%i)" % (fname, len(data['response']['body'])))
+            chop.savefile(fname, data['response']['body'])
+            module_data['counter'] += 1
+
+        if 'body' in data['response']:
+            data['response']['body'] = b64encode(data['response']['body'])
+            data['response']['body_encoding'] = 'base64'
+
+
+    chop.prnt(data)
+    chop.json(data)
+
+    return
+
 def shutdown(module_data):
     return
