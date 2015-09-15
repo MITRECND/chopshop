@@ -125,7 +125,7 @@ def handleStream(tcp):
         # There's probably more to this, but this is good enough for now.
         if data in ('\x16\x03\x00', '\x16\x03\x01', '\x16\x03\x02', '\x16\x03\x03'):
             tcp.stream_data['ssl'] = True
-            tcp.stream_data['chopp'] = sslimChopProtocol('sslim')
+            tcp.stream_data['chopp'] = sslimChopProtocol()
             tcp.module_data['sslim'].callback_obj = tcp.stream_data['chopp']
         else:
             if tcp.module_data['verbose']:

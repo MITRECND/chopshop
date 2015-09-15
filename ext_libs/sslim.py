@@ -60,9 +60,9 @@ from ChopProtocol import ChopProtocol
 # Our own special ChopProtocol child class. We need to have a list of
 # metadata for each record processed.
 class sslimChopProtocol(ChopProtocol):
-    def __init__(self, type):
+    def __init__(self):
         self.metadata = []
-        super(self.__class__, self).__init__(type)
+        super(self.__class__, self).__init__('sslim')
 
 class sslimException(Exception):
     pass
