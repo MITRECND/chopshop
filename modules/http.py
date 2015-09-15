@@ -332,8 +332,21 @@ def teardown(tcp):
             else:
                 req = t['request']
 
+            if 'tmp_hash' in t['request']:
+                if t['request']['body_len'] > 0:
+                    t['request']['body_hash'] = t['request']['tmp_hash'].hexdigest()
+                else:
+                    t['request']['body_hash'] = ""
+                del t['request']['tmp_hash']
+
         if 'response' in t:
             resp = t['response']
+            if 'tmp_hash' in t['response']:
+                if t['response']['body_len'] > 0:
+                    t['response']['body_hash'] = t['response']['tmp_hash'].hexdigest()
+                else:
+                    t['response']['body_hash'] = ""
+                del t['response']['tmp_hash']
         else:
             resp = None
 
@@ -409,5 +422,65 @@ def handleProtocol(chopp):
 
         return new_chopp
 
-def teardownProtcol(chopp):
-    return
+def teardownProtocol(chopp):
+    if chopp.type != 'sslim':
+        return
+
+    stream_data = chopp.stream_data
+
+    #sslim returns an empty object on teardown
+    if 'htpy_obj' not in stream_data:
+        return
+
+    hchopp = ChopProtocol('http')
+    ((src, sport), (dst, dport)) = chopp.addr
+    stream_data['htpy_obj'].timestamp = chopp.timestamp
+
+    #There's data collected in temp
+    if len(stream_data['htpy_obj'].temp.keys()) > 1: #we don't care if only start is populated
+        t = stream_data['htpy_obj'].temp
+
+        if 'request' in t:
+            if len(t['request'].keys()) == 0:
+                try:
+                    req = stream_data['htpy_obj'].lines.get(False)
+                except Queue.Empty:
+                    req = None
+            else:
+                req = t['request']
+
+            if 'tmp_hash' in t['request']:
+                if t['request']['body_len'] > 0:
+                    t['request']['body_hash'] = t['request']['tmp_hash'].hexdigest()
+                else:
+                    t['request']['body_hash'] = ""
+                del t['request']['tmp_hash']
+
+        if 'response' in t:
+            resp = t['response']
+
+            if 'tmp_hash' in t['response']:
+                if t['response']['body_len'] > 0:
+                    t['response']['body_hash'] = t['response']['tmp_hash'].hexdigest()
+                else:
+                    t['response']['body_hash'] = ""
+                del t['response']['tmp_hash']
+
+        else:
+            resp = None
+
+        if req is not None or resp is not None:
+            hchopp.setClientData(req)
+            hchopp.setServerData(resp)
+            hchopp.setTimeStamp(t['start'])
+            hchopp.setAddr(chopp.addr)
+            hchopp.setTeardown()
+            hchopp.flowStart = stream_data['htpy_obj'].flowStart
+
+            stream_data['htpy_obj'].ready = False
+            stream_data['htpy_obj'].temp = {}
+            stream_data['htpy_obj'].transaction = {}
+
+            return hchopp
+
+    return None
