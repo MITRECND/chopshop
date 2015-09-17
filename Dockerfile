@@ -1,6 +1,7 @@
 FROM debian:jessie
 
-MAINTAINER blacktop, https://github.com/blacktop
+#Special thanks to blacktop for creating this docker config https://github.com/blacktop
+MAINTAINER mitrecnd, https://github.com/mitrecnd
 
 # Copy source code to tmp folder
 COPY . /tmp

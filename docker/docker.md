@@ -1,35 +1,35 @@
 ChopShop Dockerfile
 ==================
 
-This repository contains a **Dockerfile** of [ChopShop](https://github.com/MITRECND/chopshop) for [Docker](https://www.docker.io/)'s [trusted build](https://index.docker.io/u/blacktop/chopshop/) published to the public [Docker Registry](https://index.docker.io/).
+This repository contains a **Dockerfile** of [ChopShop](https://github.com/MITRECND/chopshop) for [Docker](https://www.docker.io/)'s [trusted build](https://index.docker.io/u/mitrecndocker/chopshop/) published to the public [Docker Registry](https://index.docker.io/). Originally created by [blacktop](https://github.com/blacktop)
 
 ### Dependencies
 * [debian:jessie](https://index.docker.io/_/debian/)
 
 ### Image Size
-[![](https://badge.imagelayers.io/blacktop/chopshop:latest.svg)](https://imagelayers.io/?images=blacktop/chopshop:latest 'Get your own badge on imagelayers.io')
+[![](https://badge.imagelayers.io/mitrecnd/chopshop:latest.svg)](https://imagelayers.io/?images=mitrecnd/chopshop:latest 'Get your own badge on imagelayers.io')
 
 ### Image Tags
 ```bash
 $ docker images
 
 REPOSITORY          TAG                 IMAGE ID           VIRTUAL SIZE
-blacktop/chopshop   latest              1df35766838d       262.3 MB
+mitrecnd/chopshop   latest              1df35766838d       262.3 MB
 ```
 
 ### Installation
 
 1. Install [Docker](://www.docker.io/).
 
-2. Download [trusted build](://index.docker.io/u/blacktop/chopshop/) from public [Docker Registry](://index.docker.io/): `docker pull blacktop/chopshop`
+2. Download [trusted build](://index.docker.io/u/mitrecndocker/chopshop/) from public [Docker Registry](://index.docker.io/): `docker pull mitrecnd/chopshop`
 
 #### Alternatively, build an image from Dockerfile
 ```bash
-$ docker build -t blacktop/chopshop github.com/blacktop/docker-chopshop
+$ docker build -t mitrecnd/chopshop github.com/mitrecnd/chopshop
 ```
 ### Usage
 ```bash
-$ docker run -i -t -v /path/to/folder/pcap:/pcap:rw blacktop/chopshop -f my.pcap "http | http_extractor"
+$ docker run -i -t -v /path/to/folder/pcap:/pcap:rw mitrecnd/chopshop -f my.pcap "http | http_extractor"
 ```
 #### Output:
 ```
@@ -94,7 +94,7 @@ $ eval $(docker-machine env dev)
 Add the following to your bash or zsh profile
 
 ```bash
-alias chopshop='docker run -it --rm -v `pwd`:/pcap:rw blacktop/chopshop $@'
+alias chopshop='docker run -it --rm -v `pwd`:/pcap:rw mitrecnd/chopshop $@'
 ```
 #### Usage
 
