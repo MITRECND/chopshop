@@ -6,7 +6,7 @@ Creating ChopShop modules consists of creating a python file with a unique name 
 
 Quick Start
 ---------
-To get started quickly with creating a module, ChopShop provides a simple shell script to setup a simple module stub for you. You can use 'newmod.sh' to create this stub and open an editor for you to get right to work. The newmod.sh script takes two arguments. The first is the name of the module you want to create and the second is a string (either 'tcp' or 'udp') depending upon the layer 4 payload you intend to parse.
+To get started quickly with creating a module, ChopShop provides a simple shell script to setup a simple module stub for you. You can use 'newmod.sh' to create this stub and open an editor for you to get right to work. The newmod.sh script takes two or three arguments. The first is the name of the module you want to create and the second is a string ('tcp', 'udp', 'ip' or 'CUSTOM') depending upon the payload you intend to parse. If you use 'CUSTOM' as the argument, the script will expect another argument which is the 'type' you are trying to process, e.g., 'http'. After creating the module stub and documentation file, the script will open up your editor to allow you to write your module
 
 <code>
 ./newmod.sh awesome_decoder tcp
