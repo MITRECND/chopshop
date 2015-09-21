@@ -16,7 +16,7 @@ To get started quickly with creating a module, ChopShop provides a simple shell 
 Primary vs. Secondary Modules
 -----------------------------
 
-ChopShop has two 'tiers' of modules to supports its chaining functionality called 'primary' and 'secondary'. The distincation is that primary modules parse data that is considered a 'core' type within ChopShop, specifically this would be tcp, udp, and ip. A module that processes a module created type is considered secondary. The http_extractor module, for example is a secondary module as it only accepts 'http' type data. It's important to note that since ChopShop supports ingesting multiple types within a single module, a module can technically both be a primary and secondary module -- but the distinction between primary and secondary is generally a runtime distinction, as in what functions will be called in either case. More on this will be covered below.
+ChopShop has two types of modules to supports its chaining functionality called 'primary' and 'secondary'. The distinction is that primary modules parse data that is considered a 'core' type within ChopShop, specifically this would be tcp, udp, and ip. A module that processes a module created type is considered secondary. The http_extractor module, for example is a secondary module as it only accepts 'http' type data. It's important to note that since ChopShop supports ingesting multiple types within a single module, a module can technically both be a primary and secondary module -- but the distinction between primary and secondary is generally a runtime distinction, as in what functions will be called in either case. More on this will be covered below.
 
 
 Module Structure
@@ -266,28 +266,21 @@ The "chop" library
 ChopShop provides the "chop" library for module usage to interact with the outside world. This allows the module writer to worry less about how to output data. The chop library provides output "channels" to allow you to very easily output data to the location of the module invoker's choosing. The following output channels are supported:
 
 <pre>
-chop.prnt - Function that works similar to print, supports output to a gui,
-stdout, or a file depending on the users command line arguments
-chop.debug - Debug function that outputs to a gui, stderr, or a file depending
-on the users command line arguments
-chop.json - Outputs a json string based on an object passed to it, enabled if
-JSON output is enabled by the user
+chop.prnt - Function that works similar to print, supports output to a gui, stdout, or a file depending on the users command line arguments
+chop.debug - Debug function that outputs to a gui, stderr, or a file depending on the users command line arguments
+chop.json - Outputs a json string based on an object passed to it, enabled if JSON output is enabled by the user
 </pre>
 
 chop also provides the following other related functions:
 <pre>
 chop.tsprnt - same as chop.prnt but prepends the packet timestamp to the string
-chop.prettyprnt - same as chop.prnt but the first argument is a color string,
-e.g., "RED"
-chop.tsprettyprnt - same as chop.tsprnt but the first argument is a color
-string, e.g., "CYAN"
-chop.set_custom_json_encoder - given a reference to a function will attempt to
-use it as a custom json encoder for all calls to chop.json
-chop.set_ts_format_short - accepts a boolean that enables short time format
-'[H:M:S]' (default is '[Y-M-D H:M:S TZ]')
+chop.prettyprnt - same as chop.prnt but the first argument is a color string, e.g., "RED"
+chop.tsprettyprnt - same as chop.tsprnt but the first argument is a color string, e.g., "CYAN"
+chop.set_custom_json_encoder - given a reference to a function will attempt to use it as a custom json encoder for all calls to chop.json
+chop.set_ts_format_short - accepts a boolean that enables short time format '[H:M:S]' (default is '[Y-M-D H:M:S TZ]')
 </pre>
 
-<b>NO methods should use python's regular "print" command</b>
+<b>DO NOT use python's regular "print" command.</b>
 
 The following colors are currently supported with chop.prettyprnt and chop.tsprettyprnt:
 
