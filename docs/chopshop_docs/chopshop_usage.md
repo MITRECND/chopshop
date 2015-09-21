@@ -58,7 +58,7 @@ This enables files to be output to a location of the program invoker's choosing,
 Quick Start
 ============
 
-If you are familiar with Docker, you can pull the mitrecnd/docker image to quickly get chopshop up and running:
+If you are familiar with Docker, you can pull the mitrecnd/chopshop image to quickly get chopshop up and running:
 
 ```bash
 $ docker pull mitrecnd/chopshop
