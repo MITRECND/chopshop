@@ -23,8 +23,10 @@
 # OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
 # SUCH DAMAGE.
 
-if [ $# -ne 2 ]; then
-	echo "Usage: $0 <module name> <tcp|udp>"
+USAGE="Usage: $0 <module name> <tcp|udp|ip|CUSTOM> <CUSTOM_TYPE>"
+
+if [ $# -lt 2 ]; then
+	echo $USAGE
 	exit 1
 fi
 
@@ -41,12 +43,12 @@ if [ -e "${MODDIR}/${MODFILE}" ]; then
 	exit 1
 fi
 
-shift
-TYPE=$1
+TYPE=$2
 
 # Encourage people to write docs by touching
 # the docs file for them.
 touch "${DOCSDIR}/${DOCNAME}"
+HBODY=""
 
 if [ ${TYPE} = "tcp" ]; then
 	HANDLE='handleStream'
@@ -54,8 +56,19 @@ if [ ${TYPE} = "tcp" ]; then
 elif [ ${TYPE} = "udp" ]; then
 	HANDLE='handleDatagram'
 	ARG='udp'
+elif [ ${TYPE} = "ip" ]; then
+    HANDLE='handlePacket'
+    ARG='ip'
+elif [ ${TYPE} = "CUSTOM" ]; then
+    HANDLE='handleProtocol'
+    TYPE=$3
+    ARG='chopp'
+    HBODY="
+    if ${ARG}.type != ${TYPE}:
+        return
+"
 else
-	echo "Usage: $0 <module name> <tcp|udp>"
+	echo $USAGE
 	exit 1
 fi
 
@@ -68,17 +81,18 @@ def module_info():
     pass
 
 def init(module_data):
-    module_options = { 'proto': [{'${ARG}': ''}] }
+    module_options = { 'proto': [{'${TYPE}': ''}] }
     return module_options
 
 def ${HANDLE}(${ARG}):
+    $HBODY
     return
 
 def shutdown(module_data):
     return
 _EOF
 
-# TCP gets teardown() and taste(), UDP does not.
+# TCP gets teardown() and taste(), others do not.
 if [ ${TYPE} = "tcp" ]; then
 cat << _EOF >> "${MODDIR}/${MODFILE}" || exit 1
 
