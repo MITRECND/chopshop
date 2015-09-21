@@ -54,6 +54,29 @@ Note that -F, -J, and -s require a formatted string that understands the followi
 
 This enables files to be output to a location of the program invoker's choosing, more info can be found below in the examples.
 
+
+Quick Start
+============
+
+If you are familiar with Docker, you can pull the mitrecnd/docker image to quickly get chopshop up and running:
+
+```bash
+$ docker pull mitrecnd/chopshop
+```
+
+and then run chopshop on a pcap:
+
+```bash
+$ docker run --rm -it -v /path/to/folder/pcap:/pcap mitrecnd/chopshop -f my.pcap "http | http_extractor"
+```
+
+For more information about the docker image, please look at docker.md in the docker folder.
+
+
+If you'd like to install ChopShop manually, you can use the included Makefile which will check for dependencies and alert you to any missing ones. ChopShop will require Python 2.6+ and nids/pynids to function. Some modules will require other software to be installed such as htpy (libhtp python interface) to enable functionality.
+
+
+
 User Defined Directories
 ==============
 Users have the option to override the default directories ChopShop uses to look for modules and external libraries. ChopShop provides three options to override default values.  The first is called the base directory, the argument flag for this in chopshop is -B or --base_dir.  This parameter takes a path or comma separated list of paths to look for both modules and external libraries (ext_libs). So if you pass "/usr/local/chopshop-partner" as the base directory, ChopShop would assume the 'modules' directory and the 'ext_libs' directory are located in that directory (e.g, '/usr/local/chopshop-partner/modules'). The other two options are -M or --mod_dir and -E or --ext_dir. Both allow you to individually override the location of modules or external libraries as desired. For example, if you only need to override the default location of modules but are okay with the default location of external libraries, you can pass "-M '/usr/local/chopshop-partner/modules/'" as an argument which will tell ChopShop to look in that directory for modules.
