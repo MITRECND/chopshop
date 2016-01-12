@@ -633,10 +633,30 @@ def handleTcpStreams(tcp):
                     tcpd.timestamp = ptimestamp
                     tcpd.stream_data = module.streaminfo['tcp'][f_string].stream_data
                     tcpd.module_data = module.module_data
-                    code.teardown(tcpd)
+                    try:
+                        output = code.teardown(tcpd)
+                    except Exception, e:
+                        output = None
+                        exc = traceback.format_exc()
+                        chop.prettyprnt("YELLOW", "Exception in module %s -- Traceback: \n%s" % (code.moduleName, exc))
+
+                    if not module.legacy:
+                        if output is not None:
+                            if isinstance(output, ChopProtocol):
+                                output._teardown = True
+                            elif isinstance(output, list):
+                                for o in output:
+                                    if isinstance(o, ChopProtocol):
+                                        o._teardown = True
+                            tcpd.unique = f_string
+                            tcpd.type = 'tcp'
+                            handleChildren(module, tcpd, output)
+
+                        
                 except Exception, e:
                     exc = traceback.format_exc()
                     chop.prettyprnt("YELLOW", "Exception in module %s -- Traceback: \n%s" % (code.moduleName, exc))
+
 
                 #delete the entry in the streaminfo dict
                 del tcpd
@@ -722,9 +742,79 @@ def handleProtocol(module, protocol, pp): #pp is parent protocol
 
     module.streaminfo[protocol.type][protocol.unique].stream_data = protocol.stream_data
 
+def teardownProtocol(module, protocol, pp):
+    code = module.code
+
+    #unique should be set for all parents, including the standard tcp/udp types
+    if protocol.unique is None:
+        protocol.unique = pp.unique
+
+    try:
+        #If this excepts it's probably because protocol.type is not in streaminfo which should
+        #have been created earlier -- this is an error on the part of the module author then
+
+        #Initialize the object -- the pp.unique parent dictionary should have been initialized by parent function
+        if protocol.unique not in module.streaminfo[protocol.type]:
+            module.streaminfo[protocol.type][protocol.unique] = stream_meta()
+
+        if module.streaminfo[protocol.type][protocol.unique] is None: #module has called stop
+            return
+
+        protocol.stream_data = module.streaminfo[protocol.type][protocol.unique].stream_data
+
+    except KeyError, e:
+        chop.prettyprnt("YELLOW", "Error attempting to lookup stream_data")
+        sys.exit(1)
+    except Exception, e:
+        chop.prettyprnt("YELLOW", "Error attempting to set stream_data: %s" % str(e))
+        sys.exit(1)
+
+    #Add module_data to protocol object
+    protocol.module_data = module.module_data
+
+    #Elements that are common between tcp/udp and ChopProtocol
+    if protocol.addr is None:
+        protocol.setAddr(pp.addr)
+
+    if protocol.timestamp is None:
+        protocol.setTimeStamp(pp.timestamp)
+
+
+    try:
+        try:
+            code.teardownProtocol
+        except AttributeError, e:
+            return
+        else:
+            output = code.teardownProtocol(protocol) 
+    except Exception, e:
+        exc = traceback.format_exc()
+        chop.prettyprnt("YELLOW", "Exception in module %s -- Traceback: \n%s" % (code.moduleName, exc))
+        sys.exit(1)
+
+
+    #Copy it back just in case
+    module.module_data = protocol.module_data
+
+
+    #Handle any potential children
+    if output is not None:
+        if isinstance(output, ChopProtocol):
+            output._teardown = True
+        elif isinstance(output, list):
+            for o in output:
+                if isinstance(o, ChopProtocol):
+                    o._teardown = True
+
+        handleChildren(module, protocol, output)
+
+    #TODO delete this since this is torn down?
+    module.streaminfo[protocol.type][protocol.unique].stream_data = protocol.stream_data
+
 
 def handleChildren(module, protocol, output):
     #Handle any potential children
+    code = module.code
     if isinstance(output, ChopProtocol):
         output = [output]
     elif not isinstance(output, list):
@@ -744,4 +834,7 @@ def handleChildren(module, protocol, output):
             if outp.type in child.inputs or 'any' in child.inputs:
                 #This ensure each child gets a copy that it can muck with
                 child_copy = outp._clone() 
-                handleProtocol(child, child_copy, protocol)
+                if outp._teardown:
+                    teardownProtocol(child, child_copy, protocol)
+                else:
+                    handleProtocol(child, child_copy, protocol)

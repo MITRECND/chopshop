@@ -187,7 +187,8 @@ def handleStream(tcp):
     return
 
 def teardown(tcp):
-    return
+    chopp = sslimChopProtocol()
+    return chopp
 
 def shutdown(module_data):
     return

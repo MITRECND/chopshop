@@ -210,8 +210,12 @@ The ChopProtocol base class is what secondary modules will receive through the '
 
 <b>serverData</b> - arbitrary python data structure defined by primary modules for data from the server
 
-Note that if you are creating a module that consumes data from another module, you must refer to that modules documentation to see what their instance of ChopProtocol contains!
+<b>_teardown</b> - (ChopLib 4.3+) variable that tells the framework that this data should be forwarded
+to the teardown code of modules down stream. The function <b>setTeardown</b> is provided
+as a convenience function for code clarity. Data returned in tcp's handleTeardown is
+automatically marked as teardown data.
 
+Note that if you are creating a module that consumes data from another module, you must refer to that modules documentation to see what their instance of ChopProtocol contains!
 
 
 Module Chaining
@@ -244,6 +248,8 @@ After instantiating an object based on ChopProtocol you have access to the follo
 
 <b>setServerData</b> - Set the arbitrary python data structure for the data coming from the server
 
+<b>setTeardown</b> - (ChopLib 4.3+) Indicate this data should be forwarded to downstream module's teardown functions.
+
 Note that the format of ChopProtocol is not meant to be restrictive. You can and should override or ignore some functionality if it doesn't fit your model of how data should be handled (e.g., creating a 'data' element instead of having client and server elements). Before returning an instance of ChopProtocol it is recommended you familarize yourself with internal structure of the class. It is also extremely important that you thoroughly document the format and organization of the object you return from your module.
 
 ####_clone function
@@ -255,6 +261,10 @@ If you want to write a decoder for a protcol that runs on top of another protoco
 As documented above, secondary modules have one function they must define to handle data:
 
 <b>handleProtocol(protocol)</b> -- Protocol data, partially defined by primary module
+
+Starting with ChopLib 4.3, you can optionally define the following to handled 'teardown' data:
+
+<b>teardownProtocol(protocol)</b> -- Protocol data, partially defined by primary module
 
 Secondary modules can further return data to be used by other, downstream secondary modules by the same procedure as primary modules for returning custom types. 
 
