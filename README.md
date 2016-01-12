@@ -1,4 +1,4 @@
-ChopShop 4.0
+ChopShop 4
 ========
 
 Protocol Analysis/Decoder Framework

@@ -184,6 +184,11 @@ from the client
 <b>serverData</b> - arbitrary python data structure defined by primary modules for data
 from the server
 
+<b>_teardown</b> - (ChopLib 4.3+) variable that tells the framework that this data should be forwarded
+to the teardown code of modules down stream. The function <b>setTeardown</b> is provided
+as a convenience function for code clarity. Data returned in tcp's handleTeardown is
+automatically marked as teardown data.
+
 Variables
 ---------
 Every module <b>must</b> define the following global variables:
@@ -276,6 +281,10 @@ gives the module one last chance to do what it needs to.
   Treat tcp_data like the object sent to callbacks for nids' register_tcp.
   (ex: o.addr, o.client.count_new, o.discard(0))
 
+###SECONDARY MODULES
+<b>teardownProtocol(protocol)</b> -- (ChopLib 4.3+) Called when an upstream module is
+providing 'teardown' data that needs to be handled.
+
 
 Module Chaining
 __________________
@@ -303,6 +312,8 @@ will be auto set by the framework if you do not
 <b>setClientData</b> - Set the arbitrary data structure for the data coming from the client
 
 <b>setServerData</b> - Set the arbitrary python data structure for the data coming from the server
+
+<b>setTeardown</b> - (ChopLib 4.3+) Indicate this data should be forwarded to downstream module's teardown functions.
 
 Note that the format of ChopProtocol is not meant to be restrictive. You can and should override or ignore
 some functionality if it doesn't fit your model of how data should be handled (e.g., creating a 'data' element instead
@@ -332,6 +343,11 @@ module that takes tcp and turns it into http and then focus on only the protocol
 As documented above, secondary modules have one function they must define to handle data:
 
 <b>handleProtocol(protocol)</b> -- Protocol data, partially defined by primary module
+
+
+Starting with ChopLib 4.3, you can optionally define the following to handled 'teardown' data:
+
+<b>teardownProtocol(protocol)</b> -- Protocol data, partially defined by primary module
 
 
 Secondary modules can further return data to be used by other, downstream secondary modules
