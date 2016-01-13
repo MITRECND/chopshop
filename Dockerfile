@@ -30,9 +30,9 @@ RUN buildDeps='apt-utils \
                         python \
                         python-yara \
                         swig \
+                        python-m2crypto \
                         yara --no-install-recommends \
   && easy_install pymongo \
-                  M2Crypto \
                   pycrypto \
                   dnslib \
   && echo "[INFO] Installing Modules..." \
