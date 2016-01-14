@@ -23,26 +23,21 @@
 # OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
 # SUCH DAMAGE.
 
+"""
+Grammar for module processing pipelines in ChopShop
 
-import sys
-import os
-import imp
-import traceback
-import time
-from threading import Thread, Lock
-import re
+Chains = Chain [SEMICOLON Chain]*
+Chain = [Invocation | Tee] [PIPE [Invocation | Tee]]*
+Invocation = STRING [OPTION [QUOTED | STRING]?]* [QUOTED | STRING]?
+Tee = BTEE Chain [COMMA Chain]+ ETEE
+"""
+
 from cStringIO import StringIO
+import re
 
-from ChopException import ChopLibException
 
+class __ChopModule__(object):
 
-#Grammar:
-#Chains = Chain [SEMICOLON Chain]*
-#Chain = [Invocation | Tee] [PIPE [Invocation | Tee]]*
-#Invocation = STRING [OPTION [QUOTED | STRING]?]* [QUOTED | STRING]?
-#Tee = BTEE Chain [COMMA Chain]+ ETEE
-
-class __ChopModule__:
     def __init__(self, mstr):
         self.children = []
         self.parents = []
@@ -55,8 +50,8 @@ class __ChopModule__:
 
 class ChopGrammar:
 
-    #TODO Add support for escaped sequences?
-    scanner=re.Scanner([
+    # TODO: Add support for escaped sequences?
+    scanner = re.Scanner([
         (r'"((?:[^\t\n\r\f\v"])*)"',               lambda scanner, token:("QUOTED", token)),
         (r"'((?:[^\t\n\r\f\v'])*)'",               lambda scanner, token:("QUOTED", token)),
         (r"[ ]",                                lambda scanner, token:("SPACE", token)),
@@ -71,7 +66,6 @@ class ChopGrammar:
         (r"-[a-zA-Z0-9]+",                      lambda scanner, token:("OPTION", token)),
         (r"-",                                  lambda scanner, token:("STRING", token)),
     ])
-
 
     def __init__(self):
         self.top_modules = []
@@ -94,34 +88,29 @@ class ChopGrammar:
 
         return self.all_modules
 
-
     def find_tee_end(self, chain, left):
         btee_stack = [True]
-        #Assume left is the position of BTEE
+        # Assume left is the position of BTEE
         right = left + 1
         while right < len(chain):
             if chain[right][0] == "BTEE":
                 btee_stack.append(True)
             elif chain[right][0] == "ETEE":
-                if not len(btee_stack): #there's no cooresponding BTEE
+                if not len(btee_stack):  # there's no cooresponding BTEE
                     raise Exception("Unexpected End Tee token ')'")
-                    #return left #error
-                if len(btee_stack) == 1: #this is the ETEE we're looking for
+                if len(btee_stack) == 1:  # this is the ETEE we're looking for
                     return right
                 btee_stack.pop()
             right += 1
         raise Exception("Unable to find end of Tee")
-        #return left #error
-            
-
 
     def verify_chains(self, chains):
         left = 0
-        right= 0
+        right = 0
         flows = []
 
-        #get chain
-        #pdb.set_trace()
+        # get chain
+        # pdb.set_trace()
         while right < len(chains):
             while right < len(chains) and chains[right][0] != "SEMICOLON":
                 right += 1
@@ -133,21 +122,20 @@ class ChopGrammar:
 
         self.top_modules = flows
         return True
-            
+
     def verify_chain(self, chain):
         left = 0
-        right= 0
+        right = 0
 
         ancestors = []
         parents = []
-        
-        #get chain
 
+        # get chain
         while right < len(chain):
             while right < len(chain) and (chain[right][0] != "PIPE" and chain[right][0] != "BTEE"):
                 right += 1
 
-            if right >= len(chain) or chain[right][0] == "PIPE": #Assume Invocation
+            if right >= len(chain) or chain[right][0] == "PIPE":  # Assume Invocation
                 invocation = chain[left:right]
                 mod = self.verify_invocation(invocation)
                 if len(parents) == 0:
@@ -159,14 +147,14 @@ class ChopGrammar:
                         mod.parents.append(parent)
                     parents = [mod]
 
-            elif chain[right][0] == "BTEE": #Must find end of TEE
+            elif chain[right][0] == "BTEE":  # Must find end of TEE
                 if left != right:
                     raise Exception("Unexpected Tee")
-                #left = right
+                # left = right
                 right = self.find_tee_end(chain, left)
-                tee = chain[left + 1: right] #Remove the TEE elements
-                
-                if (right + 1) < len(chain): #There's more tokens after the end of the tee
+                tee = chain[left + 1: right]  # Remove the TEE elements
+
+                if (right + 1) < len(chain):  # There's more tokens after the end of the tee
                     if chain[right + 1][0] != "PIPE":
                         raise Exception('Unexpected token after TEE', chain[right + 1][0])
                     else:
@@ -181,12 +169,11 @@ class ChopGrammar:
                             parent.children.append(tparent)
                             tparent.parents.append(parent)
                     parents = tchildren
-        
+
             right += 1
             left = right
 
-        #return True
-        return (ancestors,parents)
+        return (ancestors, parents)
 
     def verify_tee(self, tee):
         left = 0
@@ -200,7 +187,7 @@ class ChopGrammar:
             while right < len(tee) and (tee[right][0] != "COMMA" and tee[right][0] != "BTEE"):
                 right += 1
 
-            if right >= len(tee) or tee[right][0] == "COMMA": #Element of TEE, i.e., a chain
+            if right >= len(tee) or tee[right][0] == "COMMA":  # Element of TEE, i.e., a chain
                 if right < len(tee) and tee[right][0] == 'COMMA':
                     comma = True
                 chain = tee[left:right]
@@ -210,8 +197,8 @@ class ChopGrammar:
                 for cchild in cchildren:
                     children.append(cchild)
 
-            elif tee[right][0] == "BTEE": #TEE in the Chain, need to skip it to find the comma
-                right = self.find_tee_end(tee,right)
+            elif tee[right][0] == "BTEE":  # TEE in the Chain, need to skip it to find the comma
+                right = self.find_tee_end(tee, right)
                 continue
 
             right += 1
@@ -221,7 +208,6 @@ class ChopGrammar:
             raise Exception('Usage of a Tee requires at least two elements')
 
         return (parents, children)
-            
 
     def verify_invocation(self, invocation):
         right = 1
@@ -233,19 +219,19 @@ class ChopGrammar:
         while right < len(invocation):
             if invocation[right][0] == "OPTION":
                 mymod.arguments.append(invocation[right][1].rstrip())
-                if (right + 1) < len(invocation): #Check if the next element is the argument to the option
+                if (right + 1) < len(invocation):  # Check if the next element is the argument to the option
                     if invocation[right + 1][0] == "QUOTED":
-                        #Need to strip the quotes
+                        # Need to strip the quotes
                         mymod.arguments.append(invocation[right + 1][1].rstrip()[1:-1])
-                        right += 1 #skip the parameter
+                        right += 1  # skip the parameter
                     elif invocation[right + 1][0] == "STRING":
                         mymod.arguments.append(invocation[right + 1][1].rstrip())
-                        right += 1 #skip the parameter
-                    #If not, just skip it and let it be parsed out
+                        right += 1  # skip the parameter
+                    # If not, just skip it and let it be parsed out
             elif (invocation[right][0] == "QUOTED"):
                 if (right + 1) < len(invocation):
                     raise Exception("QUOTED token must be last element of invocation or following a OPTION token")
-                #Need to remove the quotes from the quoted string
+                # Need to remove the quotes from the quoted string
                 mymod.arguments.append(invocation[right][1].rstrip()[1:-1])
             elif (invocation[right][0] == "STRING"):
                 if (right + 1) < len(invocation):
@@ -258,7 +244,7 @@ class ChopGrammar:
         self.all_modules.append(mymod)
         return mymod
 
-    def get_family_(self, top, tabs = 0):
+    def get_family_(self, top, tabs=0):
         for i in range(0, tabs):
             self.strbuff.write("\t")
 
@@ -277,17 +263,15 @@ class ChopGrammar:
         output = self.strbuff.getvalue()
         self.strbuff.close()
         return output
-        
 
     def get_tree(self):
         output = ""
         for t in self.top_modules:
             output += self.get_family(t) + "\n"
         return output
-        
-    def print_family(self, top, tabs = 0):
-        #print Self
-        for i in range (0, tabs):
+
+    def print_family(self, top, tabs=0):
+        for i in range(0, tabs):
             print "\t",
 
         print top.name, "-->"
@@ -299,5 +283,3 @@ class ChopGrammar:
     def print_tree(self):
         for t in self.top_modules:
             self.print_family(t)
-
-        
