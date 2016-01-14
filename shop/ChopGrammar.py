@@ -47,24 +47,31 @@ class __ChopModule__(object):
         self.inputs = {}
         self.outputs = []
 
+    def __repr__(self):
+        return "%s@%x" % (self.name, id(self))
 
-class ChopGrammar:
+
+def make_token(name):
+    return lambda scanner, token: (name, token)
+
+
+class ChopGrammar(object):
 
     # TODO: Add support for escaped sequences?
     scanner = re.Scanner([
-        (r'"((?:[^\t\n\r\f\v"])*)"',               lambda scanner, token:("QUOTED", token)),
-        (r"'((?:[^\t\n\r\f\v'])*)'",               lambda scanner, token:("QUOTED", token)),
-        (r"[ ]",                                lambda scanner, token:("SPACE", token)),
-        (r"\;",                                 lambda scanner, token:("SEMICOLON", token)),
-        (r"\(",                                 lambda scanner, token:("BTEE", token)),
-        (r"\)",                                 lambda scanner, token:("ETEE", token)),
-        (r"\|",                                 lambda scanner, token:("PIPE", token)),
-        (r"\,",                                 lambda scanner, token:("COMMA", token)),
+        (r'"((?:[^\t\n\r\f\v"])*)"', make_token("QUOTED")),
+        (r"'((?:[^\t\n\r\f\v'])*)'", make_token("QUOTED")),
+        (r"[ ]", make_token("SPACE")),
+        (r"\;", make_token("SEMICOLON")),
+        (r"\(", make_token("BTEE")),
+        (r"\)", make_token("ETEE")),
+        (r"\|", make_token("PIPE")),
+        (r"\,", make_token("COMMA")),
         (r"[^\t\n\r\f\v'\";()|,-][^ \t\n\r\f\v'\";()|,]*",
-                                                lambda scanner, token:("STRING", token)),
-        (r"--[a-zA-Z0-9_-]+",                   lambda scanner, token:("OPTION", token)),
-        (r"-[a-zA-Z0-9]+",                      lambda scanner, token:("OPTION", token)),
-        (r"-",                                  lambda scanner, token:("STRING", token)),
+         make_token("STRING")),
+        (r"--[a-zA-Z0-9_-]+", make_token("OPTION")),
+        (r"-[a-zA-Z0-9]+", make_token("OPTION")),
+        (r"-", make_token("STRING")),
     ])
 
     def __init__(self):
@@ -228,12 +235,12 @@ class ChopGrammar:
                         mymod.arguments.append(invocation[right + 1][1].rstrip())
                         right += 1  # skip the parameter
                     # If not, just skip it and let it be parsed out
-            elif (invocation[right][0] == "QUOTED"):
+            elif invocation[right][0] == "QUOTED":
                 if (right + 1) < len(invocation):
                     raise Exception("QUOTED token must be last element of invocation or following a OPTION token")
                 # Need to remove the quotes from the quoted string
                 mymod.arguments.append(invocation[right][1].rstrip()[1:-1])
-            elif (invocation[right][0] == "STRING"):
+            elif invocation[right][0] == "STRING":
                 if (right + 1) < len(invocation):
                     raise Exception("STRING token must be last element of invocation or following a OPTION token")
                 mymod.arguments.append(invocation[right][1].rstrip())
@@ -245,7 +252,7 @@ class ChopGrammar:
         return mymod
 
     def get_family_(self, top, tabs=0):
-        for i in range(0, tabs):
+        for _ in range(0, tabs):
             self.strbuff.write("\t")
 
         self.strbuff.write("%s -->\n" % top.name)
@@ -266,12 +273,12 @@ class ChopGrammar:
 
     def get_tree(self):
         output = ""
-        for t in self.top_modules:
-            output += self.get_family(t) + "\n"
+        for mod in self.top_modules:
+            output += self.get_family(mod) + "\n"
         return output
 
     def print_family(self, top, tabs=0):
-        for i in range(0, tabs):
+        for _ in range(0, tabs):
             print "\t",
 
         print top.name, "-->"
@@ -281,5 +288,5 @@ class ChopGrammar:
                 self.print_family(child, tabs + 1)
 
     def print_tree(self):
-        for t in self.top_modules:
-            self.print_family(t)
+        for mod in self.top_modules:
+            self.print_family(mod)
