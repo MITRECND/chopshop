@@ -1,25 +1,5 @@
-# Copyright (c) 2014 The MITRE Corporation. All rights reserved.
-#
-# Redistribution and use in source and binary forms, with or without
-# modification, are permitted provided that the following conditions
-# are met:
-# 1. Redistributions of source code must retain the above copyright
-#    notice, this list of conditions and the following disclaimer.
-# 2. Redistributions in binary form must reproduce the above copyright
-#    notice, this list of conditions and the following disclaimer in the
-#    documentation and/or other materials provided with the distribution.
-#
-# THIS SOFTWARE IS PROVIDED BY THE AUTHOR AND CONTRIBUTORS ``AS IS'' AND
-# ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
-# IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
-# ARE DISCLAIMED.  IN NO EVENT SHALL THE AUTHOR OR CONTRIBUTORS BE LIABLE
-# FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
-# DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS
-# OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION)
-# HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
-# LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY
-# OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
-# SUCH DAMAGE.
+http
+====
 
 This module converts supported input types to 'http' data to be used by modules downstream.
 
@@ -28,9 +8,9 @@ The supported input types are:
 * TCP
 * sslim
 
-The format of the 'http' data follows the ChopProtocol model and looks like:
+The format of the 'http' data follows the ChopProtocol model and looks like::
 
-http = { 
+    http = {
         type = 'http'
         timestamp = #Timestamp of this specific http transaction
         flowStart = #Timestamp of the tcp session
@@ -38,7 +18,6 @@ http = {
         serverData = {
             headers = <all response headers>
             status = <status code>
-
             body = <response body>
             truncated = <True|False> #Was the body truncated by this module
             body_len = <full body length>
@@ -50,7 +29,6 @@ http = {
             uri = <request uri>
             method = <GET|POST| ... > #What method was used
             protocol = <UNKNOWN|0.9|1.0|1.1|Error> #What protocol version was used 
-
             body = <request body>
             truncated = <True|False> #Was the body truncated by this module
             body_len = <full body length>
@@ -60,7 +38,7 @@ http = {
     }
 
 
-Module flags/options:
+Module flags/options::
 
   -h, --help            show this help message and exit
   -v, --verbose         Be verbose about incoming packets

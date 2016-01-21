@@ -37,6 +37,11 @@ Contents:
 Module Documentation
 --------------------
 
+.. toctree::
+   :maxdepth: 2
+   :glob:
+
+   modules/*
 
 Indices and tables
 ==================
