@@ -29,14 +29,13 @@ Contents:
 .. toctree::
    :maxdepth: 2
 
-   chopshop_usage
-   chopweb_usage
-   embedding_chopshop
-   module_authoring
+   chopshop/chopshop_usage
+   chopshop/chopweb_usage
+   chopshop/embedding_chopshop
+   chopshop/module_authoring
 
 Module Documentation
 --------------------
-
 
 
 Indices and tables
