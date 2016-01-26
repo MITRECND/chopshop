@@ -33,11 +33,11 @@ fi
 
 BASEDIR=$(dirname $0)
 MODDIR="${BASEDIR}/modules"
-DOCSDIR="${BASEDIR}/docs/module_docs"
+DOCSDIR="${BASEDIR}/docs/modules"
 
 MODNAME=$1
 MODFILE="${MODNAME}.py"
-DOCNAME="${MODNAME}.txt"
+DOCNAME="${MODNAME}.rst"
 if [ -e "${MODDIR}/${MODFILE}" ]; then
 	echo "Module already exists."
 	exit 1
