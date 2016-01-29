@@ -1,3 +1,5 @@
+.. _dns_extractor:
+
 dns_extractor
 =============
 This module extracts information from DNS packets. It can send this

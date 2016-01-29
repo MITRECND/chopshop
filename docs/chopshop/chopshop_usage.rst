@@ -1,7 +1,9 @@
-Using chopshop
-==============
+.. _chopshop-cli:
 
-The chopshop program consists of a python script that is run on the
+chopshop - command line interface to ChopShop
+=============================================
+
+The ``chopshop`` program is a Python script designed to be run on the
 command line. It requires Python 2.6+ and pynids to be installed. It
 also requires "modules" to be created that do the processing of network
 data. ChopShop, by itself, does not do any processing of pcap data -- it
