@@ -218,3 +218,22 @@ Then, install yaraprocessor with pip::
 
 .. _yaraprocessor: https://github.com/MITRECND/yaraprocessor
 .. _Yara: https://yara.readthedocs.org/
+
+M2Crypto
+~~~~~~~~
+
+`M2Crypto`_ is needed for the :ref:`chop_ssl` module.
+
+On Ubuntu, it's easiest to use the OS-provided package::
+
+    $ sudo apt-get install python-m2crypto
+
+On OS X, assuming you installed openssl with Homebrew, the following command
+should work::
+
+    $ LDFLAGS=-L$(brew --prefix openssl)/lib \
+      CFLAGS=-I$(brew --prefix openssl)/include \
+      SWIG_FEATURES="-cpperraswarn -includeall -I$(brew --prefix openssl)/include" \
+      pip install m2crypto
+
+.. _M2Crypto: https://gitlab.com/m2crypto/m2crypto
