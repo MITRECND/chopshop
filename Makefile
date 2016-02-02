@@ -88,6 +88,8 @@ YARA_MODULES=	yarashop
 
 PYLIBEMU_MODULES=	shellcode_extractor
 
+M2CRYPTO_MODULES=	chop_ssl
+
 dependency-check:
 	@echo "Checking dependencies..."
 	@echo "Checking python..."
@@ -141,6 +143,14 @@ endif
 		echo "pylibemu BAD"; \
 		echo "These modules will not work:"; \
 		echo "${PYLIBEMU_MODULES}"; \
+	fi
+	@echo "Checking M2Crypto..."
+	@if ${PYTHON} -c 'import M2Crypto'; then \
+		echo "M2Crypto OK"; \
+	else \
+		echo "M2Crypto BAD"; \
+		echo "These modules will not work:"; \
+		echo "${M2CRYPTO_MODULES}"; \
 	fi
 
 # When installing we need to modify the chopshop working directory
