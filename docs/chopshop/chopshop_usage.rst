@@ -74,27 +74,9 @@ choosing, more info can be found below in the examples.
 Quick Start
 -----------
 
-If you are familiar with Docker, you can pull the mitrecnd/chopshop
-image to quickly get chopshop up and running:
+See the :ref:`installation` instructions if you haven't already installed
+ChopShop.
 
-.. code:: bash
-
-    $ docker pull mitrecnd/chopshop
-
-and then run chopshop on a pcap:
-
-.. code:: bash
-
-    $ docker run --rm -it -v /path/to/folder/pcap:/pcap mitrecnd/chopshop -f my.pcap "http | http_extractor"
-
-For more information about the docker image, please look at docker.md in
-the docker folder.
-
-If you'd like to install ChopShop manually, you can use the included
-Makefile which will check for dependencies and alert you to any missing
-ones. ChopShop will require Python 2.6+ and nids/pynids to function.
-Some modules will require other software to be installed such as htpy
-(libhtp python interface) to enable functionality.
 
 User Defined Directories
 ------------------------
