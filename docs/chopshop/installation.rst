@@ -78,8 +78,19 @@ Using a virtualenv
 
 If you want to try out ChopShop with minimal changes to your underlying system,
 or want isolate ChopShop from other projects with potentially conflicting
-dependencies, ChopShop can also be installed into a virtualenv.
+dependencies, ChopShop can also be installed into a `virtualenv`_. As with the
+Makefile approach, this can be done using either a tagged release of ChopShop,
+or a cloned copy of the source repository. Dependencies should be installed
+into the virtualenv; make sure the virtualenv is activated, or you're otherwise
+using the `pip` binary from the virtualenv::
 
+    $ ...
+    $ /path/to/virtualenv/bin/pip install ...
+    $ ...
+
+You can also use symlinks or create the virtualenv with
+``--system-site-packages`` if you need OS-provided packages (such as with
+M2Crypto on Ubuntu).
 
 You can use the Makefile to check the dependencies installed in your virtualenv
 as well. Make sure you use the ``PYTHON`` environment variable to point to the
