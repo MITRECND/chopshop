@@ -3,9 +3,19 @@
 Installation
 ============
 
-You can run ChopShop using a `Docker`_ container or install it directly onto
-the target machine (either system-wide or into a `virtualenv`_).  ChopShop
-requires Python 2.6 or later.
+You can run ChopShop using a Docker_ container or install it directly onto the
+target machine (either system-wide or into a virtualenv_).  ChopShop requires
+Python 2.6 or 2.7.
+
+.. note::
+
+    The manual installation process has been tested and confirmed to work on
+    Ubuntu 14.04.  It should be possible to install ChopShop on most
+    POSIX-compliant operating systems, though in some cases package names or
+    build steps may be different than shown below.  If you run into problems,
+    please file an issue in the GitHub repository.  Pull requests to improve
+    the installation process or documentation for other platforms are
+    encouraged!
 
 .. _Docker: https://www.docker.com
 .. _virtualenv: https://virtualenv.pypa.io/
@@ -32,7 +42,7 @@ Using the Makefile
 The recommended method for manually installing ChopShop is to use the included
 Makefile. This file can also be used to check for required dependencies.
 
-1. Download the latest stable version of ChopShop from the `Releases`_ page
+1. Download the latest stable version of ChopShop from the Releases_ page
    (replacing ``X.Y`` with the latest version)::
 
     $ wget https://github.com/MITRECND/chopshop/archive/RELEASE_X.Y.tar.gz
@@ -41,8 +51,7 @@ Makefile. This file can also be used to check for required dependencies.
 
    Alternatively, you can clone the most recent version from GitHub. The master
    branch may have fixed bugs from the prior stable version, and may contain
-   additional features added since the last release, but is not tested as
-   thoroughly as the releases::
+   additional features added since the latest release::
 
     $ git clone https://github.com/MITRECND/chopshop.git
     $ cd chopshop
@@ -80,11 +89,11 @@ Using a virtualenv
 
 If you want to try out ChopShop with minimal changes to your underlying system,
 or want isolate ChopShop from other projects with potentially conflicting
-dependencies, ChopShop can also be installed into a `virtualenv`_. As with the
+dependencies, ChopShop can also be installed into a virtualenv_. As with the
 Makefile approach, this can be done using either a tagged release of ChopShop,
 or a cloned copy of the source repository. Dependencies should be installed
 into the virtualenv; make sure the virtualenv is activated, or you're otherwise
-using the `pip` binary from the virtualenv::
+using the ``pip`` binary from the virtualenv::
 
     $ ...
     $ /path/to/virtualenv/bin/pip install ...
@@ -111,7 +120,7 @@ installed first::
 
     $ sudo apt-get install build-essential python-dev
 
-For installing Python packages, `pip`_ is highly recommended.
+For installing Python packages, pip_ is highly recommended.
 
 Other OS-provided packages may be need for specific dependencies. They are
 listed below.
@@ -124,19 +133,17 @@ the ``python setup.py install`` or ``pip install`` commands.
 pynids
 ~~~~~~
 
-`pynids`_ (the Python bindings for `libnids`_) is a required dependency for
-ChopShop. You can install it with the following::
+pynids_ (the Python bindings for libnids_) is a required dependency for
+ChopShop. pynids itself depends on libpcap and libnet, so you will need to run
+the following command first (on Ubuntu)::
+
+    $ sudo apt-get install libnet1-dev libpcap-dev
+
+To install pynids, run the following::
 
     $ git clone https://github.com/MITRECND/pynids.git
     $ cd pynids
     $ sudo python setup.py install
-
-.. note::
-
-    pynids itself depends on libpcap and libnet, so you will need to run the
-    following command first (on Ubuntu)::
-
-        $ sudo apt-get install libnet1-dev libpcap-dev
 
 .. _pynids: https://github.com/MITRECND/pynids
 .. _libnids: https://github.com/MITRECND/libnids
@@ -144,19 +151,17 @@ ChopShop. You can install it with the following::
 htpy
 ~~~~
 
-`htpy`_ (the Python bindings for `libhtp`_) is required for the ChopShop
-:ref:`http` module. You can install it with the following commands::
+htpy_ (the Python bindings for libhtp_) is required for the ChopShop
+:ref:`http` module. libhtp depends on zlib, so you will need to run the
+following command first (on Ubuntu)::
+
+    $ sudo apt-get install zlib1g-dev
+
+Install htpy::
 
     $ git clone https://github.com/MITRECND/htpy.git
     $ cd htpy
     $ sudo python setup.py install
-
-.. note::
-
-    libhtp depends on zlib, so you will need to run the following command first
-    (on Ubuntu)::
-
-        $ sudo apt-get install zlib1g-dev
 
 .. _htpy: https://github.com/MITRECND/htpy
 .. _libhtp: https://github.com/OISF/libhtp
@@ -164,7 +169,7 @@ htpy
 pymongo
 ~~~~~~~
 
-The :ref:`dns_extractor` module can optionally store data into `MongoDB`_, when
+The :ref:`dns_extractor` module can optionally store data into MongoDB_, when
 passed the ``-m`` flag.  Instructions for installing MongoDB are beyond the
 scope of this guide, but you can install pymongo with the following command::
 
@@ -175,7 +180,7 @@ scope of this guide, but you can install pymongo with the following command::
 dnslib
 ~~~~~~
 
-`dnslib`_ is required by the dns module. It can be installed with pip::
+dnslib_ is required by the dns module. It can be installed with pip::
 
     $ sudo pip install dnslib
 
@@ -185,8 +190,13 @@ dnslib
 pylibemu
 ~~~~~~~~
 
-`pylibemu`_ (the Python bindings for `libemu`_) are required for the
-shellcode_extractor module in ChopShop. To install libemu::
+pylibemu_ (the Python bindings for libemu_) are required for the
+shellcode_extractor module in ChopShop. libemu requires some additional Ubuntu
+packages to build successfully::
+
+    $ sudo apt-get install autoconf libtool
+
+To install libemu::
 
     $ git clone https://github.com/buffer/libemu.git
     $ cd libemu
@@ -199,11 +209,6 @@ Then, install pylibemu with pip::
 
     $ sudo pip install pylibemu
 
-.. note::
-    libemu requires some additional Ubuntu packages to build successfully::
-
-        $ sudo apt-get install autoconf libtool
-
 .. _pylibemu: https://github.com/buffer/pylibemu
 .. _libemu: https://github.com/buffer/libemu
 
@@ -211,9 +216,9 @@ Then, install pylibemu with pip::
 yaraprocessor
 ~~~~~~~~~~~~~
 
-`yaraprocessor`_ is an extension to `Yara`_, designed to work with PCAP files
-in ChopShop. yaraprocessor requires that Yara and its Python bindings be
-installed first::
+yaraprocessor_ is an extension to Yara_, designed to work with PCAP files in
+ChopShop. yaraprocessor requires that Yara and its Python bindings be installed
+first::
 
     $ wget https://github.com/plusvic/yara/archive/v3.4.0.tar.gz
     $ tar xf v3.4.0.tar.gz
@@ -235,18 +240,13 @@ Then, install yaraprocessor with pip::
 M2Crypto
 ~~~~~~~~
 
-`M2Crypto`_ is needed for the :ref:`chop_ssl` module.
+M2Crypto_ is needed for the :ref:`chop_ssl` module.
 
-On Ubuntu, it's easiest to use the OS-provided package::
+On Ubuntu, it's easiest to use the OS-provided package. There is currently a
+bug__ when trying to build the PyPI-provided
+version of M2Crypto on Ubuntu 14.04::
 
     $ sudo apt-get install python-m2crypto
 
-On OS X, assuming you installed openssl with Homebrew, the following command
-should work::
-
-    $ LDFLAGS=-L$(brew --prefix openssl)/lib \
-      CFLAGS=-I$(brew --prefix openssl)/include \
-      SWIG_FEATURES="-cpperraswarn -includeall -I$(brew --prefix openssl)/include" \
-      pip install m2crypto
-
 .. _M2Crypto: https://gitlab.com/m2crypto/m2crypto
+__ https://gitlab.com/m2crypto/m2crypto/issues/69
