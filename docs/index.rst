@@ -32,6 +32,7 @@ Contents:
    chopshop/installation
    chopshop/chopshop_usage
    chopshop/chopweb_usage
+   chopshop/data_structures
    chopshop/embedding_chopshop
    chopshop/module_authoring
    chopshop/core_development
