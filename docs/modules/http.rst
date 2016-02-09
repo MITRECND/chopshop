@@ -43,8 +43,9 @@ The format of the 'http' data follows the ChopProtocol model and looks like::
 Module flags/options::
 
   -h, --help            show this help message and exit
-  -v, --verbose         Be verbose about incoming packets
+  -v, --verbose         Be verbose about incoming packets and errors
   -b, --no-body         Do not store http bodies
+  -s, --suppress        Suppress htpy log output
   -l LENGTH, --length=LENGTH
                         Maximum length of bodies in bytes (Default: 5MB, set
                         to 0 to process all body data)
