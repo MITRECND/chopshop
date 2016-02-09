@@ -29,6 +29,7 @@ Contents:
 .. toctree::
    :maxdepth: 2
 
+   chopshop/installation
    chopshop/chopshop_usage
    chopshop/chopweb_usage
    chopshop/embedding_chopshop

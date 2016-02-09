@@ -88,59 +88,69 @@ YARA_MODULES=	yarashop
 
 PYLIBEMU_MODULES=	shellcode_extractor
 
+M2CRYPTO_MODULES=	chop_ssl
+
 dependency-check:
 	@echo "Checking dependencies..."
-	@echo "Checking python..."
+	@echo "\nChecking python..."
 ifeq (${PY_TEST}, true)
-	@echo "Python OK: ${PY_VER}"
+	@echo "  Python OK: ${PY_VER}"
 else
-	@echo "FATAL: Python BAD: ${PY_VER} (Need 2.6+)"
+	@echo "  FATAL: Python BAD: ${PY_VER} (Need 2.6+)"
 endif
-	@echo "Checking pynids..."
+	@echo "\nChecking pynids..."
 	@if ${PYTHON} -c 'import nids'; then \
-		echo "pynids OK"; \
+		echo "  pynids OK"; \
 	else \
-		echo "FATAL: pynids BAD"; \
+		echo "  FATAL: pynids BAD"; \
 	fi
-	@echo "Checking pymongo..."
+	@echo "\nChecking pymongo..."
 	@if ${PYTHON} -c 'import pymongo'; then \
-		echo "pymongo OK"; \
+		echo "  pymongo OK"; \
 	else \
-		echo "pymongo BAD"; \
-		echo "These modules will not work:"; \
-		echo "${MONGO_MODULES}"; \
+		echo "  pymongo BAD"; \
+		echo "  These modules will not work:"; \
+		echo "    ${MONGO_MODULES}"; \
 	fi
-	@echo "Checking htpy..."
+	@echo "\nChecking htpy..."
 	@if ${PYTHON} -c 'import htpy'; then \
-		echo "htpy OK"; \
+		echo "  htpy OK"; \
 	else \
-		echo "htpy BAD"; \
-		echo "These modules will not work:"; \
-		echo "${HTPY_MODULES}"; \
+		echo "  htpy BAD"; \
+		echo "  These modules will not work:"; \
+		echo "    ${HTPY_MODULES}"; \
 	fi
-	@echo "Checking dnslib..."
+	@echo "\nChecking dnslib..."
 	@if ${PYTHON} -c 'import dnslib'; then \
-		echo "dnslib OK"; \
+		echo "  dnslib OK"; \
 	else \
-		echo "dnslib BAD"; \
-		echo "These modules will not work:"; \
-		echo "${DNSLIB_MODULES}"; \
+		echo "  dnslib BAD"; \
+		echo "  These modules will not work:"; \
+		echo "    ${DNSLIB_MODULES}"; \
 	fi
-	@echo "Checking yaraprocessor..."
+	@echo "\nChecking yaraprocessor..."
 	@if ${PYTHON} -c 'import yaraprocessor'; then \
-		echo "yaraprocessor OK"; \
+		echo "  yaraprocessor OK"; \
 	else \
-		echo "yaraprocessor BAD"; \
-		echo "These modules will not work:"; \
-		echo "${YARA_MODULES}"; \
+		echo "  yaraprocessor BAD"; \
+		echo "  These modules will not work:"; \
+		echo "    ${YARA_MODULES}"; \
 	fi
-	@echo "Checking pylibemu..."
+	@echo "\nChecking pylibemu..."
 	@if ${PYTHON} -c 'import pylibemu'; then \
-		echo "pylibemu OK"; \
+		echo "  pylibemu OK"; \
 	else \
-		echo "pylibemu BAD"; \
-		echo "These modules will not work:"; \
-		echo "${PYLIBEMU_MODULES}"; \
+		echo "  pylibemu BAD"; \
+		echo "  These modules will not work:"; \
+		echo "    ${PYLIBEMU_MODULES}"; \
+	fi
+	@echo "\nChecking M2Crypto..."
+	@if ${PYTHON} -c 'import M2Crypto'; then \
+		echo "  M2Crypto OK"; \
+	else \
+		echo "  M2Crypto BAD"; \
+		echo "  These modules will not work:"; \
+		echo "    ${M2CRYPTO_MODULES}"; \
 	fi
 
 # When installing we need to modify the chopshop working directory

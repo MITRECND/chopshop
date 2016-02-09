@@ -1,3 +1,5 @@
+.. _chop_ssl:
+
 chop_ssl
 ========
 
