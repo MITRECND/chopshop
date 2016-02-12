@@ -83,7 +83,7 @@ class ChopGrammar(object):
         results, remainder = self.scanner.scan(grammar_string)
 
         if remainder:
-            return (None, None)
+            raise ValueError("Invalid trailing characters: %s" % remainder)
 
         nresults = []
         for token in results:
@@ -163,7 +163,7 @@ class ChopGrammar(object):
 
                 if (right + 1) < len(chain):  # There's more tokens after the end of the tee
                     if chain[right + 1][0] != "PIPE":
-                        raise Exception('Unexpected token after TEE', chain[right + 1][0])
+                        raise Exception('Unexpected token after TEE: ' + chain[right + 1][0])
                     else:
                         right += 1
                 (tparents, tchildren) = self.verify_tee(tee)

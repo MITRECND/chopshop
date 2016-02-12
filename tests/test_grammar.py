@@ -28,6 +28,8 @@ Tests for ChopGrammar.py
 import os
 import sys
 
+import pytest
+
 # TODO: Remove this once ChopShop is a proper package.
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.dirname(__file__)),
                                 "shop"))
@@ -37,6 +39,12 @@ import ChopGrammar as grammar
 
 def _make_grammar(string):
     return grammar.ChopGrammar().parseGrammar(string)
+
+
+def test_repr():
+    """Test the __repr__ function"""
+    modules = _make_grammar("blah")
+    assert repr(modules[0]).startswith("blah")
 
 
 def test_basic():
@@ -97,4 +105,101 @@ def test_tee():
     assert not icmp.parents
     assert not malware.children
 
-# TODO: Test that invalid input generates the expected exceptions.
+
+def test_tee_with_three_elements():
+    modules = _make_grammar("(a, b, c)")
+    assert len(modules) == 3
+    a, b, c = modules
+
+    assert not a.parents
+    assert not a.children
+    assert not b.parents
+    assert not b.children
+    assert not c.parents
+    assert not c.children
+
+
+def test_nested_tees():
+    """This is functionally the same as the above grammar"""
+    modules = _make_grammar("((a, b), c)")
+    assert len(modules) == 3
+    a, b, c = modules
+
+    assert not a.parents
+    assert not a.children
+    assert not b.parents
+    assert not b.children
+    assert not c.parents
+    assert not c.children
+
+
+def test_pipeline_in_tee():
+    """Test parents and children in pipelines inside tees"""
+    modules = _make_grammar("a | (b | c, d) | e")
+    assert len(modules) == 5
+    a, b, c, d, e = modules
+
+    assert a.children == [b, d]
+    assert b.children == [c]
+    assert c.children == [e]
+    assert d.children == [e]
+    assert not e.children
+
+    assert not a.parents
+    assert b.parents == [a]
+    assert c.parents == [b]
+    assert d.parents == [a]
+    assert e.parents == [c, d]
+
+
+def test_trailing_characters():
+    """Test that invalid trailing characters raise an error"""
+    with pytest.raises(ValueError) as excinfo:
+        _make_grammar("a '")
+    assert "Invalid trailing characters" in str(excinfo.value)
+
+
+def test_trailing_characters():
+    """Test that invalid trailing characters raise an error"""
+    with pytest.raises(ValueError) as excinfo:
+        _make_grammar("a '")
+    assert "Invalid trailing characters" in str(excinfo.value)
+
+
+def test_unexpected_tee_end():
+    """Test that ETEE cannot occur without prior BTEE"""
+    with pytest.raises(Exception) as excinfo:
+        _make_grammar("a)")
+    assert str(excinfo.value) == "Unexpected ETEE token )"
+
+
+def test_unterminated_tee():
+    """Test that ETEE cannot occur without prior BTEE"""
+    with pytest.raises(Exception) as excinfo:
+        _make_grammar("(a")
+    assert str(excinfo.value) == "Unable to find end of Tee"
+
+
+def test_tee_cannot_take_place_of_options():
+    """A tee cannot begin except at the beginning of a chain or after a PIPE"""
+    with pytest.raises(Exception) as excinfo:
+        _make_grammar("a (b, c)")
+    assert str(excinfo.value) == "Unexpected Tee"
+
+
+def test_tee_requires_two_elements():
+    """Each Tee must contain at least two items"""
+    with pytest.raises(Exception) as excinfo:
+        _make_grammar("(a)")
+    assert str(excinfo.value) == "Usage of a Tee requires at least two elements"
+
+
+def test_nonterminal_tee_must_be_followed_by_pipe():
+    """If a TEE is not the last step, it must be followed by a PIPE"""
+    with pytest.raises(Exception) as excinfo:
+        _make_grammar("(a, b) c")
+    assert str(excinfo.value) == "Unexpected token after TEE: STRING"
+
+    with pytest.raises(Exception) as excinfo:
+        _make_grammar("(a, b) (c, d)")
+    assert str(excinfo.value) == "Unexpected token after TEE: BTEE"
