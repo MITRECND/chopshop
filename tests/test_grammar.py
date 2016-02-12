@@ -166,6 +166,17 @@ def test_pipeline_in_tee():
     assert d.parents == [a]
     assert e.parents == [c, d]
 
+
+def test_tee_on_both_sides_of_pipe():
+    """Test a pipeline with both input and output tees."""
+    modules = _make_grammar("(a, b) | (c, d)")
+    assert len(modules) == 4
+    a, b, c, d = modules
+
+    assert a.children == b.children == [c, d]
+    assert c.parents == d.parents == [a, b]
+
+
 # Test various error parsing situations
 
 def test_trailing_characters():
