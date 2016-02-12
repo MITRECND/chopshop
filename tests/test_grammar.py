@@ -68,6 +68,7 @@ def test_repr():
     modules = _make_grammar("blah")
     assert repr(modules[0]).startswith("blah")
 
+# Examples from the documentation
 
 def test_basic():
     """Test a single module"""
@@ -127,6 +128,7 @@ def test_tee():
     assert not icmp.parents
     assert not malware.children
 
+# TEE tests
 
 def test_tee_with_three_elements():
     modules = _make_grammar("(a, b, c)")
@@ -183,8 +185,8 @@ def test_tee_on_both_sides_of_pipe():
     assert a.children == b.children == [c, d]
     assert c.parents == d.parents == [a, b]
 
-
 # Test option parsing
+
 def test_option_without_value():
     """Test a module with a single flag-style option"""
     _test_option_parsing("a -v", ['-v'])
@@ -273,7 +275,22 @@ def test_nonoption_string_token_must_be_last():
                      "STRING token must be last element of invocation or "
                      "following a OPTION token")
 
+
 def test_nonoption_quoted_token_must_be_last():
     _check_exception("a 'foo' bar",
                      "QUOTED token must be last element of invocation or "
                      "following a OPTION token")
+
+
+# TODO These should raise a better error
+def test_pipe_cannot_be_first_token():
+    _check_exception("| a", "list index out of range", IndexError)
+
+
+# TODO This should probably raise an error rather than silently ignoring the
+# trailing pipe
+def test_pipe_as_last_character():
+    modules = _make_grammar("a |")
+    assert len(modules) == 1
+    assert not modules[0].parents
+    assert not modules[0].children
