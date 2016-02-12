@@ -3,3 +3,6 @@
 
 .cache
 docs/_build
+
+.coverage
+htmlcov
