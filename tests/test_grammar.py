@@ -56,6 +56,13 @@ def _check_exception(grammar, exception_message, exception_class=Exception):
     assert str(excinfo.value) == exception_message
 
 
+def _test_option_parsing(grammar, expected_arguments):
+    """Test that arguments to a module are parsed in the expected way"""
+    modules = _make_grammar(grammar)
+    assert len(modules) == 1
+    assert modules[0].arguments == expected_arguments
+
+
 def test_repr():
     """Test the __repr__ function"""
     modules = _make_grammar("blah")
@@ -177,6 +184,46 @@ def test_tee_on_both_sides_of_pipe():
     assert c.parents == d.parents == [a, b]
 
 
+# Test option parsing
+def test_option_without_value():
+    """Test a module with a single flag-style option"""
+    _test_option_parsing("a -v", ['-v'])
+
+
+def test_option_with_long_name():
+    """Test a module with a single flag-style option, using the long name"""
+    _test_option_parsing("a --verbose", ['--verbose'])
+
+
+def test_option_with_value():
+    """Test a module with a single parameter-style option"""
+    _test_option_parsing("a -c 5", ['-c', '5'])
+
+
+def test_option_with_quoted_value():
+    """Test a module with a single parameter-style option in quotes"""
+    _test_option_parsing("a -n 'a value'", ['-n', 'a value'])
+
+
+def test_module_argument():
+    """Test a module with a single argument"""
+    _test_option_parsing("a foo", ['foo'])
+
+
+def test_quoted_argument():
+    """Test a module with a single quoted argument"""
+    _test_option_parsing("a 'foo'", ['foo'])
+
+
+def test_single_hyphen_argument():
+    """A single dash can come after flag options"""
+    _test_option_parsing("a -v -", ['-v', '-'])
+
+
+def test_single_hyphen_parameter_argument():
+    """A single dash can come after parameter options"""
+    _test_option_parsing("a -c 5 -", ['-c', '5', '-'])
+
 # Test various error parsing situations
 
 def test_trailing_characters():
@@ -212,3 +259,21 @@ def test_string_cannot_follow_tee():
 def test_tee_cannot_follow_tee():
     """A TEE cannot be directly followed by another TEE."""
     _check_exception("(a, b) (c, d)", "Unexpected token after TEE: BTEE")
+
+
+def test_cannot_start_with_option():
+    """An OPTION token cannot be the first token."""
+    _check_exception("-a 1",
+                     "Invocation must begin with a 'STRING' token, not a "
+                     "OPTION token")
+
+
+def test_nonoption_string_token_must_be_last():
+    _check_exception("a foo bar",
+                     "STRING token must be last element of invocation or "
+                     "following a OPTION token")
+
+def test_nonoption_quoted_token_must_be_last():
+    _check_exception("a 'foo' bar",
+                     "QUOTED token must be last element of invocation or "
+                     "following a OPTION token")
