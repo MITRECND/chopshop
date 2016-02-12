@@ -41,6 +41,21 @@ def _make_grammar(string):
     return grammar.ChopGrammar().parseGrammar(string)
 
 
+def _check_exception(grammar, exception_message, exception_class=Exception):
+    """Verify that trying to parse a certain grammar gives the expected error.
+
+    Args:
+        grammar (str): the module list expression
+        exception_message (str): for generic exceptions, the exact text of the
+            Exception that is expected.
+        exception_class (type): a specific type of Exception to catch.
+            Default: Exception
+    """
+    with pytest.raises(exception_class) as excinfo:
+        _make_grammar(grammar)
+    assert str(excinfo.value) == exception_message
+
+
 def test_repr():
     """Test the __repr__ function"""
     modules = _make_grammar("blah")
@@ -151,55 +166,38 @@ def test_pipeline_in_tee():
     assert d.parents == [a]
     assert e.parents == [c, d]
 
+# Test various error parsing situations
 
 def test_trailing_characters():
     """Test that invalid trailing characters raise an error"""
-    with pytest.raises(ValueError) as excinfo:
-        _make_grammar("a '")
-    assert "Invalid trailing characters" in str(excinfo.value)
-
-
-def test_trailing_characters():
-    """Test that invalid trailing characters raise an error"""
-    with pytest.raises(ValueError) as excinfo:
-        _make_grammar("a '")
-    assert "Invalid trailing characters" in str(excinfo.value)
+    _check_exception("a '", "Invalid trailing characters: '", ValueError)
 
 
 def test_unexpected_tee_end():
     """Test that ETEE cannot occur without prior BTEE"""
-    with pytest.raises(Exception) as excinfo:
-        _make_grammar("a)")
-    assert str(excinfo.value) == "Unexpected ETEE token )"
+    _check_exception("a)", "Unexpected ETEE token )")
 
 
 def test_unterminated_tee():
     """Test that ETEE cannot occur without prior BTEE"""
-    with pytest.raises(Exception) as excinfo:
-        _make_grammar("(a")
-    assert str(excinfo.value) == "Unable to find end of Tee"
+    _check_exception("(a", "Unable to find end of Tee")
 
 
 def test_tee_cannot_take_place_of_options():
-    """A tee cannot begin except at the beginning of a chain or after a PIPE"""
-    with pytest.raises(Exception) as excinfo:
-        _make_grammar("a (b, c)")
-    assert str(excinfo.value) == "Unexpected Tee"
+    """A TEE must start at the beginning of a CHAIN or after a PIPE"""
+    _check_exception("a (b, c)", "Unexpected Tee")
 
 
 def test_tee_requires_two_elements():
-    """Each Tee must contain at least two items"""
-    with pytest.raises(Exception) as excinfo:
-        _make_grammar("(a)")
-    assert str(excinfo.value) == "Usage of a Tee requires at least two elements"
+    """Each TEE must contain at least two items"""
+    _check_exception("(a)", "Usage of a Tee requires at least two elements")
 
 
-def test_nonterminal_tee_must_be_followed_by_pipe():
-    """If a TEE is not the last step, it must be followed by a PIPE"""
-    with pytest.raises(Exception) as excinfo:
-        _make_grammar("(a, b) c")
-    assert str(excinfo.value) == "Unexpected token after TEE: STRING"
+def test_string_cannot_follow_tee():
+    """A TEE cannot be directly followed by a STRING."""
+    _check_exception("(a, b) c", "Unexpected token after TEE: STRING")
 
-    with pytest.raises(Exception) as excinfo:
-        _make_grammar("(a, b) (c, d)")
-    assert str(excinfo.value) == "Unexpected token after TEE: BTEE"
+
+def test_tee_cannot_follow_tee():
+    """A TEE cannot be directly followed by another TEE."""
+    _check_exception("(a, b) (c, d)", "Unexpected token after TEE: BTEE")
