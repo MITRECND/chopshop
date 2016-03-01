@@ -1,5 +1,7 @@
-Module Development
-==================
+.. _module_authoring:
+
+Developing ChopShop Modules
+===========================
 
 Introduction
 ------------
