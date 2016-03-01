@@ -34,6 +34,7 @@ Contents:
    chopshop/chopweb_usage
    chopshop/embedding_chopshop
    chopshop/module_authoring
+   chopshop/core_development
 
 Module Documentation
 --------------------

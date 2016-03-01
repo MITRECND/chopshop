@@ -1,4 +1,8 @@
 *.pyc
 *.swp
 
+.cache
 docs/_build
+
+.coverage
+htmlcov
