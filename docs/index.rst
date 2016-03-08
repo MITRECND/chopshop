@@ -52,6 +52,13 @@ Glossary
       import code from other modules, so this is primarily for code that is
       shared between multiple modules.
 
+   external libraries directory
+      the directory which ChopShop searches for external_libraries.  Any code
+      in this directory is available for modules to import. Libraries used by
+      built-in modules are located in the ``ext_libs/`` directory in the root
+      directory of the project; this is the default used by the ``chopshop``
+      program, but can be modified with the `-E` command-line flag.
+
    library
    ChopShop Library
    ChopLib
@@ -62,6 +69,12 @@ Glossary
       an extension to ChopShop, used to handle a particular type of network
       traffic data.  A module can be further classified as either a
       :term:`primary module` or a :term:`secondary module`.
+
+   modules directory
+      the directory which ChopShop searches for modules.  Built-in modules are
+      located in the ``modules/`` directory in the root directory of the
+      project; this is the default used by the ``chopshop`` program, but can be
+      modified with the `-M` command-line flag.
 
    primary module
       a ChopShop module that handles one of ChopShop's core data types (TCP,

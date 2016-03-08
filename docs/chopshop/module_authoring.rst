@@ -3,144 +3,167 @@
 Developing ChopShop Modules
 ===========================
 
-Introduction
-------------
+Once you are familiar with how ChopShop and the built-in modules operate, you
+are ready to write your own modules!  If you need a refresher, check out
+:ref:`chopshop-cli`.
 
-Creating ChopShop modules consists of creating a python file with a
-unique name and placing it in the modules directory. This file must have
-a .py extension in order to be recognized by the framework. ChopShop
-works by calling functions with known names for given states and data
-types. Before reading this document please read the chopshop\_usage
-document to familiarize yourself with how modules are intended to be
-used.
+A ChopShop module is just a Python module (file) that defines some specific
+variables and functions (listed below).  The file must have a unique name
+ending in ``.py`` and be placed it in the :term:`modules directory`. Modules
+can accept run-time options, and can process raw TCP, UDP, or IP traffic, or
+the output of other modules.
+
+Some experience with pynids/libnids is helpful, but not required, to write
+ChopShop modules.
 
 Quick Start
 -----------
 
-To get started quickly with creating a module, ChopShop provides a
-simple shell script to setup a simple module stub for you. You can use
-'newmod.sh' to create this stub and open an editor for you to get right
-to work. The newmod.sh script takes two or three arguments. The first is
-the name of the module you want to create and the second is a string
-('tcp', 'udp', 'ip' or 'CUSTOM') depending upon the payload you intend
-to parse. If you use 'CUSTOM' as the argument, the script will expect
-another argument which is the 'type' you are trying to process, e.g.,
-'http'. After creating the module stub and documentation file, the
-script will open up your editor to allow you to write your module
+The ``newmod.sh`` script lets you quickly create the skeleton for a new
+ChopShop module, including the required variables and functions depending on
+the type of data you plan to process.  The script takes 2 (or 3) arguments:
 
- ./newmod.sh awesome\_decoder tcp
+* The first argument is the name for your new module.
+* The second argument is the type of data you plan to process (one of ``tcp``,
+  ``udp``, ``ip``, or ``CUSTOM``).
+* If ``CUSTOM``, the third argument should be the type of custom data you plan
+  to process (for example, ``http``).
 
-Primary vs. Secondary Modules
------------------------------
+Examples::
 
-ChopShop has two types of modules to supports its chaining functionality
-called 'primary' and 'secondary'. The distinction is that primary
-modules parse data that is considered a 'core' type within ChopShop,
-specifically this would be tcp, udp, and ip. A module that processes a
-module created type is considered secondary. The http\_extractor module,
-for example is a secondary module as it only accepts 'http' type data.
-It's important to note that since ChopShop supports ingesting multiple
-types within a single module, a module can technically both be a primary
-and secondary module -- but the distinction between primary and
-secondary is generally a runtime distinction, as in what functions will
-be called in either case. More on this will be covered below.
+   ./newmod.sh awesome_decoder tcp
+   ./newmod.sh my_http_parser CUSTOM http
 
-Module Structure
-----------------
+As a bonus, the script will open your ``$EDITOR`` to let you get right to work
+customizing your module's behavior.
 
-The following describes the required variables and functions that make
-up a ChopShop module
+Required Variables
+------------------
 
-Variables
-~~~~~~~~~
+Each ChopShop module must define the following variables:
 
-Every module must define the following global variables:
+.. py:data:: moduleName
 
-"moduleName" -- The module name (string) [E.g., 'myawesomemodule']
+   The module name (str). For example, ``'myawesomemodule'``.
 
-"moduleVersion" -- The module version (string) [E.g., '0.1']
+.. py:data:: moduleVersion
 
-"minimumChopLib" -- The minimum version of ChopLib [E.g., '4.0']
+   The module version (str). For example, ``'0.1'``. No particular format for
+   this string is required, but it is recommended to use `semantic
+   versioning`_.
 
-Modules will not function without "moduleName". Any module that does not
-define 'moduleVersion' or 'minimumChopLib' will be considerd 'legacy'
-(pre 4.0) and will not be able to access module pipelining and some
-other newer features.
+.. py:data:: minimumChopLib
+
+   The minimum version of :term:`ChopLib` required to support this module. For
+   example, ``'4.0'``.
+
+Modules that do not define ``moduleName`` will not function (since they cannot
+be referenced from a ChopShop processing pipeline). Any module that does not
+define ``moduleVersion`` or ``minimumChopLib`` will be considerd 'legacy'
+(pre-4.0) and will not be able to access module pipelining and some other newer
+features.
+
+.. _semantic versioning: http://semver.org/
 
 Required Functions
-~~~~~~~~~~~~~~~~~~
+------------------
 
-Every module must define certain functions to enable functionality. Some
-of these are absolutely mandatory and others are optional depending on
-what you want your module to do.
+All modules must define the :py:func:`module_info` and :py:func:`init`
+functions.
 
-ALL MODULES
-^^^^^^^^^^^
+.. py:function:: module_info()
 
-Modules must define the following functions to be used with ChopShop:
+   This function is invoked when ``chopshop`` is passed the ``-m`` or
+   ``--module_info`` flag. This function should return a string consisting of a
+   usage message and any options the module takes.
 
-module\_info() -- invoked when a chopshop user uses the
--m/--module\_info flag, module may write out any information it wants to
-inform the user of its functionality/usage by returning a string.
+.. py:function:: init(module_data)
 
-init(module\_data) -- Initialize the module, before processing any
-packets.
+   This function is invoked once per ``chopshop`` process. Any module-level
+   initialization required before processing any packets, such as processing
+   module-level arguments, should be done in this function.
 
-::
+   The ``module_data`` argument is a dictionary with (at least) the following
+   keys:
 
-    module_data is a dictionary with at least the following key(s):
-        'args': an array of command-line args suitable to pass to
-            the parse_args() function of an
-            optparse.OptionParser() object.
+   * ``args`` (list of str): The arguments passed to this module by the
+     ``chopshop`` invocation. Typically these should be passed to the
+     :py:func:`parse_args()` method of an :py:class:`optparse.OptionParser`
+     object.
 
-    Returns: dictionary with at least the following key(s):
-        'proto': Array of dictionaries linking input types to outputs
-            E.g., proto = [ {'tcp' : ''}]
-                  proto = [ {'tcp' : 'http'}]
-            Note: 'tcp', 'udp', and 'ip' are considered pre-defined types and should
-            not be used as return types. Also note that proto is an array and can take
-            multiple associations.
+   The ``module_data`` dictionary can be modified in the ``init`` function.
+   This dictionary is accessible in any of the ``handleX`` functions, so can be
+   used to store information needed throughout the lifetime of the module.
 
-    Optional: the return dictionary may also include:
-        'error': indicates an error in the module has occured
-                 set to a friendly string so that ChopShop can
-                 inform the user
+   The ``init`` function MUST return a dictionary, containing a ``proto`` key.
+   The value corresponding to this key should be a list of dictionaries, each
+   mapping an input type to an output type, for a type of processing the module
+   can perform.  The input type can be either a core type (``tcp``, ``udp``, or
+   ``ip``) or a secondary type.  The output type can be a secondary type or an
+   empty string; modules intended to be the last in any particular chain should
+   use ``''`` as the output type.  Core types should **NOT** be used as output
+   types.  This list is used for module chaining, to verify the input and
+   output of each module in the chain is compatible.
 
-TCP MODULES
-^^^^^^^^^^^
+   For example, a module which processes UDP data and does not return data for
+   later modules might return ``{'proto': [{'udp': ''}]}``. A module which
+   processes TCP data and returns ``http`` data would return ``{'proto':
+   [{'tcp': 'http'}]}``.
 
-| taste(tcp\_data) -- Called when a new stream is detected (SYN, SYN/ACK, ACK), but before any data is received.
-|  Treat tcp\_data like the object sent to callbacks for nids' register\_tcp.
-|  (ex: o.addr, o.client.count\_new, o.discard(0))
+   The dictionary returned by the ``init`` function may also contain an
+   ``error`` key to indicate an error occurred during initialization (for
+   example, if the ``args`` were invalid). The value of this key should be a
+   human-readable string, which is presented to the user.
 
-::
+   .. note::
+      Legacy (pre-4.0) ChopShop modules did not support chaining, and used a
+      single string value for the ``proto`` key, such as ``{'proto': 'tcp'}``.
+      This style should not be used for new modules.
 
-    Returns: True or False, specifying whether or not to further
+Modules intended to process TCP data must additionally define the
+:py:func:`taste` and :py:func:`handleStream` functions.
+
+.. py:function:: taste(tcp_data)
+
+   Called when a new stream is detected (SYN, SYN/ACK, ACK), but before any
+   data is received.  Treat tcp\_data like the object sent to callbacks for
+   nids' register\_tcp. (ex: o.addr, o.client.count\_new, o.discard(0))
+
+   Returns: True or False, specifying whether or not to further
             process data from this stream.
 
-handleStream(tcp\_data) -- Treat this like the callback for
-nids.register\_tcp(). Treat tcp\_data like the object sent to callbacks
-for nids' register\_tcp. (ex: o.addr, o.client.count\_new, o.discard(0))
+.. py:function:: handleStream(tcp_data)
 
-UDP MODULES
-^^^^^^^^^^^
+   Treat this like the callback for nids.register\_tcp(). Treat tcp\_data like
+   the object sent to callbacks for nids' register\_tcp. (ex: o.addr,
+   o.client.count\_new, o.discard(0))
 
-handleDatagram(udp\_data) -- Called once per UDP datagram. Calling
-udp.stop() tells ChopShop to ignore this quad-tuple for the lifetime of
-the module. This is very different from TCP behavior, so be aware!
+Modules intended to process UDP data must define the :py:func:`handleDatagram`
+function.
 
-IP MODULES
-^^^^^^^^^^
+.. py:function:: handleDatagram(udp_data)
 
-handlePacket(ip) -- handler for ip data -- refer to below structure to
-understand what data is passed
+   Called once per UDP datagram. Calling udp.stop() tells ChopShop to ignore
+   this quad-tuple for the lifetime of the module. This is very different from
+   TCP behavior, so be aware!
 
-SECONDARY MODULES
-^^^^^^^^^^^^^^^^^
 
-handleProtocol(protocol) -- handler for secondary, module-defined types.
-Refer to documentation above for the structure of data passed to this
-function (more below on module chaning)
+Modules intended to process IP data must define the :py:func:`handlePacket`
+function.
+
+.. py:function:: handlePacket(ip)
+
+   handler for ip data -- refer to below structure to understand what data is
+   passed
+
+Secondary modules (those which process data other than TCP, UDP, or IP--like
+HTTP) must define a generic function :py:func:`handleProtocol`.
+
+.. py:function::handleProtocol(protocol)
+
+   handler for secondary, module-defined types.  Refer to documentation above
+   for the structure of data passed to this function (more below on module
+   chaning)
 
 Optional Functions
 ~~~~~~~~~~~~~~~~~~
@@ -194,6 +217,22 @@ as teardown data.
 Note that if you are creating a module that consumes data from another
 module, you must refer to that modules documentation to see what their
 instance of ChopProtocol contains!
+
+
+Primary vs. Secondary Modules
+-----------------------------
+
+ChopShop has two types of modules to supports its chaining functionality
+called 'primary' and 'secondary'. The distinction is that primary
+modules parse data that is considered a 'core' type within ChopShop,
+specifically this would be tcp, udp, and ip. A module that processes a
+module created type is considered secondary. The http\_extractor module,
+for example is a secondary module as it only accepts 'http' type data.
+It's important to note that since ChopShop supports ingesting multiple
+types within a single module, a module can technically both be a primary
+and secondary module -- but the distinction between primary and
+secondary is generally a runtime distinction, as in what functions will
+be called in either case. More on this will be covered below.
 
 Module Chaining
 ---------------
