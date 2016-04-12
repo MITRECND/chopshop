@@ -247,45 +247,86 @@ returns decrypted headers and data
 
     return stage1[:16]+decomp, flags, ''
 
+def place(n):
+    return lambda p: (0xFF & int('{:08x}'.format(p)[((2*n)):2*n+2], 16))
+lo = place(3)
+hi = place(2)
+elo = place(1)
+ehi = place(0)
+ 
+def gen_comptime():
+    years = [2014,2015]
+    months = range(1,13)
+    days = range(1,32)
+    for year in years:
+        for month in months:
+            for day in days:
+                yield int(str(year)+'{0:02d}'.format(month)+'{0:02d}'.format(day))
+def gen_var1():
+    yield xrange(0,0xffff)
+def gen_var2():
+    yield xrange(0,0xffff)
+def gen_var3():
+    yield xrange(0,0xffff)
+ 
+def crypt(key, src, comptime=0x0133543c, var1=0x0000000d, var2=0x00000077, var3=0x59f5):
+    b = (0,0,0,0)
+    i = 0
+    s = [p for p in src]
+    c = key
+    a = 0xFFFFFFFF & ((0xFFFFFFFF & c) ^ comptime) # 0x013352a6)
+    c = 0xFFFFFFFF & ((0xFFFFFFFF & c) ^ var1) # 0x000004b8)
+    while i < len(src):
+        a = 0xFFFFFFFF & ((0xFFFFFFFF & a) + var2) # 0x0000a7c9)
+        b  = lo(a)
+        b  = 0xff & (lo(b) - hi(a))
+        b  = 0xFF & (lo(b) ^ elo(a)) #var_4[2]
+        b  = 0xff & (lo(b) - ehi(a)) #var_4[3]
+        c =  0xFFFFFFFF & ((0xFFFFFFFF & c) - var3) # 0xc349)
+        b  = 0xFF & (lo(b) ^ lo(c))
+        b  = 0xFF & (lo(b) - hi(c))
+        b  = 0xFF & (lo(b) ^ elo(c)) #var_8[2]
+        b  = 0xFF & (lo(b) - ehi(c)) #var_8[3]
+        b  = 0xFF & (lo(b) ^ ord(s[i]))
+        s[i] = chr(b)
+        i += 1
+        # print a,b,c,i,s
+    return ''.join(s)
+ 
 def decrypt(src, size, key):
-"""
-take in payload to decrypt, length of payload to decrypt, and key seed
-return decrypted payload of length.
-"""
     key0 = key
     key1 = key
     key2 = key
     key3 = key
     dst = b''
     i = 0
-
+ 
     if size > 0:
         while i < size:
-
-            if tcp.module_data['protocol'] == 0:
+ 
+            if proto == 0:
                 key0 = (key0 + (((key0 >> 3)&0xFFFFFFFF) - 0x11111111)&0xFFFFFFFF)&0xFFFFFFFF
                 key1 = (key1 + (((key1 >> 5)&0xFFFFFFFF) - 0x22222222)&0xFFFFFFFF)&0xFFFFFFFF
                 key2 = (key2 + (0x44444444 - ((key2 << 9)&0xFFFFFFFF))&0xFFFFFFFF)&0xFFFFFFFF
                 key3 = (key3 + (0x33333333 - ((key3 << 7)&0xFFFFFFFF))&0xFFFFFFFF)&0xFFFFFFFF
                 new_key = (((key2&0xFF) + (key3&0xFF) + (key1&0xFF) + (key0&0xFF))&0xFF)
-
-            elif tcp.module_data['protocol'] == 1:
+ 
+            elif proto == 1:
                 key0 = (key0 + ((key0 >> 3) + 3)&0xFFFFFFFF)&0xFFFFFFFF
                 key1 = (key1 + (((key1 >> 5)&0xFFFFFFFF) + 5)&0xFFFFFFFF)&0xFFFFFFFF
                 key2 = (0xFFFFFF81 * (key2 & 0xFFFFFFFF)-7)&0xFFFFFFFF
                 key3 = (0xFFFFFE01 * (key3 & 0xFFFFFFFF)-9)&0xFFFFFFFF
                 new_key = (((key2&0xFF) + (key3&0xFF) + (key1&0xFF) + (key0&0xFF))&0xFF)
-
+ 
+            elif proto == 2:
+                return crypt(key, src[:size])
+ 
             else:
                 new_key = 0xFF
-
-            if tcp.module_data['verbose']:
-                chop.tsprnt(hex(new_key),hex(key0),hex(key1),hex(key2),hex(key3))
-
+ 
             res = unpack("<B", src[i:i+1])[0] ^ new_key
             dst = dst + pack("<B", res)
             i = i + 1
-
     return dst
 
 
