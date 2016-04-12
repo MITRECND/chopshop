@@ -304,21 +304,21 @@ def decrypt(src, size, key):
     if size > 0:
         while i < size:
  
-            if proto == 0:
+            if tcp.module_data['protocol'] == 0:
                 key0 = (key0 + (((key0 >> 3)&0xFFFFFFFF) - 0x11111111)&0xFFFFFFFF)&0xFFFFFFFF
                 key1 = (key1 + (((key1 >> 5)&0xFFFFFFFF) - 0x22222222)&0xFFFFFFFF)&0xFFFFFFFF
                 key2 = (key2 + (0x44444444 - ((key2 << 9)&0xFFFFFFFF))&0xFFFFFFFF)&0xFFFFFFFF
                 key3 = (key3 + (0x33333333 - ((key3 << 7)&0xFFFFFFFF))&0xFFFFFFFF)&0xFFFFFFFF
                 new_key = (((key2&0xFF) + (key3&0xFF) + (key1&0xFF) + (key0&0xFF))&0xFF)
  
-            elif proto == 1:
+            elif tcp.module_data['protocol'] == 1:
                 key0 = (key0 + ((key0 >> 3) + 3)&0xFFFFFFFF)&0xFFFFFFFF
                 key1 = (key1 + (((key1 >> 5)&0xFFFFFFFF) + 5)&0xFFFFFFFF)&0xFFFFFFFF
                 key2 = (0xFFFFFF81 * (key2 & 0xFFFFFFFF)-7)&0xFFFFFFFF
                 key3 = (0xFFFFFE01 * (key3 & 0xFFFFFFFF)-9)&0xFFFFFFFF
                 new_key = (((key2&0xFF) + (key3&0xFF) + (key1&0xFF) + (key0&0xFF))&0xFF)
  
-            elif proto == 2:
+            elif tcp.module_data['protocol'] == 2:
                 return crypt(key, src[:size])
  
             else:
