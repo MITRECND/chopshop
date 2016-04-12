@@ -73,6 +73,30 @@ def taste(tcp):
 def init(module_data):
     parser = OptionParser()
 
+    parser.add_option("--comptime",
+                      action="store",
+                      dest="comptime",
+                      default=1,
+                      type="int",
+                      help="please specify the suspected comptime psk,")
+    parser.add_option("--var1",
+                      action="store",
+                      dest="var1",
+                      default=1,
+                      type="int",
+                      help="please specify the suspected var1 psk,")
+    parser.add_option("--var2",
+                      action="store",
+                      dest="var1",
+                      default=1,
+                      type="int",
+                      help="please specify the suspected var1 psk,")
+    parser.add_option("--var3",
+                      action="store",
+                      dest="var1",
+                      default=1,
+                      type="int",
+                      help="please specify the suspected var1 psk,")
     parser.add_option("-p",
                       "--protocol",
                       action="store",
@@ -320,6 +344,9 @@ def decrypt(src, size, key):
  
             elif tcp.module_data['protocol'] == 2:
                 return crypt(key, src[:size])
+
+            elif tcp.module_data['protocol'] == 3:
+                return crypt(key, src[:size], tcp.module_data['comptime'],tcp.module_data['var1'],tcp.module_data['var2'],tcp.module_data['var3'])
  
             else:
                 new_key = 0xFF
