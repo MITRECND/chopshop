@@ -78,56 +78,6 @@ See the :ref:`installation` instructions if you haven't already installed
 ChopShop.
 
 
-User Defined Directories
-------------------------
-
-Users have the option to override the default directories ChopShop uses
-to look for modules and external libraries. ChopShop provides three
-options to override default values. The first is called the base
-directory, the argument flag for this in chopshop is -B or --base\_dir.
-This parameter takes a path or comma separated list of paths to look for
-both modules and external libraries (ext\_libs). So if you pass
-"/usr/local/chopshop-partner" as the base directory, ChopShop would
-assume the 'modules' directory and the 'ext\_libs' directory are located
-in that directory (e.g, '/usr/local/chopshop-partner/modules'). The
-other two options are -M or --mod\_dir and -E or --ext\_dir. Both allow
-you to individually override the location of modules or external
-libraries as desired. For example, if you only need to override the
-default location of modules but are okay with the default location of
-external libraries, you can pass "-M
-'/usr/local/chopshop-partner/modules/'" as an argument which will tell
-ChopShop to look in that directory for modules.
-
-The behavior of these parameters allows you to specify multiple
-directories which will be checked be in priority order. ChopShop will
-also append the default path to the list automatically so if nothing is
-found in the list given by the user it will fall back to the built-in
-paths. Taking the example for base\_dir from above, if a user passes
-"/usr/local/chopshop-partner" as the new base, if, as an example, that
-base directory didn't contain the gh0st decoder, ChopShop will
-automatically search the default path after failing to find the module
-in the path specified at command-line. To specify multiple directories
-on the commandline comma separate the paths (e.g.,
-"/usr/local/chopshop-development,/usr/local/chopshop-partner"). Again,
-as mentioned, ChopShop will automatically append the default path to the
-end so adding it is not necessary.
-
-Configuration Files
--------------------
-
-The chopshop program provides two relevant flags that allow you to
-create and consume configuration files to aid in configuring your
-environment so you don't have to repeatedly pass the same flags. To
-create a configuration file based on the given command-line arguments
-just pass the -C flag to chopshop with a destination filename. Then to
-consume that config file just use -c and chopshop will parse the given
-configuration file. Further, chopshop will check for a default file in
-the user's home directory, called .chopshop.cfg for default config
-parameters. For users who often use the -B or -M/-E parameters this
-should save them some time. Note that config files passed at the
-commandline override any config parameters found in .chopshop.cfg and
-command line args override paramters from config files.
-
 User Interface
 --------------
 
@@ -154,19 +104,6 @@ the GUI:
 
 When moving around in the data window, remember to disable autoscroll or
 else the window will return to the end of the data shortly.
-
-Modules
--------
-
-As mentioned, ChopShop requires modules to do the bulk of its work.
-Modules are, in essence, mini programs that do all of the grunt work to
-decode or analyze traffic. More information on the creation of modules
-can be found in other documents.
-
-To use a module, it must be accessible in the modules directory (or
-directories) and be given the proper arguments (if required). All
-modules are capable of being given command line arguments and module
-documentation should be referenced for proper invocation requirements.
 
 Example Use Cases
 -----------------

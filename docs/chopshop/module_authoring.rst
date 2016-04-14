@@ -219,21 +219,6 @@ module, you must refer to that modules documentation to see what their
 instance of ChopProtocol contains!
 
 
-Primary vs. Secondary Modules
------------------------------
-
-ChopShop has two types of modules to supports its chaining functionality
-called 'primary' and 'secondary'. The distinction is that primary
-modules parse data that is considered a 'core' type within ChopShop,
-specifically this would be tcp, udp, and ip. A module that processes a
-module created type is considered secondary. The http\_extractor module,
-for example is a secondary module as it only accepts 'http' type data.
-It's important to note that since ChopShop supports ingesting multiple
-types within a single module, a module can technically both be a primary
-and secondary module -- but the distinction between primary and
-secondary is generally a runtime distinction, as in what functions will
-be called in either case. More on this will be covered below.
-
 Module Chaining
 ---------------
 

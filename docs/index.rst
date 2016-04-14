@@ -28,6 +28,8 @@ Contents:
    chopshop/core_development
    chopshop/glossary
 
+.. _module_docs:
+
 Module Documentation
 --------------------
 
