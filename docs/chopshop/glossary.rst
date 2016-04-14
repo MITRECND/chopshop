@@ -52,14 +52,24 @@ page is an attempt at consistency.
       project; this is the default used by the ``chopshop`` program, but can be
       modified with the `-M` command-line flag.
 
+   primary data type
+      TCP, UDP, or IP packet data. These data types are defined by libnids. The
+      first module in any chain must be able to handle one of the primary data
+      types.
+
    primary module
-      a ChopShop module that handles one of ChopShop's core data types (TCP,
-      UDP, or IP)
+      a ChopShop module that handles one of ChopShop's
+      :term:`primary data type` s. A primary module should be first in any
+      module chain.
+
+   secondary data type
+      any type of data that is not a :term:`primary data type`. Examples
+      include ``http`` and ``dns`` data.
 
    secondary module
-      a ChopShop module that handles a non-core data type defined by another
-      module; any Chopshop module that is not a :term:`primary module`.  For
-      example, a module that handles ``http`` data is a secondary module.
+      a ChopShop module that handles a :term:`secondary data type` defined by
+      another module; any Chopshop module that is not a :term:`primary module`.
+      For example, a module that handles ``http`` data is a secondary module.
 
    Ui
    ChopShop Ui Handler Library
