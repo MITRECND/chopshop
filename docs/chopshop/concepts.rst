@@ -22,18 +22,20 @@ Information on writing your own modules can be found in
 Primary vs. Secondary Modules
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-ChopShop has two types of modules to supports its chaining functionality
-called 'primary' and 'secondary'. The distinction is that primary
-modules parse data that is considered a 'core' type within ChopShop,
-specifically this would be tcp, udp, and ip. A module that processes a
-module created type is considered secondary. The http\_extractor module,
-for example is a secondary module as it only accepts 'http' type data.
-It's important to note that since ChopShop supports ingesting multiple
-types within a single module, a module can technically both be a primary
-and secondary module -- but the distinction between primary and
-secondary is generally a runtime distinction, as in what functions will
-be called in either case. More on this will be covered below.
+ChopShop has two types of modules, allowing modules to be composed into chains.
+:term:`Primary modules` take a :term:`primary data type` (TCP, UDP, or IP) as input,
+while :term:`secondary modules` take a :term:`secondary data type`. For example, the
+``http`` module is a primary module, since it accepts TCP data (and returns
+``http`` data). The ``http_extractor`` module is an example of a secondary
+module, since it operates on the ``http`` data produced by the ``http`` module.
 
+.. note::
+
+    ChopShop supports ingesting multiple data types in a single module, so a
+    module can technically both be a primary and secondary module. At runtime,
+    though -- within a specific module chain -- the module's role as either
+    primary or secondary will be determined by its location in the chain, along
+    with the surroudning modules.
 
 User Defined Directories
 ------------------------
