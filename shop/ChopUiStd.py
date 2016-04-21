@@ -143,7 +143,8 @@ class ChopStdout:
     prepend_address         = False
 
     def __init__(self, ui_stop_fn = None, lib_stop_fn = None):
-        #Stdout doesn't need the two functions
+        self.ui_stop_fn = ui_stop_fn
+        self.lib_stop_fn = lib_stop_fn
         self.broken_pipe = False
 
     def handle_message(self, message):
@@ -170,7 +171,15 @@ class ChopStdout:
                 if not self.broken_pipe:
                     self.broken_pipe = True
                     try:
-                        sys.stderr.write("IOError in ChopStdout! Broken Pipe Writing to stdout ...\n")
+                        sys.stderr.write("IOError in ChopStdout! Broken Pipe Writing to stdout ... ChopShop Exiting\n")
+                    except:
+                        pass
+                    try:
+                        self.lib_stop_fn()
+                    except:
+                        pass
+                    try:
+                        self.ui_stop_fn()
                     except:
                         pass
             else: # Other IOError?
