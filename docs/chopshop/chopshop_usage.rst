@@ -7,11 +7,8 @@ The ``chopshop`` program is a Python script designed to be run on the
 command line. It requires Python 2.6+ and pynids to be installed. It
 also requires "modules" to be created that do the processing of network
 data. ChopShop, by itself, does not do any processing of pcap data -- it
-provides the facilities for the modules to do so.
+provides the facilities for the modules to do so::
 
-.. raw:: html
-
-   <pre>
    Usage: chopshop [options] ["bpf filter"] "list | (of, many) | modules ; and | more"
 
    ChopShop is a MITRE created utility to aid analysts in decoding network
@@ -50,23 +47,17 @@ provides the facilities for the modules to do so.
      -t, --module_tree     print information about module tree and exit
      -v, --version         print version and exit
 
-   </pre>
-
 Along with some basic command line options, chopshop requires the names
 of modules it is supposed to run. By default chopshop will look in the
 current working directory for a "modules" directory and search for
 modules there.
 
 Note that -F, -J, and -s require a formatted string that understands the
-following variables:
+following variables::
 
-.. raw:: html
-
-   <pre>
    %N - the name of the module
    %T - the current unix timestamp
    %% - a literal '%'
-   </pre>
 
 This enables files to be output to a location of the program invoker's
 choosing, more info can be found below in the examples.
@@ -81,14 +72,10 @@ ChopShop.
 User Interface
 --------------
 
-When invoked with the -g flag, chopshop starts with a gui enabled. The
-GUI, written in curses, will take over the entire screen and display
-information in different windows. The following keys are recognized by
-the GUI:
+When invoked with the ``-g`` flag, chopshop starts with a curses-based GUI
+enabled. The GUI will take over the entire screen and display information in
+different windows. The following keys are recognized by the GUI::
 
-.. raw:: html
-
-   <pre>
    Left  or h: Cycles to the "left" window (the window above in the navigation window)
    Right or l: Cycles to the "right" window (the window below in the navigation window)
    Up    or k: Moves up one line in the data display window
@@ -100,7 +87,6 @@ the GUI:
             s: Toggles autoscroll for the given data display window -- default is True
             q: Quits the entire program -- generally, also clears the screen on exit
             Q: Quits the core -- leaves the UI up and running
-   </pre>
 
 When moving around in the data window, remember to disable autoscroll or
 else the window will return to the end of the data shortly.
@@ -114,7 +100,7 @@ Example 1
 As an example let's assume we have a pcap (/pcaps/netcat.pcap) which has
 traffic that uses the program netcat to access a remote shell. We can
 use the ChopShop module called "payloads" to dump the traffic. Someone
-trying to run chopshop against this pcap would type:
+trying to run chopshop against this pcap would type::
 
  chopshop -f /pcaps/netcat.pcap "host 192.168.1.10" "payloads"
 
@@ -128,7 +114,7 @@ Example 2
 As a second example, let's assume we have a pcap /pcaps/data.pcap which
 has traffic that is either netcat traffic or could be gh0st traffic.
 We're not quite sure which one it is and would like to try both. Someone
-trying to analyze this data with chopshop would do:
+trying to analyze this data with chopshop would do::
 
  chopshop -f /pcaps/data.pcap "payloads; gh0st\_decode"
 
@@ -145,7 +131,7 @@ Example 3
 
 Let's assume the same information as the above example but this time we
 would like to output all data to the output directory in our current
-working directory:
+working directory::
 
     chopshop -F "output/%N.txt" -f /pcaps/data.pcap "payloads; gh0st\_decode"
 
@@ -176,7 +162,7 @@ Example 5
 chopshop can be used in a long running mode by using the -l and -L
 flags. These flags make chopshop assume that the input file is a list of
 files it should process and that it should continuously run until told
-to cancel (via Ctrl-C or 'Q' in the gui).
+to cancel (via Ctrl-C or 'Q' in the gui)::
 
     chopshop -f myfilelist -l -L "host 192.168.1.10" "payloads"
 
@@ -187,7 +173,7 @@ Example 6
 ~~~~~~~~~
 
 Module chaining is achieved by using the pipe (\|) character. An example
-using the provided http and http\_extractor modules would look like:
+using the provided http and http\_extractor modules would look like::
 
     chopshop -f foo.pcap "http \| http\_extractor"
 
@@ -204,7 +190,7 @@ allowing you to feed the output of a module to multiple modules or vice
 versa. A simple example follows below. Note that a child module (any
 module on the right hand side of a pipe) needs to be able to accept the
 types of data that the parents are creating or a warning will be
-displayed to the screen.
+displayed to the screen::
 
     chopshop -f malware.pcap "(dns, icmp) \| malware\_detector"
 
@@ -214,7 +200,7 @@ Processing multiple pcaps
 All examples and use cases so far have only shown chopshop processing
 one pcap at a time. ChopShop has the capability to process multiple
 pcaps in a few ways. The easiest of which is to pipe their names into
-chopshop from the command line:
+chopshop from the command line::
 
     find /pcaps -name "\*.pcap" \| sort \| chopshop "host 192.168.1.10" "payloads"
 
