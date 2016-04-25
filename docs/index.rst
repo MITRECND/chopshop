@@ -1,5 +1,5 @@
-Welcome to ChopShop's documentation!
-====================================
+ChopShop
+========
 
 ChopShop is a framework for analyzing and decoding network traffic.  Based on
 libnids/pynids, it can be used for standard network protocols (like HTTP and
