@@ -23,11 +23,12 @@ Primary vs. Secondary Modules
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 ChopShop has two types of modules, allowing modules to be composed into chains.
-:term:`Primary modules` take a :term:`primary data type` (TCP, UDP, or IP) as input,
-while :term:`secondary modules` take a :term:`secondary data type`. For example, the
-``http`` module is a primary module, since it accepts TCP data (and returns
-``http`` data). The ``http_extractor`` module is an example of a secondary
-module, since it operates on the ``http`` data produced by the ``http`` module.
+A :term:`primary module` takes a :term:`primary data type` (TCP, UDP, or IP) as
+input, while a :term:`secondary module` takes a :term:`secondary data type`.
+For example, the ``http`` module is a primary module, since it accepts TCP data
+(and returns ``http`` data). The ``http_extractor`` module is an example of a
+secondary module, since it operates on the ``http`` data produced by the
+``http`` module.
 
 .. note::
 
