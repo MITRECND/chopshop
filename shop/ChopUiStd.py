@@ -27,6 +27,7 @@
 import time
 import os
 import sys
+import errno
 
 import ChopShopDebug as CSD
 from ChopException import ChopLibException
@@ -142,8 +143,9 @@ class ChopStdout:
     prepend_address         = False
 
     def __init__(self, ui_stop_fn = None, lib_stop_fn = None):
-        #Stdout doesn't need the two functions
-        pass
+        self.ui_stop_fn = ui_stop_fn
+        self.lib_stop_fn = lib_stop_fn
+        self.broken_pipe = False
 
     def handle_message(self, message):
         outstring = ""
@@ -159,10 +161,29 @@ class ChopStdout:
 
         outstring = outstring + message['data']['data']
         suppress = message['data']['suppress']
-        if suppress:
-            print outstring,
-        else:
-            print outstring
+        try:
+            if suppress:
+                sys.stdout.write(outstring + " ")
+            else:
+                sys.stdout.write(outstring + "\n")
+        except IOError as e:
+            if e.errno == errno.EPIPE: # If it's a broken pipe attempt to inform the user, only once
+                if not self.broken_pipe:
+                    self.broken_pipe = True
+                    try:
+                        sys.stderr.write("IOError in ChopStdout! Broken Pipe Writing to stdout ... ChopShop Exiting\n")
+                    except:
+                        pass
+                    try:
+                        self.lib_stop_fn()
+                    except:
+                        pass
+                    try:
+                        self.ui_stop_fn()
+                    except:
+                        pass
+            else: # Other IOError?
+                raise
 
     def handle_ctrl(self, message):
         if message['data']['msg'] == 'finished' and message['data']['status'] == 'error':

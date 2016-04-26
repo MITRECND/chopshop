@@ -367,7 +367,6 @@ class ChopCore(Thread):
                     chop.prnt("Error processing packets", e)
                     if not options['longrun']:
                         self.stopped = True #Force it to true and exit
-                        raise # only raise if not in longrun
 
         chop.prettyprnt("RED", "Shutting Down Modules ...")
 

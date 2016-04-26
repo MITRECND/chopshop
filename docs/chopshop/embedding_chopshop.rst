@@ -302,4 +302,6 @@ to override with the object you want to replace it. For example:
     chopui.stdout = MyAwesomeStdoutHandler
 
 As long as that object 'MyAwesomeStdoutHandler' has the four required
-functions, it will be used without issue to handle any 'txt' data
+functions, it will be used without issue to handle any 'txt' data. Please
+look at the classes defined in shop/ChopUiStd.py as a reference for
+creating your own overriding handlers.
