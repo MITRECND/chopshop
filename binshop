@@ -1,0 +1,254 @@
+#!/usr/bin/env python
+
+# Copyright (c) 2016 The MITRE Corporation. All rights reserved.
+#
+# Redistribution and use in source and binary forms, with or without
+# modification, are permitted provided that the following conditions
+# are met:
+# 1. Redistributions of source code must retain the above copyright
+#    notice, this list of conditions and the following disclaimer.
+# 2. Redistributions in binary form must reproduce the above copyright
+#    notice, this list of conditions and the following disclaimer in the
+#    documentation and/or other materials provided with the distribution.
+#
+# THIS SOFTWARE IS PROVIDED BY THE AUTHOR AND CONTRIBUTORS ``AS IS'' AND
+# ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+# IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+# ARE DISCLAIMED.  IN NO EVENT SHALL THE AUTHOR OR CONTRIBUTORS BE LIABLE
+# FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+# DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS
+# OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION)
+# HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
+# LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY
+# OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
+# SUCH DAMAGE.
+
+VERSION = "0.1"
+
+import sys
+import signal
+import os
+import nids
+import fileinput
+import imp
+from optparse import OptionParser, Option, OptionValueError
+from threading import Thread
+from threading import Lock
+
+#Supports Python 2.7+
+
+from multiprocessing import Process, Queue as mQueue
+import Queue
+import time
+
+#Chopshop Working Directory -- defaults to where script exists
+CHOPSHOP_WD = os.path.realpath(os.path.dirname(sys.argv[0]))
+
+sys.path.append(CHOPSHOP_WD + '/shop')
+
+##### DEBUG CODE #####
+### This is meant to be used for the sole purpose of chopshop core development
+### DO NOT ENABLE THIS UNLESS YOU ARE WORKING ON THE CORE OR SHOP COMPONENTS
+import ChopShopDebug as CSD
+#CSD.enable_debug()
+#####
+
+from ChopConfig import ChopConfig
+from ChopBin import ChopBin
+from ChopUi import ChopUi, ChopStdout
+from ChopException import ChopConfigException
+global chopbin
+global chopui
+
+def signal_handler(signal, frame):
+        try:
+            CSD.debug_out("Signal Caught\n")
+            chopbin.stop()
+
+            chopui.stop()
+            chopui.join()
+
+            chopbin.finish()
+            chopbin.join()
+        except:
+            pass
+
+        sys.exit(0)
+
+# send signal to finish processing data so far and exit
+def abrt_signal_handler(signal, frame):
+    chopbin.abort()
+
+
+signal.signal(signal.SIGINT, signal_handler)
+signal.signal(signal.SIGABRT, abrt_signal_handler)
+
+class CustomOption(Option):
+
+    ACTIONS = Option.ACTIONS + ("store_list",)
+    STORE_ACTIONS = Option.STORE_ACTIONS + ("store_list",)
+    TYPED_ACTIONS = Option.TYPED_ACTIONS + ("store_list",)
+    ALWAYS_TYPED_ACTIONS = Option.ALWAYS_TYPED_ACTIONS + ("store_list",)
+
+    def take_action(self, action, dest, opt, value, values, parser):
+        if action == "store_list":
+            lvalue = value.split(",")
+            values.ensure_value(dest, []).extend(lvalue)
+
+        else:
+            Option.take_action(
+                self, action, dest, opt, value, values, parser)
+
+
+def main():
+    global chopbin
+    global chopui
+    chopbin = ChopBin()
+    chopui = ChopUi()
+    chopconfig = ChopConfig()
+
+    user_config = os.path.expanduser("~") + "/.chopshop.cfg"
+    if os.path.isfile(user_config):
+        chopconfig.parse_config(user_config)
+
+    optparser = OptionParser(
+                        usage='usage: %prog [options] "list | of | modules ; and | more"', 
+                        option_class=CustomOption, 
+                        description='BinShop is a MITRE created utility to aid analysts in processing binary files'
+                        )
+    optparser.add_option("-B", "--base_dir", dest = "base_dir", default=None, action="store_list",
+        help = "Base directory to load modules and external libraries from. Option prioritized over -M and -E")
+    optparser.add_option("-c", "--configfile", action="store", dest="configfile",
+        type="string", default=None, help="Import a config file")
+    optparser.add_option("-C", "--saveconfig", action="store", dest="saveconfig",
+        type="string", default=None, help="Save current arguments to a config file")
+    optparser.add_option("-E", "--ext_dir", dest = "ext_dir", action="store_list", type="string",
+        default=None, help = "Directory to load external libraries from")
+    optparser.add_option("-f", "--file", action="store", dest="filename",
+        type="string", help="input binary file")
+    optparser.add_option("-F", "--fileout", action="store", dest="fileout",
+        type="string", default=None, help="Enable File Output")
+    optparser.add_option("-g", "--gui", action="store_true", dest="gui",
+        default=False, help="Enable ChopShop Gui")
+    optparser.add_option("-G", "--GMT", action="store_true", dest="GMT",
+        default=False, help="timestamps in GMT (tsprnt and tsprettyprnt only)")
+    optparser.add_option("-J", "--jsonout", action="store", dest="jsonout",
+        type="string", default=None, help="Enable JSON Output")
+    optparser.add_option("-m", "--module_info", action="store_true", dest="modinfo",
+        default=False,help="print information about module(s) and exit")
+    optparser.add_option("-M", "--mod_dir", dest = "bmod_dir", action="store_list", type="string",
+        default=None, help = "Directory to load modules from")
+    optparser.add_option("-s", "--savedir", action="store", dest="savedir",
+        type="string", default=None, help="Location to save carved files")
+    optparser.add_option("-S", "--stdout", action="store_true", dest="stdout",
+        default=False, help="Explicitly enable output to stdout")
+    optparser.add_option("-t", "--module_tree", action="store_true", dest="modtree",
+        default=False,help="print information about module tree and exit")    
+    optparser.add_option("-v", "--version", action="store_true", dest="version",
+        default=False,help="print version and exit")
+
+    (options, args) = optparser.parse_args()
+
+    if options.version:
+        print "BinShop Version %s (ChopBin: %s)" % (VERSION, chopbin.version())
+        sys.exit()
+
+    # Parse options and arguments.
+    try:
+        chopconfig.parse_opts(options, args)
+    except ChopConfigException, e:
+        print e
+        sys.exit(1)
+
+    chopbin.base_dir = chopconfig.base_dir
+    chopbin.bmod_dir = chopconfig.bmod_dir
+    chopbin.ext_dir = chopconfig.ext_dir
+
+    chopbin.aslist = chopconfig.aslist
+    chopbin.longrun = chopconfig.longrun
+    chopbin.modinfo = chopconfig.modinfo
+    chopbin.modtree = chopconfig.modtree
+    chopbin.GMT = chopconfig.GMT
+    chopbin.bpf = chopconfig.bpf
+    chopbin.modules = chopconfig.modules
+
+    if chopconfig.gui:
+        #Forecefully disable stdout
+        chopconfig.stdout = False
+        chopui.gui = True
+
+    if chopconfig.fileout:
+        chopui.fileout = True
+        chopui.filedir = chopconfig.fileout
+
+    if chopconfig.jsonout:
+        chopui.jsonout = True
+        chopui.jsondir = chopconfig.jsonout
+        chopbin.jsonout = True
+
+    #If any of the other outputs are not chosen, enable stdout
+    if (not chopconfig.gui and
+        not chopconfig.fileout and
+        not chopconfig.jsonout):
+        chopconfig.stdout = True
+
+    if chopconfig.stdout or chopconfig.gui or chopconfig.fileout:
+        chopbin.text = True
+
+    if chopconfig.stdout:
+        #ChopStdout.prepend_module_name = True
+        chopui.stdout = True
+
+    if chopconfig.savedir:
+        chopui.savefiles = True
+        chopui.savedir = chopconfig.savedir
+        chopbin.savefiles = True
+
+    if options.saveconfig:
+        print "Saving config to %s" % options.saveconfig
+        chopconfig.save_config(options.saveconfig)
+        sys.exit()
+
+    if not chopconfig.modinfo and not chopconfig.modtree:
+        if not chopconfig.interface:
+            if not chopconfig.filename:
+                #Nothing is set for input, attempt to read a list of files from stdin
+                try:
+                    files = sys.stdin.readlines()
+                except Exception, e:
+                    sys.exit("Error getting files from stdin %s\n" %  str(e))
+
+                try:
+                    f = open('/dev/tty')
+                    os.dup2(f.fileno(), 0)
+                except:
+                    print "Unable to reclaim tty"
+                    sys.exit(-1)
+
+                chopbin.filelist = files
+
+            else:
+                if not os.path.exists(chopconfig.filename):
+                    print "Unable to find file '%s'" % chopconfig.filename
+                    sys.exit(-1)
+                chopbin.filename = chopconfig.filename
+        else:
+            chopbin.interface = chopconfig.interface
+
+    chopui.bind(chopbin)
+
+    chopui.start()
+    chopbin.start()
+    #chopbin.setup_local_chop(pid = 0)
+    #chopbin.chop.prettyprnt("GREEN", "ChopShop Ui/Bin started")
+
+    while chopui.is_alive():
+        time.sleep(.1)
+
+    chopui.join()
+    chopbin.finish()
+    chopbin.join()
+
+if __name__ == '__main__':
+    main()
+

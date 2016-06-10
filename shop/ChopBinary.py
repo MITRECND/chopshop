@@ -1,6 +1,6 @@
-#! /usr/bin/env python
+#!/usr/bin/env python
 
-# Copyright (c) 2014 The MITRE Corporation. All rights reserved.
+# Copyright (c) 2016 The MITRE Corporation. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -23,40 +23,15 @@
 # OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
 # SUCH DAMAGE.
 
-class ChopException(BaseException):
-    def __init__(self, value = ""):
-        self.value = value
 
-    def __str__(self):
-        return repr(self.value)
+import copy
 
-class ChopConfigException(ChopException):
-    pass
+class ChopBinary(object):
+    def __init__(self):
+        self.metadata = {}
+        self.data = None
 
-
-class ChopUiException(ChopException):
-    pass
-
-class ChopUiStdOutException(ChopUiException):
-    pass
-
-class ChopUiGuiException(ChopUiException):
-    pass
-
-class ChopUiFileOutException(ChopUiException):
-    pass
-
-class ChopUiJsonException(ChopUiException):
-    pass
-
-class ChopUiFileSaveException(ChopUiException):
-    pass
-
-class ChopUiPyObjException(ChopUiException):
-    pass
-
-class ChopLibException(ChopException):
-    pass
-
-class BinLibException(ChopException):
-    pass
+    #If your data is complex enough
+    #you MUST inherit from ChopProtocol and redefine _clone
+    def _clone(self):
+        return copy.deepcopy(self)

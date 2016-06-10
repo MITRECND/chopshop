@@ -38,6 +38,7 @@ from ChopGV import CHOPSHOP_WD
     different parts of ChopShop.
 """
 
+DEFAULT_BMODULE_DIRECTORY = CHOPSHOP_WD + "/bin_modules/"
 DEFAULT_MODULE_DIRECTORY = CHOPSHOP_WD + '/modules/'
 DEFAULT_EXTLIB_DIRECTORY = CHOPSHOP_WD + '/ext_libs/'
 
@@ -57,6 +58,7 @@ class ChopConfig(object):
                             'saveconfig' :  ChopOption('string'),
 
                             #ChopLib options
+                            'bmod_dir':     ChopOption('list', 'Directories'),
                             'mod_dir' :     ChopOption('list', 'Directories'),
                             'ext_dir' :     ChopOption('list', 'Directories'),
                             'base_dir' :    ChopOption('list', 'Directories'), 
@@ -101,6 +103,15 @@ class ChopConfig(object):
     @mod_dir.setter
     def mod_dir(self, v):
         self.options['mod_dir'].value = v
+
+    @property
+    def bmod_dir(self):
+        """Directory to load modules from."""
+        return self.options['bmod_dir'].value
+
+    @bmod_dir.setter
+    def bmod_dir(self, v):
+        self.options['bmod_dir'].value = v
 
     @property
     def ext_dir(self):
@@ -296,6 +307,7 @@ class ChopConfig(object):
 
     def parse_opts(self, options, args=[]):
         global CHOPSHOP_WD
+        global DEFAULT_BMODULE_DIRECTORY
         global DEFAULT_MODULE_DIRECTORY
         global DEFAULT_EXTLIB_DIRECTORY
 
@@ -310,6 +322,11 @@ class ChopConfig(object):
         
         if self.base_dir is not None and CHOPSHOP_WD not in self.base_dir:
             self.base_dir.append(CHOPSHOP_WD)
+
+        if self.bmod_dir is not None and DEFAULT_BMODULE_DIRECTORY not in self.bmod_dir:
+            self.bmod_dir.append(DEFAULT_BMODULE_DIRECTORY)
+        elif self.base_dir is None and self.bmod_dir is None:
+            self.bmod_dir = [DEFAULT_BMODULE_DIRECTORY]
 
         if self.mod_dir is not None and DEFAULT_MODULE_DIRECTORY not in self.mod_dir:
             self.mod_dir.append(DEFAULT_MODULE_DIRECTORY)
