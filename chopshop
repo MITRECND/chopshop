@@ -32,7 +32,7 @@ TODO
 """
 
 
-VERSION = "4.1"
+VERSION = "5.0"
 
 import sys
 import signal
@@ -159,6 +159,8 @@ def main():
         default=False,help="print information about module(s) and exit")
     optparser.add_option("-M", "--mod_dir", dest = "mod_dir", action="store_list", type="string",
         default=None, help = "Directory to load modules from")
+    optparser.add_option("-I", "--binary_mod_dir", dest = "bmod_dir", action="store_list", type="string",
+        default=None, help = "Directory to load binary modules from")
     optparser.add_option("-s", "--savedir", action="store", dest="savedir",
         type="string", default=None, help="Location to save carved files")
     optparser.add_option("-S", "--stdout", action="store_true", dest="stdout",

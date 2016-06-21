@@ -44,6 +44,7 @@ class __ChopModule__(object):
         self.name = mstr
         self.arguments = []
         self.legacy = False
+        self.binary = False
         self.inputs = {}
         self.outputs = []
 

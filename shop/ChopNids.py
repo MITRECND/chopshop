@@ -41,11 +41,14 @@ import socket
 
 import ChopShopDebug as CSD
 from ChopProtocol import ChopProtocol
+from ChopBinary import ChopBinary
+from ChopBin import handleBinary
 
 
 tcp_modules = []
 ip_modules = []
 udp_modules = []
+binary_modules = []
 all_modules = []
 
 ptimestamp = 0
@@ -209,9 +212,8 @@ class ChopCore(Thread):
             code = module.code #module[0]
             #Create module_data for all modules
             module.module_data = {'args': arguments}
-            module.streaminfo = {}
-
             chop.prettyprnt("CYAN", "\tInitializing module '" + name + "'")
+
             try:
                 module_options = code.init(module.module_data)
             except Exception, e:
@@ -223,73 +225,85 @@ class ChopCore(Thread):
                 chop.prettyprnt("GREEN", "\t\t%s init failure: %s" % (code.moduleName, module_options['error']))
                 continue
 
-            if module.legacy:
-                if module_options['proto'] == 'tcp' :
-                    tcp_modules.append(module)
-                    all_modules.append(module)
-                    module.streaminfo['tcp'] = {}
-                elif module_options['proto'] == 'ip' :
-                    ip_modules.append(module)
-                    all_modules.append(module)
-                    module.streaminfo['ip'] = {}
-                elif module_options['proto'] == 'udp' :
-                    udp_modules.append(module)
-                    all_modules.append(module)
-                    module.streaminfo['udp'] = {}
-                else:
-                    chop.prnt("Undefined Module Type\n")
-                    self.complete = True
-                    return
-            else:
+            if module.binary:
+                binary_modules.append(module)
                 all_modules.append(module)
-                #Proto is an array of dictionaries
-                if not isinstance(module_options['proto'], list): #Malformed
-                    chop.prnt("%s has malformed proto list" % module.code.moduleName)
-                    self.complete = True
-                    return
 
-                for proto in module_options['proto']:
-                    #Right now (4.0) each dictionary only has one key
-                    #This might change in the future but should be easy
-                    #since it's already a separate dictionary
-                    if type(proto) is not dict:
+                if len(module.parents): #Make sure parents are capable of returning ChopBinary data
+                    for parent in module.parents:
+                        if 'ChopBinary' not in parent.outputs:
+                            chop.prettyprnt("GREEN", "WARNING: Parent to %s not providing binary data" % (module.code.moduleName))
+                else:
+                    chop.prettyprnt("GREEN", "WARNING: No Parent for %s providing binary data" % (module.code.moduleName))
+            else:
+                module.streaminfo = {}
+                if module.legacy:
+                    if module_options['proto'] == 'tcp' :
+                        tcp_modules.append(module)
+                        all_modules.append(module)
+                        module.streaminfo['tcp'] = {}
+                    elif module_options['proto'] == 'ip' :
+                        ip_modules.append(module)
+                        all_modules.append(module)
+                        module.streaminfo['ip'] = {}
+                    elif module_options['proto'] == 'udp' :
+                        udp_modules.append(module)
+                        all_modules.append(module)
+                        module.streaminfo['udp'] = {}
+                    else:
+                        chop.prnt("Undefined Module Type\n")
+                        self.complete = True
+                        return
+                else:
+                    all_modules.append(module)
+                    #Proto is an array of dictionaries
+                    if not isinstance(module_options['proto'], list): #Malformed
                         chop.prnt("%s has malformed proto list" % module.code.moduleName)
                         self.complete = True
                         return
- 
-                    for input in proto.keys():
-                        if input not in module.inputs:
-                            module.inputs[input] = []
 
-                        if proto[input] != '':
-                            module.inputs[input].append(proto[input])
-                            module.outputs.append(proto[input])
+                    for proto in module_options['proto']:
+                        #Right now (4.0) each dictionary only has one key
+                        #This might change in the future but should be easy
+                        #since it's already a separate dictionary
+                        if type(proto) is not dict:
+                            chop.prnt("%s has malformed proto list" % module.code.moduleName)
+                            self.complete = True
+                            return
+     
+                        for input in proto.keys():
+                            if input not in module.inputs:
+                                module.inputs[input] = []
 
-                        #Initialize the streaminfo array by type
-                        if input != 'any' and input != 'ip':
-                            module.streaminfo[input] = {}
+                            if proto[input] != '':
+                                module.inputs[input].append(proto[input])
+                                module.outputs.append(proto[input])
 
-                        if input == 'tcp':
-                            tcp_modules.append(module)
-                        elif input == 'udp':
-                            udp_modules.append(module)
-                        elif input == 'ip':
-                            ip_modules.append(module)
-                        elif input == 'any': #Special input that catches all non-core types
-                            #Initialize the streaminfo for all parents of the 'any' module
-                            if not len(module.parents):
-                                chop.prettyprnt("GREEN", "WARNING: No Parent for %s to provide data" % (module.code.moduleName))
-                            else:
-                                for parent in module.parents:
-                                    for output in parent.outputs:
-                                        module.streaminfo[output] = {}
-                        else: # non-core types, e.g., 'http' or 'dns'
-                            if len(module.parents): #Make sure parents give it what it wants
-                                for parent in module.parents:
-                                    if input not in parent.outputs:
-                                        chop.prettyprnt("GREEN", "WARNING: Parent to %s not providing %s data" % (module.code.moduleName, input))
-                            else:
-                                chop.prettyprnt("GREEN", "WARNING: No Parent for %s providing %s data" % (module.code.moduleName, input))
+                            #Initialize the streaminfo array by type
+                            if input != 'any' and input != 'ip':
+                                module.streaminfo[input] = {}
+
+                            if input == 'tcp':
+                                tcp_modules.append(module)
+                            elif input == 'udp':
+                                udp_modules.append(module)
+                            elif input == 'ip':
+                                ip_modules.append(module)
+                            elif input == 'any': #Special input that catches all non-core types
+                                #Initialize the streaminfo for all parents of the 'any' module
+                                if not len(module.parents):
+                                    chop.prettyprnt("GREEN", "WARNING: No Parent for %s to provide data" % (module.code.moduleName))
+                                else:
+                                    for parent in module.parents:
+                                        for output in parent.outputs:
+                                            module.streaminfo[output] = {}
+                            else: # non-core types, e.g., 'http' or 'dns'
+                                if len(module.parents): #Make sure parents give it what it wants
+                                    for parent in module.parents:
+                                        if input not in parent.outputs:
+                                            chop.prettyprnt("GREEN", "WARNING: Parent to %s not providing %s data" % (module.code.moduleName, input))
+                                else:
+                                    chop.prettyprnt("GREEN", "WARNING: No Parent for %s providing %s data" % (module.code.moduleName, input))
 
 
         if not all_modules:
@@ -814,26 +828,43 @@ def teardownProtocol(module, protocol, pp):
 def handleChildren(module, protocol, output):
     #Handle any potential children
     code = module.code
-    if isinstance(output, ChopProtocol):
+
+    if isinstance(output, ChopProtocol) or isinstance(output, ChopBinary):
         output = [output]
     elif not isinstance(output, list):
         chop.prettyprnt("YELLOW", "Module %s returned an invalid type" % code.moduleName)
         sys.exit(1)
 
     for outp in output:
-        if not isinstance(outp, ChopProtocol):
+        if isinstance(outp, ChopBinary):
+            binary = True
+        else:
+            binary = False
+
+        if not isinstance(outp, ChopProtocol) and not binary:
             chop.prettyprnt("YELLOW", "Module %s returned an invalid type" % code.moduleName)
             sys.exit(1)
 
-        if outp.type not in module.inputs[protocol.type]:
-            chop.prettyprnt("YELLOW", "Module %s returning unregistered type %s" % (code.moduleName, outp.type))
-            sys.exit(1)
+        if not binary:
+            if outp.type not in module.inputs[protocol.type]:
+                chop.prettyprnt("YELLOW", "Module %s returning unregistered type %s" % (code.moduleName, outp.type))
+                sys.exit(1)
+        else:
+            if 'ChopBinary' not in module.inputs[protocol.type]:
+                chop.prettyprnt("YELLOW", "Module %s returning unregistered binary data" % (code.moduleName))
+                sys.exit(1)
 
         for child in module.children:
-            if outp.type in child.inputs or 'any' in child.inputs:
-                #This ensure each child gets a copy that it can muck with
-                child_copy = outp._clone() 
-                if outp._teardown:
-                    teardownProtocol(child, child_copy, protocol)
-                else:
-                    handleProtocol(child, child_copy, protocol)
+            if not binary:
+                if outp.type in child.inputs or 'any' in child.inputs:
+                    #This ensure each child gets a copy that it can muck with
+                    child_copy = outp._clone() 
+                    if outp._teardown:
+                        teardownProtocol(child, child_copy, protocol)
+                    else:
+                        handleProtocol(child, child_copy, protocol)
+            else:
+                if not child.binary:
+                    pass
+                mdata = outp._clone()
+                handleBinary(child, mdata)

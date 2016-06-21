@@ -54,7 +54,7 @@ import ChopShopDebug as CSD
 #####
 
 from ChopConfig import ChopConfig
-from ChopBin import ChopBin
+from ChopLib import ChopBin
 from ChopUi import ChopUi, ChopStdout
 from ChopException import ChopConfigException
 global chopbin
@@ -116,32 +116,32 @@ def main():
                         option_class=CustomOption, 
                         description='BinShop is a MITRE created utility to aid analysts in processing binary files'
                         )
+    optparser.add_option("-f", "--file", action="store", dest="filename",
+        type="string", help="input binary file")
     optparser.add_option("-B", "--base_dir", dest = "base_dir", default=None, action="store_list",
         help = "Base directory to load modules and external libraries from. Option prioritized over -M and -E")
+    optparser.add_option("-E", "--ext_dir", dest = "ext_dir", action="store_list", type="string",
+        default=None, help = "Directory to load external libraries from")
+    optparser.add_option("-I", "--binary_mod_dir", dest = "bmod_dir", action="store_list", type="string",
+        default=None, help = "Directory to load binary modules from")
     optparser.add_option("-c", "--configfile", action="store", dest="configfile",
         type="string", default=None, help="Import a config file")
     optparser.add_option("-C", "--saveconfig", action="store", dest="saveconfig",
         type="string", default=None, help="Save current arguments to a config file")
-    optparser.add_option("-E", "--ext_dir", dest = "ext_dir", action="store_list", type="string",
-        default=None, help = "Directory to load external libraries from")
-    optparser.add_option("-f", "--file", action="store", dest="filename",
-        type="string", help="input binary file")
     optparser.add_option("-F", "--fileout", action="store", dest="fileout",
         type="string", default=None, help="Enable File Output")
-    optparser.add_option("-g", "--gui", action="store_true", dest="gui",
-        default=False, help="Enable ChopShop Gui")
-    optparser.add_option("-G", "--GMT", action="store_true", dest="GMT",
-        default=False, help="timestamps in GMT (tsprnt and tsprettyprnt only)")
     optparser.add_option("-J", "--jsonout", action="store", dest="jsonout",
         type="string", default=None, help="Enable JSON Output")
-    optparser.add_option("-m", "--module_info", action="store_true", dest="modinfo",
-        default=False,help="print information about module(s) and exit")
-    optparser.add_option("-M", "--mod_dir", dest = "bmod_dir", action="store_list", type="string",
-        default=None, help = "Directory to load modules from")
-    optparser.add_option("-s", "--savedir", action="store", dest="savedir",
-        type="string", default=None, help="Location to save carved files")
     optparser.add_option("-S", "--stdout", action="store_true", dest="stdout",
         default=False, help="Explicitly enable output to stdout")
+    optparser.add_option("-g", "--gui", action="store_true", dest="gui",
+        default=False, help="Enable ChopShop Gui")
+    optparser.add_option("-s", "--savedir", action="store", dest="savedir",
+        type="string", default=None, help="Location to save carved files")
+    optparser.add_option("-G", "--GMT", action="store_true", dest="GMT",
+        default=False, help="timestamps in GMT (tsprnt and tsprettyprnt only)")
+    optparser.add_option("-m", "--module_info", action="store_true", dest="modinfo",
+        default=False,help="print information about module(s) and exit")
     optparser.add_option("-t", "--module_tree", action="store_true", dest="modtree",
         default=False,help="print information about module tree and exit")    
     optparser.add_option("-v", "--version", action="store_true", dest="version",
@@ -150,7 +150,7 @@ def main():
     (options, args) = optparser.parse_args()
 
     if options.version:
-        print "BinShop Version %s (ChopBin: %s)" % (VERSION, chopbin.version())
+        print "BinShop Version %s (ChopLib: %s)" % (VERSION, chopbin.version())
         sys.exit()
 
     # Parse options and arguments.
@@ -164,12 +164,9 @@ def main():
     chopbin.bmod_dir = chopconfig.bmod_dir
     chopbin.ext_dir = chopconfig.ext_dir
 
-    chopbin.aslist = chopconfig.aslist
-    chopbin.longrun = chopconfig.longrun
     chopbin.modinfo = chopconfig.modinfo
     chopbin.modtree = chopconfig.modtree
     chopbin.GMT = chopconfig.GMT
-    chopbin.bpf = chopconfig.bpf
     chopbin.modules = chopconfig.modules
 
     if chopconfig.gui:
