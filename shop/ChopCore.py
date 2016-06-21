@@ -41,9 +41,8 @@ import socket
 
 import ChopShopDebug as CSD
 from ChopProtocol import ChopProtocol
+from ChopException import BinLibException
 from ChopBinary import ChopBinary
-from ChopBin import handleBinary
-
 
 tcp_modules = []
 ip_modules = []
@@ -868,3 +867,40 @@ def handleChildren(module, protocol, output):
                     pass
                 mdata = outp._clone()
                 handleBinary(child, mdata)
+
+def handleBinary(module, cdata):
+    code = module.code
+    cdata.module_data = module.module_data
+    try:
+        output = code.handleData(cdata)
+    except Exception as e:
+        exc = traceback.format_exc()
+        chop.prettyprnt("YELLOW", "Exception in module %s -- Traceback: \n%s" % (code.moduleName, exc))
+        return
+
+    module.module_data = cdata.module_data
+
+    if output is not None:
+        handleBinaryChildren(module, output)
+
+def handleBinaryChildren(module, output):
+    code = module.code
+    if isinstance(output, ChopBinary):
+        output = [output]
+    elif not isinstance(output, list):
+        chop.prettyprnt("YELLOW", "Module %s returned an invalid type" % code.moduleName)
+        return
+
+    for outp in output:
+        if not isinstance(outp, ChopBinary):
+            chop.prettyprnt("YELLOW", "Module %s returned an invalid type" % code.moduleName)
+            return
+
+        # Add Type checking?
+        for child in module.children:
+            if not child.binary:
+                chop.prettyprnt("YELLOW", "Binary Module cannot forward data to non-binary modules")
+                return
+
+            child_copy = outp._clone()
+            handleBinary(child, child_copy)

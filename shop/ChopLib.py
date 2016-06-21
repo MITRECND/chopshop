@@ -39,7 +39,7 @@ import Queue
 
 
 from ChopGV import CHOPSHOP_WD
-from ChopNids import ChopCore
+from ChopCore import ChopCore
 from ChopHelper import ChopHelper
 from ChopSurgeon import Surgeon
 from ChopException import ChopLibException
