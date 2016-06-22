@@ -127,7 +127,7 @@ def main():
         chopconfig.parse_config(user_config)
 
     optparser = OptionParser(
-                        usage='usage: %prog [options] ["bpf filter"] "list | (of, many) | modules ; and | more"', 
+                        usage='usage: %prog [options] ["bpf filter"] "list | (of, many) | b:modules ; and | more"',
                         option_class=CustomOption, 
                         description='ChopShop is a MITRE created utility to aid analysts in decoding network traffic'
                         )
