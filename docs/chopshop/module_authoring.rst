@@ -613,6 +613,46 @@ This will make sure each carved file from gh0st\_decode go into
 will be translated into the current UNIX timestamp (/tmp/%N/%T would put
 files in /tmp/module\_name/timestamp).
 
+Binary Modules
+______________
+
+ChopShop 5.0 (BETA!) introduces the ability to use modules oriented around
+processing binary data. This allows someone to extract information
+from packet data and then further process that information, without
+the context of a network connection. Further, the binshop program
+allows you to call those binary-oriented modules directly on a
+binary without the need for invoking chopshop, allowing you to
+do the same work without providing a pcap to extract data from.
+
+
+Binary modules are very similar to regular modules with a few
+changes. Binary modules, like Secondary modules require an
+init function and can take a shutdown function. To handle
+binary data, a binary modules must define a 'handleData' function
+which provides a ChopBinary data object. Binary modules can return
+ChopBinary data if desired to allow other binary modules, downstream
+to process the data.
+
+Binary modules have access to the global 'chop' object, same as
+traditional modules, allowing modules to output information
+where required.
+
+To allow the chaining of traditional ChopShop modules with these
+binary modules, a ChopShop module must, in the 'proto' dict key,
+indicate that an input will return binary data by using 'ChopBinary'
+as the value. This will tell the framework that given this input, it might
+return a ChopBinary object.
+
+Binary modules, to differentiate them from traditional modules, are
+located in the bin_modules directory and flags are available to
+provide the location(s) of custom modules.
+
+To use a binary modules in chopshop, the module name must be prefaced with
+'b:' to indicate that this is a binary modules. Since technically you can
+have a traditional and binary module with the same name, this should lessen
+any confusion or misinterpretation.
+
+
 Best Practices for Module Writing
 ---------------------------------
 

@@ -12,44 +12,45 @@ provides the facilities for the modules to do so.
 .. raw:: html
 
    <pre>
-   Usage: chopshop [options] ["bpf filter"] "list | (of, many) | modules ; and | more"
+    Usage: chopshop [options] ["bpf filter"] "list | (of, many) | b:modules ; and | more"
 
-   ChopShop is a MITRE created utility to aid analysts in decoding network
-   traffic
+    ChopShop is a MITRE created utility to aid analysts in decoding network
+    traffic
 
-   Options:
-     -h, --help            show this help message and exit
-     -B BASE_DIR, --base_dir=BASE_DIR
-                           Base directory to load modules and external libraries
-                           from. Option prioritized over -M and -E
-     -c CONFIGFILE, --configfile=CONFIGFILE
-                           Import a config file
-     -C SAVECONFIG, --saveconfig=SAVECONFIG
-                           Save current arguments to a config file
-     -E EXT_DIR, --ext_dir=EXT_DIR
-                           Directory to load external libraries from
-     -f FILENAME, --file=FILENAME
-                           input pcap file
-     -F FILEOUT, --fileout=FILEOUT
-                           Enable File Output
-     -g, --gui             Enable ChopShop Gui
-     -G, --GMT             timestamps in GMT (tsprnt and tsprettyprnt only)
-     -i INTERFACE, --interface=INTERFACE
-                           interface to listen on
-     -J JSONOUT, --jsonout=JSONOUT
-                           Enable JSON Output
-     -l, --aslist          Treat FILENAME as a file containing a list of files
-     -L, --long            Read from FILENAME forever even if there's no more
-                           pcap data
-     -m, --module_info     print information about module(s) and exit
-     -M MOD_DIR, --mod_dir=MOD_DIR
-                           Directory to load modules from
-     -s SAVEDIR, --savedir=SAVEDIR
-                           Location to save carved files
-     -S, --stdout          Explicitly enable output to stdout
-     -t, --module_tree     print information about module tree and exit
-     -v, --version         print version and exit
-
+    Options:
+      -h, --help            show this help message and exit
+      -B BASE_DIR, --base_dir=BASE_DIR
+                            Base directory to load modules and external libraries
+                            from. Option prioritized over -M and -E
+      -c CONFIGFILE, --configfile=CONFIGFILE
+                            Import a config file
+      -C SAVECONFIG, --saveconfig=SAVECONFIG
+                            Save current arguments to a config file
+      -E EXT_DIR, --ext_dir=EXT_DIR
+                            Directory to load external libraries from
+      -f FILENAME, --file=FILENAME
+                            input pcap file
+      -F FILEOUT, --fileout=FILEOUT
+                            Enable File Output
+      -g, --gui             Enable ChopShop Gui
+      -G, --GMT             timestamps in GMT (tsprnt and tsprettyprnt only)
+      -i INTERFACE, --interface=INTERFACE
+                            interface to listen on
+      -J JSONOUT, --jsonout=JSONOUT
+                            Enable JSON Output
+      -l, --aslist          Treat FILENAME as a file containing a list of files
+      -L, --long            Read from FILENAME forever even if there's no more
+                            pcap data
+      -m, --module_info     print information about module(s) and exit
+      -M MOD_DIR, --mod_dir=MOD_DIR
+                            Directory to load modules from
+      -I BMOD_DIR, --binary_mod_dir=BMOD_DIR
+                            Directory to load binary modules from
+      -s SAVEDIR, --savedir=SAVEDIR
+                            Location to save carved files
+      -S, --stdout          Explicitly enable output to stdout
+      -t, --module_tree     print information about module tree and exit
+      -v, --version         print version and exit
    </pre>
 
 Along with some basic command line options, chopshop requires the names
@@ -70,6 +71,51 @@ following variables:
 
 This enables files to be output to a location of the program invoker's
 choosing, more info can be found below in the examples.
+
+BETA!! - binshop - command line interface to ChopShop binary modules
+===========================================================
+
+The ``binshop`` program is a Python script designed to be run on the
+command line. It requires Python 2.7+ (technically it should run on 2.6, for now).
+It also, like ``chopshop`` requires "modules" to be craeted that do the processing
+of binary data.
+
+
+.. raw:: html
+
+    <pre>
+    Usage: binshop [options] "list | of | modules ; and | more"
+
+    BinShop is a MITRE created utility to aid analysts in processing binary files
+
+    Options:
+      -h, --help            show this help message and exit
+      -f FILENAME, --file=FILENAME
+                            input binary file
+      -B BASE_DIR, --base_dir=BASE_DIR
+                            Base directory to load modules and external libraries
+                            from. Option prioritized over -M and -E
+      -E EXT_DIR, --ext_dir=EXT_DIR
+                            Directory to load external libraries from
+      -I BMOD_DIR, --binary_mod_dir=BMOD_DIR
+                            Directory to load binary modules from
+      -c CONFIGFILE, --configfile=CONFIGFILE
+                            Import a config file
+      -C SAVECONFIG, --saveconfig=SAVECONFIG
+                            Save current arguments to a config file
+      -F FILEOUT, --fileout=FILEOUT
+                            Enable File Output
+      -J JSONOUT, --jsonout=JSONOUT
+                            Enable JSON Output
+      -S, --stdout          Explicitly enable output to stdout
+      -g, --gui             Enable ChopShop Gui
+      -s SAVEDIR, --savedir=SAVEDIR
+                            Location to save carved files
+      -G, --GMT             timestamps in GMT (tsprnt and tsprettyprnt only)
+      -m, --module_info     print information about module(s) and exit
+      -t, --module_tree     print information about module tree and exit
+      -v, --version         print version and exit
+    </pre>
 
 Quick Start
 -----------
