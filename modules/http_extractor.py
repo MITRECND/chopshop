@@ -25,6 +25,8 @@ from c2utils import packet_timedate, sanitize_filename, parse_addr
 from optparse import OptionParser
 from base64 import b64encode
 
+from ChopBinary import ChopBinary
+
 moduleName="http_extractor"
 moduleVersion="2.0"
 minimumChopLib="4.0"
@@ -33,7 +35,7 @@ def module_info():
     return "Extract HTTP information. Requires 'http' parent module. Print or generate JSON"
 
 def init(module_data):
-    module_options = { 'proto': [{'http':''}]}
+    module_options = { 'proto': [{'http':'ChopBinary'}]}
     parser = OptionParser()
 
     parser.add_option("-s", "--carve_response_body", action="store_true",
@@ -129,18 +131,21 @@ def handleProtocol(protocol):
         chop.savefile(fname, data['response']['body'])
         module_data['counter'] += 1
 
+    rbody = None
     # Convert the body to base64 encoded data, if it exists.
     if 'body' in data['request']:
         data['request']['body'] = b64encode(data['request']['body'])
         data['request']['body_encoding'] = 'base64'
     if 'body' in data['response']:
+        rbody = ChopBinary()
+        rbody.data = data['response']['body']
         data['response']['body'] = b64encode(data['response']['body'])
         data['response']['body_encoding'] = 'base64'
 
     chop.prnt(data)
     chop.json(data)
-    
-    return
+
+    return rbody
 
 def teardownProtocol(protocol):
     if protocol.type != 'http':
