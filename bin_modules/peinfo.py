@@ -58,6 +58,7 @@ import bz2
 import hashlib
 import string
 import struct
+from optparse import OptionParser
 
 from ChopBinary import ChopBinary
 
@@ -71,8 +72,14 @@ def module_info():
     return 'Process a PE using the pefile Python library.'
 
 def init(module_data):
-    # Currently returns nothing
-    # This could return registered types, e.g., this module only handles 'pdf' type, if useful?
+    parser = OptionParser()
+
+    parser.add_option("-i", "--ignore-nonpe", action="store_true", dest="ignore_nonpe",
+        default=False, help="If a file cannot be parsed by pefile, it will ignore it instead of printing an error")
+
+    (options,lo) = parser.parse_args(module_data['args'])
+    module_data['ignore_nonpe'] = options.ignore_nonpe
+
     return {}
 
 # data is a ChopBinary type
@@ -88,7 +95,8 @@ def handleData(data):
     try:
         pe = pefile.PE(data=cb.data)
     except pefile.PEFormatError as e:
-        chop.prnt("An error occurred: %s" % e)
+        if not data.module_data['ignore_nonpe']:
+            chop.prnt("An error occurred: %s" % e)
         return
 
     cb.metadata['sections'] = get_sections(pe)
