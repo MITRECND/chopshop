@@ -211,7 +211,8 @@ class ChopCore(Thread):
             code = module.code #module[0]
             #Create module_data for all modules
             module.module_data = {'args': arguments}
-            chop.prettyprnt("CYAN", "\tInitializing module '" + name + "'")
+            binary = ' binary ' if module.binary else ' '
+            chop.prettyprnt("CYAN", "\tInitializing" + binary + "module '" + name + "'")
 
             try:
                 module_options = code.init(module.module_data)
