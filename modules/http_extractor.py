@@ -46,6 +46,8 @@ def init(module_data):
         default=[], help="Comma separated list of fields to extract")
     parser.add_option("-m", "--hash_body", action="store_true", dest="hash_body",
         default=False, help="Save hash of body and throw contents away")
+    parser.add_option("-q", "--quiet", action="store_true", dest="quiet",
+        default=False, help="Disable printing of extracted information")
 
 
     (options,lo) = parser.parse_args(module_data['args'])
@@ -55,6 +57,7 @@ def init(module_data):
     module_data['carve_response'] = options.carve_response
     module_data['hash_body'] = options.hash_body
     module_data['fields'] = []
+    module_data['quiet'] = options.quiet
 
     if options.fields:
         fields = options.fields.split(',')
@@ -142,7 +145,8 @@ def handleProtocol(protocol):
         data['response']['body'] = b64encode(data['response']['body'])
         data['response']['body_encoding'] = 'base64'
 
-    chop.prnt(data)
+    if not module_data['quiet']:
+        chop.prnt(data)
     chop.json(data)
 
     return rbody
