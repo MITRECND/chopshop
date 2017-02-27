@@ -79,9 +79,9 @@ def taste(tcp):
 
 def handleStream(tcp):
     ((src, sport), (dst, dport)) = parse_addr(tcp)
+    count = tcp.client.count_new
     if tcp.client.count_new > 0:
         data = tcp.client.data[:tcp.client.count_new]
-        count = tcp.client.count_new
         if tcp.stream_data['dump']:
             chop.tsprnt("%s:%s -> %s:%s %i bytes" % (src, sport, dst, dport, count,))
             chop.prnt(hexdump(data))
