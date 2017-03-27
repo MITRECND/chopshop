@@ -2,7 +2,7 @@
 
 set -x
 
-git clone --recursive git://github.com/MITRECND/htpy
+git clone --recursive https://github.com/MITRECND/htpy
 
 cd htpy
 

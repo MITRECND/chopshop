@@ -32,15 +32,16 @@ RUN buildDeps='apt-utils \
                         swig \
                         python-m2crypto \
                         yara --no-install-recommends \
+                        libemu-dev \
   && easy_install pymongo \
                   pycrypto \
                   dnslib \
+                  pylibemu \
   && echo "[INFO] Installing Modules..." \
   && cd /tmp \
   && docker/install/pynids.sh \
   && docker/install/htpy.sh \
   && docker/install/yaraprocessor.sh \
-  && docker/install/pylibemu.sh \
   && echo "[INFO] Installing ChopShop..." \
   && make \
   && make install \

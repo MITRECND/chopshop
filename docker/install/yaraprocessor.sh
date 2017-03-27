@@ -2,7 +2,7 @@
 
 set -x
 
-git clone git://github.com/MITRECND/yaraprocessor.git
+git clone https://github.com/MITRECND/yaraprocessor.git
 
 cd yaraprocessor
 
