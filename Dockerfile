@@ -37,6 +37,7 @@ RUN buildDeps='apt-utils \
                   pycrypto \
                   dnslib \
                   pylibemu \
+                  hpack \
   && echo "[INFO] Installing Modules..." \
   && cd /tmp \
   && docker/install/pynids.sh \
