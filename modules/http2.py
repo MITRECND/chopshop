@@ -588,7 +588,11 @@ def taste(tcp):
     tcp.stream_data['stream_cache'] = {}
     tcp.stream_data['flowStart'] = tcp.timestamp
     tcp.stream_data['hpack_client_decoder'] = hpack.Decoder()
+    tcp.stream_data['hpack_client_decoder'].header_table_size = 4294967295
+    tcp.stream_data['hpack_client_decoder'].max_allowed_table_size = 4294967295
     tcp.stream_data['hpack_server_decoder'] = hpack.Decoder()
+    tcp.stream_data['hpack_server_decoder'].header_table_size = 4294967295
+    tcp.stream_data['hpack_server_decoder'].max_allowed_table_size = 4294967295
     tcp.stream_data['client_count'] = 0
 
     return True
