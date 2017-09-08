@@ -39,13 +39,12 @@ import Queue
 
 
 from ChopGV import CHOPSHOP_WD
-from ChopCore import ChopCore
+import ChopCore
 from ChopHelper import ChopHelper
 from ChopSurgeon import Surgeon
 from ChopException import ChopLibException
 from ChopGrammar import ChopGrammar
 from ChopBinary import ChopBinary
-from ChopBin import handleBinary
 
 
 DEFAULT_MODULE_DIRECTORY = CHOPSHOP_WD + '/modules/'
@@ -691,7 +690,8 @@ class ChopLib(Thread):
         chop.prettyprnt("RED", "Starting ChopShop (Created by MITRE)")
 
         #Initialize the ChopShop Core
-        ccore = ChopCore(options, module_list, chop, chophelper)
+        ChopCore.setGlobalChop(chop)
+        ccore = ChopCore.ChopCore(options, module_list, chophelper)
 
         #Setup Core and its modules
         ccore.prep_modules()
@@ -926,6 +926,7 @@ class ChopBin(Thread):
         # Initialize stuff
         #Setup the chophelper
         chophelper = ChopHelper(self.tocaller, options)
+        global chop
         chop = chophelper.setup_main()
 
         #Setup the modules
@@ -1030,7 +1031,8 @@ class ChopBin(Thread):
 
         chop.prettyprnt("RED", "Starting BinShop (Created by MITRE)")
 
-        bcore = BinStream(options, module_list, entry_modules, chop, chophelper)
+        ChopCore.setGlobalChop(chop)
+        bcore = BinStream(options, module_list, entry_modules, chophelper)
 
         #Setup Core and its modules
         bcore.prep_modules()
@@ -1073,7 +1075,7 @@ class ChopBin(Thread):
 
 # This takes the place of ChopCore from ChopNids for binshop
 class BinStream(Thread):
-    def __init__(self, options, module_list, entry_modules, chp, chophelper):
+    def __init__(self, options, module_list, entry_modules, chophelper):
         Thread.__init__(self)
         self.options = options
         self.module_list = module_list
@@ -1082,9 +1084,6 @@ class BinStream(Thread):
         self.stopped = False
         self.complete = False
         self.abort = False
-
-        global chop
-        chop = chp
 
     def prep_modules(self):
         self.chophelper.set_core(self)
@@ -1097,7 +1096,6 @@ class BinStream(Thread):
         return {}
 
     def run(self):
-        global chop
         #Initialize modules to be run
         options = self.options
         chop.prettyprnt("RED", "Initializing Modules ...")
@@ -1135,7 +1133,7 @@ class BinStream(Thread):
 
         for module in self.entry_modules:
             mdata = dat._clone()
-            handleBinary(module, mdata)
+            ChopCore.handleBinary(module, mdata)
 
         chop.prettyprnt("RED", "Shutting Down Modules ...")
 

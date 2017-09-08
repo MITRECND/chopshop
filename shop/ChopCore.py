@@ -161,8 +161,12 @@ def copy_tcp_data(tcp,offset_info,client_direction):
 
     return tcplocal
 
+def setGlobalChop(gchop):
+    global chop
+    chop = gchop
+
 class ChopCore(Thread):
-    def __init__(self,options, module_list, chp, chophelper):
+    def __init__(self,options, module_list, chophelper):
         Thread.__init__(self)
         self.options = options
         self.module_list = module_list
@@ -170,9 +174,6 @@ class ChopCore(Thread):
         self.stopped = False
         self.complete = False
         self.abort = False
-
-        global chop
-        chop = chp
 
     def stop(self):
         self.complete = True
