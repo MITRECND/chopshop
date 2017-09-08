@@ -118,6 +118,8 @@ def main():
                         )
     optparser.add_option("-f", "--file", action="store", dest="filename",
         type="string", help="input binary file")
+    optparser.add_option("-r", "--raw", action="store", dest="raw_data",
+        type="string", help="Raw data to work on")
     optparser.add_option("-B", "--base_dir", dest = "base_dir", default=None, action="store_list",
         help = "Base directory to load modules and external libraries from. Option prioritized over -M and -E")
     optparser.add_option("-E", "--ext_dir", dest = "ext_dir", action="store_list", type="string",
@@ -207,30 +209,30 @@ def main():
         sys.exit()
 
     if not chopconfig.modinfo and not chopconfig.modtree:
-        if not chopconfig.interface:
-            if not chopconfig.filename:
-                #Nothing is set for input, attempt to read a list of files from stdin
-                try:
-                    files = sys.stdin.readlines()
-                except Exception, e:
-                    sys.exit("Error getting files from stdin %s\n" %  str(e))
+        if not chopconfig.raw_data and not chopconfig.filename:
+            #Nothing is set for input, attempt to read a list of files from stdin
+            try:
+                files = sys.stdin.readlines()
+            except Exception, e:
+                sys.exit("Error getting files from stdin %s\n" %  str(e))
 
-                try:
-                    f = open('/dev/tty')
-                    os.dup2(f.fileno(), 0)
-                except:
-                    print "Unable to reclaim tty"
-                    sys.exit(-1)
+            try:
+                f = open('/dev/tty')
+                os.dup2(f.fileno(), 0)
+            except:
+                print "Unable to reclaim tty"
+                sys.exit(-1)
 
-                chopbin.filelist = files
+            chopbin.filelist = [filepath.strip() for filepath in files]
 
-            else:
-                if not os.path.exists(chopconfig.filename):
-                    print "Unable to find file '%s'" % chopconfig.filename
-                    sys.exit(-1)
-                chopbin.filename = chopconfig.filename
-        else:
-            chopbin.interface = chopconfig.interface
+        elif chopconfig.filename:
+            if not os.path.exists(chopconfig.filename):
+                print "Unable to find file '%s'" % chopconfig.filename
+                sys.exit(-1)
+            chopbin.filename = chopconfig.filename
+
+        elif chopconfig.raw_data:
+            chopbin.raw_data = chopconfig.raw_data
 
     chopui.bind(chopbin)
 

@@ -64,6 +64,7 @@ class ChopConfig(object):
                             'base_dir' :    ChopOption('list', 'Directories'), 
                             'filename' :    ChopOption('string', 'General'),
                             'filelist' :    ChopOption('string', 'General'),
+                            'raw_data':     ChopOption('string', 'General'),
                             'bpf' :         ChopOption('string', 'General'),
                             'aslist' :      ChopOption('bool', 'General'),
                             'longrun' :     ChopOption('bool', 'General'),
@@ -139,6 +140,15 @@ class ChopConfig(object):
     @filename.setter
     def filename(self, v):
         self.options['filename'].value = v
+
+    @property
+    def raw_data(self):
+        """raw data input for binshop"""
+        return self.options['raw_data'].value
+
+    @raw_data.setter
+    def raw_data(self, v):
+        self.options['raw_data'].value = v
 
     @property
     def filelist(self):

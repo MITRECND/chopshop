@@ -734,6 +734,7 @@ class ChopBin(Thread):
                          'base_dir': None,
                          'filename': '',
                          'filelist': None,
+                         'raw_data': None,
                          'modinfo': False,
                          'modtree': False,
                          'GMT': False,
@@ -788,6 +789,15 @@ class ChopBin(Thread):
             self.options['base_dir'] = v
 
     @property
+    def filelist(self):
+        """input data files"""
+        return self.options['filelist']
+
+    @filelist.setter
+    def filelist(self, v):
+        self.options['filelist'] = v
+
+    @property
     def filename(self):
         """input data file."""
         return self.options['filename']
@@ -795,6 +805,15 @@ class ChopBin(Thread):
     @filename.setter
     def filename(self, v):
         self.options['filename'] = v
+
+    @property
+    def raw_data(self):
+        """raw data input."""
+        return self.options['raw_data']
+
+    @raw_data.setter
+    def raw_data(self, v):
+        self.options['raw_data'] = v
 
     @property
     def modinfo(self):
@@ -907,13 +926,18 @@ class ChopBin(Thread):
 
     def run(self):
         if not self.options['modinfo'] and not self.options['modtree']:
-            if not self.options['filename']:
+            if not self.options['filelist'] and not self.options['filename'] and not self.options['raw_data']:
                 self.send_finished_msg({'status':'error','errors': 'No input Specified'}, True)
                 return
 
-            if not os.path.exists(self.options['filename']):
-                self.send_finished_msg({'status':'error','errors':"Unable to find file '%s'" % self.options['filename']}, True)
-                return
+            if self.options['filename']:
+                self.options['filelist'] = [self.options['filename']]
+
+            if self.options['filelist']:
+                for f in self.options['filelist']:
+                    if not os.path.exists(f):
+                        self.send_finished_msg({'status':'error','errors':"Unable to find file '%s'" % f}, True)
+                        return
 
         options = self.options
         module_list = []
@@ -956,10 +980,16 @@ class ChopBin(Thread):
         if len(all_modules) == 0:
             chop.prnt('Zero Length Module List')
             self.send_finished_msg()
+            sys.exit(1)
 
         try:
             for mod in all_modules:
-                mod.code = self.__loadModules_(mod.name, bmod_dir)
+                try:
+                    mod.code = self.__loadModules_(mod.name, bmod_dir)
+                except Exception as e:
+                    chop.prnt("Fatal error attempting to import module %s:\n%s" % (mod.name, str(e)))
+                    self.send_finished_msg()
+                    sys.exit(1)
                 mod.binary = True
                 minchop = '0'
                 try:
@@ -968,6 +998,7 @@ class ChopBin(Thread):
                 except Exception as e:
                     chop.prnt(e.args)
                     self.send_finished_msg()
+                    sys.exit(1)
             
                 try:
                     #TODO more robust version checking
@@ -976,10 +1007,12 @@ class ChopBin(Thread):
                 except Exception as  e:
                     chop.prnt(e.args)
                     self.send_finished_msg()
+                    sys.exit(1)
 
         except Exception, e:
             chop.prnt(str(e))
             self.send_finished_msg()
+            sys.exit(1)
 
         module_list = all_modules
         entry_modules = top_modules
@@ -1119,21 +1152,31 @@ class BinStream(Thread):
                 chop.prettyprnt("GREEN", "\t\t%s init failure: %s" % (code.moduleName, module_options['error']))
                 continue
 
-        if options['filename'] is "":
-            chop.prnt("Empty Filename")
+        if not options['filelist'] and not options['raw_data']:
+            chop.prnt("No Inputs")
             self.complete = True
             return
 
-        # Read file data in
-        with open(options['filename']) as f:
-            rawData = f.read()
-            dat = ChopBinary()
-            dat.data = rawData
-            dat.metadata['filename'] = options['filename']
+        if options['filelist']:
+            for filename in options['filelist']:
+                # Read file data in
+                with open(filename) as f:
+                    rawData = f.read()
+                    dat = ChopBinary()
+                    dat.data = rawData
+                    dat.metadata['filename'] = filename
 
-        for module in self.entry_modules:
-            mdata = dat._clone()
-            ChopCore.handleBinary(module, mdata)
+                for module in self.entry_modules:
+                    mdata = dat._clone()
+                    ChopCore.handleBinary(module, mdata)
+
+        if options['raw_data']:
+            dat = ChopBinary()
+            dat.data = options['raw_data']
+            dat.metadata['filename'] = "cmdline_option"
+            for module in self.entry_modules:
+                mdata = dat._clone()
+                ChopCore.handleBinary(module, mdata)
 
         chop.prettyprnt("RED", "Shutting Down Modules ...")
 
