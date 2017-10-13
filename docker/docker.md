@@ -79,29 +79,3 @@ $ docker run --rm -it -v /path/to/folder/pcap:/pcap:rw mitrecnd/chopshop -f my.p
   }
 }
 ```
-
-### To Run on OSX
- - Install [Homebrew](http://brew.sh)
-
-```bash
-$ brew install caskroom/cask/brew-cask
-$ brew cask install virtualbox
-$ brew install docker
-$ brew install docker-machine
-$ docker-machine create --driver virtualbox dev
-$ eval $(docker-machine env dev)
-```
-Add the following to your bash or zsh profile
-
-```bash
-alias chopshop='docker run -it --rm -v `pwd`:/pcap:rw mitrecnd/chopshop $@'
-```
-#### Usage
-
-```bash
-chopshop -f malware.pcap "(dns, icmp) | malware_detector"
-```
-
-### Todo
-- [x] Install/Run ChopShop
-- [ ] Add MongoDB
