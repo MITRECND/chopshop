@@ -2,7 +2,7 @@
 
 set -x
 
-git clone --recursive git://github.com/MITRECND/pynids
+git clone --recursive https://github.com/MITRECND/pynids
 
 cd pynids
 
