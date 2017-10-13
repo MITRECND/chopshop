@@ -346,6 +346,7 @@ def _stream_ended_(frame, direction, tcp):
         for d in ['request', 'response']:
             headers = copy.deepcopy(tcp.stream_data['stream_cache'][frame.stream_id][d]['headers'])
             if d == 'request':
+                headers[':stream_id'] = frame.stream_id
                 method = headers.get(':method', None)
                 path = headers.get(':path', None)
                 if ':method' in headers:
