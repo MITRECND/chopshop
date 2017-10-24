@@ -25,6 +25,8 @@
 
 #shop/ChopHelper
 
+import imp
+import traceback
 import sys
 import os
 import time
@@ -45,7 +47,7 @@ import ChopShopDebug as CSD
     without having to do too much else to send output to the proper channel based on the user's settings
 
     chops provides four (4) main "channels" of output currently, which are:
-    
+
     1. prnt -- basic print functionality, "print" is a keyword in python and so could not be reused
         should accept the same syntax as a call to print
         depending on what the user has set (out to stdout, out to ui, etc.) this function will route the output to the
@@ -70,13 +72,29 @@ class chops:
     GMT = False
     to_outs = None
 
-    def __init__(self, id, name, dataq, core = None):
+    def __init__(self, id, name, dataq, core = None, alerts_dir=None, alerts=None):
         self.id = id
         self.name = name
         self.dataq = dataq
         self.core = core
         self.cls = None
         self.tsformatshort = False
+        #TODO instantiate alert types here for use below
+        self.alerts_dir = alerts_dir
+        self.alerts = []
+        for alert in alerts:
+            try:
+                (file, pathname, description) = imp.find_module(alert, self.alerts_dir)
+                loaded_alert = imp.load_module(alert, file, pathname, description)
+                self.alerts.append(loaded_alert.alert)
+            except Exception:
+                tb = traceback.format_exc()
+                raise Exception(tb)
+
+
+    def alert(self, summary=None, description=None):
+        for alert in self.alerts:
+            alert(summary, description)
 
     def debug(self, *fmtstring):
         self.prnt(*fmtstring)
@@ -112,8 +130,8 @@ class chops:
         if self.to_outs['text']:
             mystring = ''
 
-            supress = False 
-            extents = None 
+            supress = False
+            extents = None
             if fmtstring[-1] is None:
                 extents = -1
                 supress = True
@@ -126,7 +144,7 @@ class chops:
 
             message = self.__get_message_template__()
             message['type'] = 'text'
-            message['data'] = {'data' : mystring, 
+            message['data'] = {'data' : mystring,
                                'suppress' : supress,
                                'color' : color,
                               }
@@ -148,13 +166,13 @@ class chops:
         return filename
 
 
-    #mode should not be used by chop users -- 
+    #mode should not be used by chop users --
     #it is meant to be used by savefile
     def appendfile(self, filename, data, finalize = False, mode = 'a'):
         if self.to_outs['savefiles']:
             message = self.__get_message_template__()
             message['type'] = 'filedata'
-            message['data'] = { 'filename': filename, 
+            message['data'] = { 'filename': filename,
                                 'data' : data,
                                 'mode' : mode,
                                 'finalize': finalize
@@ -181,7 +199,7 @@ class chops:
             obj[key] = ptime
 
         self.json(obj)
-        
+
     def json(self, obj):
         if self.to_outs['json']:
 
@@ -196,7 +214,7 @@ class chops:
                     msg = msg + " with custom json encoder"
                 self.prettyprnt("RED", msg, e)
                 return #don't put anything onto the queue
-           
+
             message = self.__get_message_template__()
             message['type'] = 'json'
             message['data'] = {'data': jdout}
@@ -248,10 +266,10 @@ class chops:
                 message['addr'] = {  'src' : metadata['addr']['src'],
                                      'dst' : metadata['addr']['dst'],
                                      'sport':metadata['addr']['sport'],
-                                     'dport':metadata['addr']['dport'] 
+                                     'dport':metadata['addr']['dport']
                                    }
         return message
-        
+
 
 
 """
@@ -269,10 +287,12 @@ class ChopHelper:
                        }
         self.choplist = []
         self.core = None
+        self.alerts_dir = None
+        self.alerts = None
 
 
         if options['text']:
-            self.to_outs['text'] = True 
+            self.to_outs['text'] = True
 
         if options['jsonout']:
             self.to_outs['json'] = True
@@ -282,6 +302,12 @@ class ChopHelper:
 
         if options['pyobjout']:
             self.to_outs['pyobj'] = True
+
+        if options['alerts']:
+            self.alerts = options['alerts']
+
+        if options['alerts_dir']:
+            self.alerts_dir = options['alerts_dir']
 
         chops.GMT = options['GMT']
         chops.to_outs = self.to_outs
@@ -298,7 +324,7 @@ class ChopHelper:
         if id == 0:
             id = len(self.choplist)
 
-        chop = chops(id, name, self.tocaller, self.core)
+        chop = chops(id, name, self.tocaller, self.core, self.alerts_dir, self.alerts)
         self.choplist.append({'chop' : chop, 'id' : id})
 
         #Inform the caller that we are adding a module
@@ -310,7 +336,7 @@ class ChopHelper:
                   }
 
         self.tocaller.put(message)
-        return chop 
+        return chop
 
     def setup_dummy(self):
         chop = chops(-1, 'dummy', self.tocaller, self.core)

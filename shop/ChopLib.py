@@ -24,7 +24,7 @@
 # SUCH DAMAGE.
 
 
-VERSION = 4.3 
+VERSION = 4.3
 
 import ConfigParser
 import sys
@@ -45,6 +45,7 @@ from ChopException import ChopLibException
 from ChopGrammar import ChopGrammar
 
 
+DEFAULT_ALERTS_DIRECTORY = CHOPSHOP_WD + '/alerts/'
 DEFAULT_MODULE_DIRECTORY = CHOPSHOP_WD + '/modules/'
 DEFAULT_EXTLIB_DIRECTORY = CHOPSHOP_WD + '/ext_libs/'
 """
@@ -74,6 +75,7 @@ class ChopLib(Thread):
 
         self.options = { 'mod_dir': [DEFAULT_MODULE_DIRECTORY],
                          'ext_dir': [DEFAULT_EXTLIB_DIRECTORY],
+                         'alerts_dir': [DEFAULT_ALERTS_DIRECTORY],
                          'base_dir': None,
                          'filename': '',
                          'filelist': None,
@@ -88,7 +90,8 @@ class ChopLib(Thread):
                          'text': False,
                          'pyobjout': False,
                          'jsonout': False,
-                         'modules': ''
+                         'modules': '',
+                         'alerts': '',
                        }
 
         self.stopped = False
@@ -107,6 +110,18 @@ class ChopLib(Thread):
         self.surgeon = None
 
         self.kill_lock = Lock()
+
+    @property
+    def alerts_dir(self):
+        """Directory to load alerts from."""
+        return self.options['alerts_dir']
+
+    @alerts_dir.setter
+    def alerts_dir(self, v):
+        if isinstance(v, basestring):
+            self.options['alerts_dir'] = [v]
+        else:
+            self.options['alerts_dir'] = v
 
     @property
     def mod_dir(self):
@@ -143,6 +158,15 @@ class ChopLib(Thread):
             self.options['base_dir'] = [v]
         else:
             self.options['base_dir'] = v
+
+    @property
+    def alerts(self):
+        """alerts to enable."""
+        return self.options['alerts']
+
+    @alerts.setter
+    def alerts(self, v):
+        self.options['alerts'] = v
 
     @property
     def filename(self):
@@ -514,6 +538,7 @@ class ChopLib(Thread):
         ccore = None
         mod_dir = []
         ext_dir = []
+        alerts_dir = []
         chopgram = None
         abort = False
 
@@ -543,12 +568,16 @@ class ChopLib(Thread):
                         real_base = os.path.realpath(base)
                         mod_dir.append(real_base + "/modules/")
                         ext_dir.append(real_base + "/ext_libs")
+                        alerts_dir.append(real_base + "/ext_libs")
                 else:
                     mod_dir = options['mod_dir']
                     ext_dir = options['ext_dir']
+                    alerts_dir = options['alerts_dir']
 
                 for ed_path in ext_dir:
                     sys.path.append(os.path.realpath(ed_path))
+                for ad_path in alerts_dir:
+                    sys.path.append(os.path.realpath(ad_path))
 
                 #Setup the chophelper
                 chophelper = ChopHelper(dataq, options)
@@ -578,7 +607,7 @@ class ChopLib(Thread):
                         except: #Legacy Module
                             mod.legacy = True
                             chop.prnt("Warning Legacy Module %s!" % mod.code.moduleName)
-                    
+
                         try:
                             #TODO more robust version checking
                             if str(minchop) > str(VERSION):
@@ -627,7 +656,7 @@ class ChopLib(Thread):
                         mod.code.init({'args': ['-h']})
                     except SystemExit, e:
                         #OptParse will except as it ends
-                        modtxt = modtxt + strbuff.getvalue() 
+                        modtxt = modtxt + strbuff.getvalue()
                         pass
 
                     #Close and free contents

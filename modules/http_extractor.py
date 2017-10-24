@@ -96,7 +96,7 @@ def handleProtocol(protocol):
         new_headers = {}
         for header in data['request']['headers']:
             if header in req_fields:
-               new_headers[header] = data['request']['headers'][header] 
+               new_headers[header] = data['request']['headers'][header]
 
         for element in data['request'].keys():
             if element not in req_fields:
@@ -116,7 +116,7 @@ def handleProtocol(protocol):
                 del data['response'][element]
 
         data['response']['headers'] = new_headers
-            
+
     if module_data['carve_request'] and 'body' in data['request']:
         fname = sanitize_filename(data['request']['uri']['path'][1:]) + '.request.' + str(module_data['counter'])
         chop.prnt("DUMPING REQUEST: %s (%i)" % (fname, len(data['request']['body'])))
@@ -139,7 +139,7 @@ def handleProtocol(protocol):
 
     chop.prnt(data)
     chop.json(data)
-    
+
     return
 
 def teardownProtocol(protocol):
@@ -227,6 +227,7 @@ def teardownProtocol(protocol):
 
 
     chop.prnt(data)
+    chop.alert(summary="Found something", description="data")
     chop.json(data)
 
     return

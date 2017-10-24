@@ -38,6 +38,7 @@ from ChopGV import CHOPSHOP_WD
     different parts of ChopShop.
 """
 
+DEFAULT_ALERTS_DIRECTORY = CHOPSHOP_WD + '/alerts/'
 DEFAULT_MODULE_DIRECTORY = CHOPSHOP_WD + '/modules/'
 DEFAULT_EXTLIB_DIRECTORY = CHOPSHOP_WD + '/ext_libs/'
 
@@ -45,7 +46,7 @@ class ChopOption(object):
     def __init__(self, type, parent = None, default = None):
         self.type = type
         self.parent = parent
-        self.value = default 
+        self.value = default
 
 class ChopConfig(object):
 
@@ -59,7 +60,8 @@ class ChopConfig(object):
                             #ChopLib options
                             'mod_dir' :     ChopOption('list', 'Directories'),
                             'ext_dir' :     ChopOption('list', 'Directories'),
-                            'base_dir' :    ChopOption('list', 'Directories'), 
+                            'alerts_dir' :  ChopOption('list', 'Directories'),
+                            'base_dir' :    ChopOption('list', 'Directories'),
                             'filename' :    ChopOption('string', 'General'),
                             'filelist' :    ChopOption('string', 'General'),
                             'bpf' :         ChopOption('string', 'General'),
@@ -71,6 +73,7 @@ class ChopConfig(object):
                             'GMT' :         ChopOption('bool', 'General'),
                             'text' :        ChopOption('bool', 'General'),
                             'modules' :     ChopOption('string', 'General'),
+                            'alerts' :      ChopOption('string', 'General'),
 
                             #Shared options
                             'savedir' :     ChopOption('string', 'Directories'),
@@ -110,6 +113,15 @@ class ChopConfig(object):
     @ext_dir.setter
     def ext_dir(self, v):
         self.options['ext_dir'].value = v
+
+    @property
+    def alerts_dir(self):
+        """Directory to load alerts from."""
+        return self.options['alerts_dir'].value
+
+    @alerts_dir.setter
+    def alerts_dir(self, v):
+        self.options['alerts_dir'].value = v
 
     @property
     def base_dir(self):
@@ -238,6 +250,15 @@ class ChopConfig(object):
         self.options['modules'].value = v
 
     @property
+    def alerts(self):
+        """String of alerts to import"""
+        return self.options['alerts'].value
+
+    @modules.setter
+    def modules(self, v):
+        self.options['modules'].value = v
+
+    @property
     def bpf(self):
         """BPF string to pass to Nids"""
         return self.options['bpf'].value
@@ -298,6 +319,7 @@ class ChopConfig(object):
         global CHOPSHOP_WD
         global DEFAULT_MODULE_DIRECTORY
         global DEFAULT_EXTLIB_DIRECTORY
+        global DEFAULT_ALERTS_DIRECTORY
 
         #Parse config file first
         if options.configfile:
@@ -307,7 +329,7 @@ class ChopConfig(object):
         for opt, val in options.__dict__.items():
             if opt in self.options and val is not None:
                 self.options[opt].value = val
-        
+
         if self.base_dir is not None and CHOPSHOP_WD not in self.base_dir:
             self.base_dir.append(CHOPSHOP_WD)
 
@@ -320,6 +342,11 @@ class ChopConfig(object):
             self.ext_dir.append(DEFAULT_EXTLIB_DIRECTORY)
         elif self.base_dir is None and self.ext_dir is None:
             self.ext_dir = [DEFAULT_EXTLIB_DIRECTORY]
+
+        if self.alerts_dir is not None and DEFAULT_ALERTS_DIRECTORY not in self.alerts_dir:
+            self.alerts_dir.append(DEFAULT_ALERTS_DIRECTORY)
+        elif self.base_dir is None and self.alerts_dir is None:
+            self.alerts_dir = [DEFAULT_ALERTS_DIRECTORY]
 
         if len(args) <= 0 and not options.configfile and not options.saveconfig:
             raise ChopConfigException("Module List Required")
@@ -340,7 +367,7 @@ class ChopConfig(object):
     def parse_config(self, configfile):
         if not os.path.exists(configfile):
             raise ChopConfigException("could not find configuration file: %s" % configfile)
-        cfg = ConfigParser.ConfigParser()        
+        cfg = ConfigParser.ConfigParser()
         cfg.read(configfile)
         cfg.optionxform = str
 
@@ -357,7 +384,7 @@ class ChopConfig(object):
                     self.options[opts].value = cfg.get(self.options[opts].parent, opts)
             except:
                 pass
-    
+
         return
 
 
