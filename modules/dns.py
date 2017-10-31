@@ -105,13 +105,17 @@ def handleDatagram(udp):
         # Strip trailing dot.
         if rdata.endswith('.'):
             rdata = rdata[:-1]
-        dr = {
-              'rname': rname,
-              'rtype': QTYPE[r.rtype],
-              'rclass': CLASS[r.rclass],
-              'ttl': r.ttl,
-              'rdata': rdata
-            }
+        try:
+            dr = {
+                  'rname': rname,
+                  'rtype': QTYPE[r.rtype],
+                  'rclass': CLASS[r.rclass],
+                  'ttl': r.ttl,
+                  'rdata': rdata
+                }
+        except DNSError, e:
+            chop.prnt("dnslib error: %s" % str(e))
+            return
         d['rr'].append(dr)
 
     if sport == 53:
