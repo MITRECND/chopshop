@@ -21,7 +21,7 @@
 # OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
 # SUCH DAMAGE.
 
-from dnslib import DNSRecord, QR, OPCODE, RCODE, QTYPE, CLASS
+from dnslib import DNSRecord, QR, OPCODE, RCODE, QTYPE, CLASS, DNSError
 
 from ChopProtocol import ChopProtocol
 
@@ -47,6 +47,9 @@ def handleDatagram(udp):
         o = DNSRecord.parse(udp.data)
     except KeyError, e:
         chop.prnt("Key error: %s" % str(e))
+        return
+    except DNSError, e:
+        chop.prnt("dnslib error: %s" % str(e))
         return
 
     chopp = ChopProtocol('dns')
