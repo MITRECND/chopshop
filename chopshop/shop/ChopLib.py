@@ -24,7 +24,7 @@
 # SUCH DAMAGE.
 
 
-VERSION = 4.3 
+VERSION = 4.3
 
 import ConfigParser
 import sys
@@ -37,16 +37,14 @@ import re
 from cStringIO import StringIO
 
 
-from ChopGV import CHOPSHOP_WD
-from ChopNids import ChopCore
-from ChopHelper import ChopHelper
-from ChopSurgeon import Surgeon
-from ChopException import ChopLibException
-from ChopGrammar import ChopGrammar
+from chopshop.shop.ChopNids import ChopCore
+from chopshop.shop.ChopHelper import ChopHelper
+from chopshop.shop.ChopSurgeon import Surgeon
+from chopshop.shop.ChopException import ChopLibException
+from chopshop.shop.ChopGrammar import ChopGrammar
+from chopshop.modules import loadModule
+import chopshop.shop.ChopProtocol as ChopProtocol
 
-
-DEFAULT_MODULE_DIRECTORY = CHOPSHOP_WD + '/modules/'
-DEFAULT_EXTLIB_DIRECTORY = CHOPSHOP_WD + '/ext_libs/'
 """
     ChopLib is the core functionality of ChopShop. It provides a library interface to the processing side of chopshop
     Any output/UI functionality has been extracted and is not done by this class. ChopLib will output all output onto queue
@@ -57,8 +55,6 @@ class ChopLib(Thread):
     daemon = True
     def __init__(self):
         Thread.__init__(self, name = 'ChopLib')
-        global DEFAULT_MODULE_DIRECTORY
-        global DEFAULT_EXTLIB_DIRECTORY
 
         pyversion = sys.version_info
         pyversion = float(str(pyversion[0]) + "." + str(pyversion[1]))
@@ -72,8 +68,8 @@ class ChopLib(Thread):
         from Queue import Empty
         Queue.Empty = Empty #I'd prefer to keep this scoped to Queue
 
-        self.options = { 'mod_dir': [DEFAULT_MODULE_DIRECTORY],
-                         'ext_dir': [DEFAULT_EXTLIB_DIRECTORY],
+        self.options = { 'mod_dir': [],
+                         'ext_dir': [],
                          'base_dir': None,
                          'filename': '',
                          'filelist': None,
@@ -486,17 +482,6 @@ class ChopLib(Thread):
 
 #######Process 2 Functions######
 
-    def __loadModules_(self, name, path):
-        try:
-            (file, pathname, description) = imp.find_module(name, path)
-            loaded_mod = imp.load_module(name, file, pathname, description)
-        except Exception, e:
-            tb = traceback.format_exc()
-            raise Exception(tb)
-
-        return loaded_mod
-
-
     #Process 2 "main" process
     def __nids_core_runner_(self, inq, outq, dataq, autostart = True):
         #Note that even though this is within the class it is being used irrespective
@@ -537,7 +522,12 @@ class ChopLib(Thread):
 
                 options = data[1]
 
-                #Set up the module directory and the external libraries directory
+                # For backwards compatibilty, need to inject ChopProtocol
+                # into sys.modules
+                sys.modules['ChopProtocol'] = ChopProtocol
+
+                # Set up the module directory and the external
+                # libraries directory
                 if options['base_dir'] is not None:
                     for base in options['base_dir']:
                         real_base = os.path.realpath(base)
@@ -546,6 +536,11 @@ class ChopLib(Thread):
                 else:
                     mod_dir = options['mod_dir']
                     ext_dir = options['ext_dir']
+
+                # Append the built-in path
+                ext_dir.append(os.path.join(os.path.abspath(os.path.join(
+                               os.path.dirname(os.path.abspath(__file__)),
+                               os.pardir)), "ext_libs"))
 
                 for ed_path in ext_dir:
                     sys.path.append(os.path.realpath(ed_path))
@@ -569,7 +564,7 @@ class ChopLib(Thread):
 
                 try:
                     for mod in all_modules:
-                        mod.code = self.__loadModules_(mod.name, mod_dir)
+                        mod.code = loadModule(mod.name, mod_dir)
                         minchop = '0'
                         try:
                             mod_version = mod.code.moduleVersion
@@ -578,7 +573,7 @@ class ChopLib(Thread):
                         except: #Legacy Module
                             mod.legacy = True
                             chop.prnt("Warning Legacy Module %s!" % mod.code.moduleName)
-                    
+
                         try:
                             #TODO more robust version checking
                             if str(minchop) > str(VERSION):
@@ -627,7 +622,7 @@ class ChopLib(Thread):
                         mod.code.init({'args': ['-h']})
                     except SystemExit, e:
                         #OptParse will except as it ends
-                        modtxt = modtxt + strbuff.getvalue() 
+                        modtxt = modtxt + strbuff.getvalue()
                         pass
 
                     #Close and free contents
@@ -693,6 +688,3 @@ class ChopLib(Thread):
         ccore.join()
 
         chop.prettyprnt("RED", "ChopShop Complete")
-
-
-

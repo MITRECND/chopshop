@@ -35,17 +35,17 @@ import termios
 import struct
 
 
-import ChopShopDebug as CSD
+import chopshop.shop.ChopShopDebug as CSD
 
 BUFFER_SIZE = 10000
 
 class Color:
     YELLOW = curses.A_NORMAL
-    CYAN = curses.A_NORMAL 
-    MAGENTA = curses.A_NORMAL 
-    GREEN = curses.A_NORMAL 
+    CYAN = curses.A_NORMAL
+    MAGENTA = curses.A_NORMAL
+    GREEN = curses.A_NORMAL
     RED = curses.A_NORMAL
-    BLUE = curses.A_NORMAL 
+    BLUE = curses.A_NORMAL
     BLACK = curses.A_NORMAL
     WHITE = curses.A_NORMAL
 
@@ -129,8 +129,8 @@ class vpanel:
                 dcolor = Colors.CYAN
             self.evencolor = not self.evencolor
         else:
-            dcolor = Colors.get_color(color) 
-            
+            dcolor = Colors.get_color(color)
+
 
         self.data.append([newdata, dcolor])
 
@@ -155,8 +155,8 @@ class ChopShopCurses:
         self.stdscr.keypad(1)
 
 
-        self.nui = ChopCurses(self.stdscr, ui_stop_fn, lib_stop_fn)    
-    
+        self.nui = ChopCurses(self.stdscr, ui_stop_fn, lib_stop_fn)
+
     def add_panel(self, panel_id, name):
         self.nui.add_panel(panel_id,name)
 
@@ -165,8 +165,8 @@ class ChopShopCurses:
 
     def teardown(self):
         self.stdscr.keypad(0)
-        curses.nocbreak() 
-        curses.echo() 
+        curses.nocbreak()
+        curses.echo()
         curses.endwin()
 
     def join(self):
@@ -182,7 +182,7 @@ class ChopShopCurses:
         self.teardown()
         CSD.debug_out("ChopShopCurses stop complete\n")
 
- 
+
     def go(self):
         self.nui.start()
 
@@ -193,7 +193,7 @@ class ChopShopCurses:
     is used to display the data for a given "window" or "panel"
 
     The following keys are supported:
-   
+
     Left  or h: Cycles to the "left" window (the window above in the navigation window)
     Right or l: Cycles to the "right" window (the window below in the navigation window)
     Up    or k: Moves up one line in the data display window
@@ -201,7 +201,7 @@ class ChopShopCurses:
     PgDwn or J: Moves down 10 lines in the data display window
     PgUp  or K: Moves up 10 lines in the data display window
              b: Moves to the beginning line in the data display window
-             n: Moves to the end line in the data display window 
+             n: Moves to the end line in the data display window
              s: Toggles autoscroll for the given data display window -- default is True
              q: Quits the UI -- also halts execution of the core
              Q: Quits the core -- leaves the UI up and running
@@ -225,13 +225,13 @@ class ChopCurses(Thread):
     panels = {} #Since ids are not just positive integers need a dictionary
     panel_id_list = [] #A list of ordered panel ids -- to make it easier to switch
     current_win = 0 #The index in panel_id_list
-    
+
     title_window = 0
     nav_window = 0
     data_window = 0
 
     #Seed to termios.TIOCCWINSZ to get H,W
-    seed = struct.pack("HH", 0,0) 
+    seed = struct.pack("HH", 0,0)
 
     def __init__(self, stdscr, ui_stop_fn, lib_stop_fn):
         Thread.__init__(self)
@@ -251,7 +251,7 @@ class ChopCurses(Thread):
         #Colors is color safe, if colors are not available it will be equal to
         #curses.A_NORMAL
         self.titlecolor = Colors.RED
-        self.navcolor = Colors.MAGENTA 
+        self.navcolor = Colors.MAGENTA
 
     def __current_panel__(self):
         if len(self.panel_id_list) == 0:
@@ -372,24 +372,24 @@ class ChopCurses(Thread):
         current_key = None
         if len(self.panel_id_list) > self.current_win:
             current_key = self.panel_id_list[self.current_win]
-            
+
         self.panel_id_list = []
         for j in self.panels.iterkeys():
             self.panel_id_list.append(j)
 
         self.panel_id_list = sorted(self.panel_id_list)
-            
+
         if current_key is not None: #Need to update the key
             for i in range(len(self.panel_id_list)):
                 if self.panel_id_list[i] == current_key:
                     self.current_win = i
-        
+
 
         #self.update_navigation()
         #self.update_windows()
-       
+
         #if self.started:
-        #    self.update_navigation() 
+        #    self.update_navigation()
 
         #return ndvwin
 
@@ -411,7 +411,7 @@ class ChopCurses(Thread):
             return True
 
         return False
-        
+
 
     def resize_ui(self, use_self, attempts = 0):
 
@@ -456,7 +456,7 @@ class ChopCurses(Thread):
         self.data_window.resize(BUFFER_SIZE, self.dcols)
 
         self.update_title()
-            
+
         #Reset autoscroll on all panels
         for key in self.panel_id_list:
             self.panels[key].autoscroll = True
@@ -467,7 +467,7 @@ class ChopCurses(Thread):
             self.update_windows()
         except curses.error:
             if(attempts > 5):
-                raise 
+                raise
             self.resize_ui(False, attempts + 1)
 
     def calculate_dimensions(self):
@@ -506,7 +506,7 @@ class ChopCurses(Thread):
     def update_title(self):
         self.title_window.addstr("ChopShop", self.titlecolor)
         self.title_window.nooutrefresh()
-    
+
     def update_navigation(self):
         self.nav_window.erase()
         self.nav_window.addstr(1,1, "Navigation Window\n\n", self.navcolor)
@@ -517,7 +517,7 @@ class ChopCurses(Thread):
                 standout = Colors.BLACK
 
             self.nav_window.addstr(" " + self.panels[self.panel_id_list[i]].windowname + "\n", standout)
-        
+
         self.nav_window.border()
 
         try:
@@ -544,7 +544,7 @@ class ChopCurses(Thread):
                 return
 
         try:
-            self.data_window.nooutrefresh(self.__current_panel__().position,0, self.dyval, self.dxval, self.dlines , self.dxval + self.dcols) 
+            self.data_window.nooutrefresh(self.__current_panel__().position,0, self.dyval, self.dxval, self.dlines , self.dxval + self.dcols)
             curses.doupdate()
         except:
             pass #get it on the next go
@@ -555,24 +555,24 @@ class ChopCurses(Thread):
             try:
                 #Format should be Height, Width, X Pixels and Y Pixels
                 #Can't figure out why, but TIOCGWINSZ requires an argument the size of what it's going to return
-                #but doesn't actually modify it (which is how I'd write it)-- so if you want the (H) you give it 
-                #one short, (H,W) two shorts (H,W,X) three shorts and (H,W,X,Y) four shorts 
+                #but doesn't actually modify it (which is how I'd write it)-- so if you want the (H) you give it
+                #one short, (H,W) two shorts (H,W,X) three shorts and (H,W,X,Y) four shorts
 
                 #Since I only care about the H,W I created a seed of two shorts
                 hw = struct.unpack("HH", fcntl.ioctl(tid, termios.TIOCGWINSZ, self.seed))
             except:
                 return None
-            return hw 
-        
+            return hw
+
         #Check the standard i/o's first
         hw = check_term(sys.stdin) or check_term(sys.stdout) or check_term(sys.stderr)
-        
+
         if hw is None:
             try:
                 #Try the controlling terminal
                 tid = os.open(os.ctermid(), os.O_RDONLY)
                 hw = check_term(tid)
-                os.close(tid)    
+                os.close(tid)
             except:
                 try:
                     #Try the env
@@ -581,6 +581,6 @@ class ChopCurses(Thread):
                     #My default local windows size is 80x24 -- good enough for me!
                     #I mean either way this is a pretty last ditch effort case
                     #and hopefully shouldn't happen
-                    hw = (24, 80) 
+                    hw = (24, 80)
 
         return hw

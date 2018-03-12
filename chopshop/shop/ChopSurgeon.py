@@ -31,9 +31,9 @@ import os
 import time
 import tempfile
 from multiprocessing import Process, Queue
-from ChopSuture import Suture
+from chopshop.shop.ChopSuture import Suture
 
-import ChopShopDebug as CSD
+import chopshop.shop.ChopShopDebug as CSD
 
 class Surgeon:
     def __init__(self, files, long = False):
@@ -61,8 +61,8 @@ class Surgeon:
             print "Unable to create fifo: " + str(e)
             sys.exit(-1)
 
-       
-        return self.fname 
+
+        return self.fname
 
     def cleanup_fifo(self):
         if self.fifo is not None:
@@ -90,7 +90,7 @@ class Surgeon:
 
     def operate(self, flist = False):
         if flist:
-            self.p = Process(target=self.__surgeon_proc_list_, args = (self.files[0], self.fname, self.long, self.tosurgeon,)) 
+            self.p = Process(target=self.__surgeon_proc_list_, args = (self.files[0], self.fname, self.long, self.tosurgeon,))
         else:
             self.p = Process(target=self.__surgeon_proc_, args = (self.files, self.fname,))
         self.p.start()

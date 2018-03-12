@@ -29,8 +29,8 @@ import os
 import sys
 import errno
 
-import ChopShopDebug as CSD
-from ChopException import ChopLibException
+import chopshop.shop.ChopShopDebug as CSD
+from chopshop.shop.ChopException import ChopLibException
 
 """
         __parse_filepath__ parses a pseudo format-string passed on the commandline to figure out
@@ -106,8 +106,8 @@ def __parse_filepath__(format, modname, fname = None): #the format, the module n
             if filename[-1] != '/': #add a slash to the filepath if not already there
                 filename += '/'
             filename += fname
-   
-    return filename 
+
+    return filename
 
 
 #XXX Add the capability to disable the creation of directories (or the flipside
@@ -125,7 +125,7 @@ def __get_open_file__(modname, format, create, fname=None, mode = 'w'):
                 os.makedirs(dname, 0775)
             except Exception, e:
                 error = "Directory Creation Error: %s " % e
-    
+
     try:
         fd = open(filename, mode)
         fdval = fd
@@ -149,7 +149,7 @@ class ChopStdout:
 
     def handle_message(self, message):
         outstring = ""
-        
+
         if self.prepend_module_name:
             outstring = outstring + message['module'] + " "
 
@@ -206,7 +206,7 @@ class ChopGui:
         else:
             newline = "\n"
 
-        self.cui.add_data(message['id'], message['data']['data'] + newline, message['data']['color'])         
+        self.cui.add_data(message['id'], message['data']['data'] + newline, message['data']['color'])
 
     def handle_ctrl(self, message):
         if message['data']['msg'] == 'addmod':
@@ -215,14 +215,14 @@ class ChopGui:
         if message['data']['msg'] == 'finished' and message['data']['status'] == 'error':
             self.stop()
             raise ChopLibException(message['data']['errors'])
-    
+
     def stop(self):
         CSD.debug_out("ChopGui stop called\n")
         self.cui.stop()
         self.cui.join()
 
 class ChopFileout:
-    
+
     format_string = None
 
     def __init__(self, ui_stop_fn = None, lib_stop_fn = None, format_string = None):
@@ -232,11 +232,11 @@ class ChopFileout:
 
         if format_string[0] == '-':
             raise Exception("Ambiguous file format: '" + format_string + "' -- please fix and run again\n")
-        
+
         if __parse_filepath__(format_string, "placeholder") is None:
             raise Exception("Invald syntax for file output\n")
-        
-         
+
+
     def handle_message(self, message):
         if message['id'] not in self.filelist:
             (fd, error) = __get_open_file__(message['module'], self.format_string, True)
@@ -268,7 +268,7 @@ class ChopJson:
 
         if format_string[0] == '-':
             raise Exception("Ambiguous file format: '" + format_string + "' -- please fix and run again\n")
-        
+
         if __parse_filepath__(format_string, "placeholder") is None:
             raise Exception("Invald syntax for json output\n")
 
@@ -298,15 +298,15 @@ class ChopFilesave:
     def __init__(self, ui_stop_fn = None, lib_stop_fn = None, format_string = None):
         self.format_string = format_string
         self.savedfiles = {}
-        
+
         if format_string[0] == '-':
             raise Exception("Ambiguous file format: '" + format_string + "' -- please fix and run again\n")
-        
+
         if __parse_filepath__(format_string, "placeholder") is None:
             raise Exception("Invald syntax for savedir\n")
 
         pass
-   
+
     def handle_message(self, message):
         filename = message['data']['filename']
 
@@ -315,7 +315,7 @@ class ChopFilesave:
             if not self.savedfiles.has_key(filename):
                 try:
                     (self.savedfiles[filename], error) = __get_open_file__(message['module'], self.format_string,
-                                                                            True, filename, 
+                                                                            True, filename,
                                                                             message['data']['mode'])
 
                 finally:
@@ -333,7 +333,7 @@ class ChopFilesave:
         if message['data']['finalize'] and self.savedfiles.has_key(filename):
             self.savedfiles[filename].close()
             del self.savedfiles[filename]
-            
+
 
     def handle_ctrl(self, message):
         pass

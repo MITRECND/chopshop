@@ -32,7 +32,7 @@ TODO
 """
 
 
-VERSION = "4.1"
+VERSION = "4.5"
 
 import sys
 import signal
@@ -56,22 +56,17 @@ from multiprocessing import Process, Queue as mQueue
 import Queue
 import time
 
-#Chopshop Working Directory -- defaults to where script exists
-CHOPSHOP_WD = os.path.realpath(os.path.dirname(sys.argv[0]))
-
-sys.path.append(CHOPSHOP_WD + '/shop')
-
 ##### DEBUG CODE #####
 ### This is meant to be used for the sole purpose of chopshop core development
 ### DO NOT ENABLE THIS UNLESS YOU ARE WORKING ON THE CORE OR SHOP COMPONENTS
-import ChopShopDebug as CSD
+import chopshop.shop.ChopShopDebug as CSD
 #CSD.enable_debug()
 #####
 
-from ChopConfig import ChopConfig
-from ChopLib import ChopLib
-from ChopUi import ChopUi, ChopStdout
-from ChopException import ChopConfigException
+from chopshop.shop.ChopConfig import ChopConfig
+from chopshop.shop.ChopLib import ChopLib
+from chopshop.shop.ChopUi import ChopUi, ChopStdout
+from chopshop.shop.ChopException import ChopConfigException
 global choplib
 global chopui
 
@@ -127,8 +122,8 @@ def main():
         chopconfig.parse_config(user_config)
 
     optparser = OptionParser(
-                        usage='usage: %prog [options] ["bpf filter"] "list | (of, many) | modules ; and | more"', 
-                        option_class=CustomOption, 
+                        usage='usage: %prog [options] ["bpf filter"] "list | (of, many) | modules ; and | more"',
+                        option_class=CustomOption,
                         description='ChopShop is a MITRE created utility to aid analysts in decoding network traffic'
                         )
     optparser.add_option("-B", "--base_dir", dest = "base_dir", default=None, action="store_list",
@@ -164,7 +159,7 @@ def main():
     optparser.add_option("-S", "--stdout", action="store_true", dest="stdout",
         default=False, help="Explicitly enable output to stdout")
     optparser.add_option("-t", "--module_tree", action="store_true", dest="modtree",
-        default=False,help="print information about module tree and exit")    
+        default=False,help="print information about module tree and exit")
     optparser.add_option("-v", "--version", action="store_true", dest="version",
         default=False,help="print version and exit")
 

@@ -28,9 +28,9 @@ import os
 from threading import Thread, Lock
 import Queue
 
-from ChopException import * 
-from ChopUiStd import *
-import ChopShopDebug as CSD
+from chopshop.shop.ChopException import *
+from chopshop.shop.ChopUiStd import *
+import chopshop.shop.ChopShopDebug as CSD
 
 """
     ChopUi is the ui library interface to allow for automated data output from ChopLib
@@ -275,15 +275,15 @@ class ChopUi(Thread):
 
                 if message['type'] == 'json':
                     try:
-                        if self.jsonclass is not None:  
+                        if self.jsonclass is not None:
                             self.jsonclass.handle_message(message)
                     except Exception, e:
                         raise ChopUiJsonException(e)
-                
+
                 if message['type'] == 'filedata':
                     try:
                         if self.filesclass is not None:
-                            self.filesclass.handle_message(message) 
+                            self.filesclass.handle_message(message)
                     except Exception, e:
                         raise ChopUiFileSaveException(e)
 
@@ -311,4 +311,3 @@ class ChopUi(Thread):
             self.filesclass.stop()
         if self.pyobjclass is not None:
             self.pyobjclass.stop()
-

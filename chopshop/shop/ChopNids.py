@@ -39,7 +39,7 @@ import copy
 import struct
 import socket
 
-import ChopShopDebug as CSD
+import chopshop.shop.ChopShopDebug as CSD
 from ChopProtocol import ChopProtocol
 
 
@@ -256,7 +256,7 @@ class ChopCore(Thread):
                         chop.prnt("%s has malformed proto list" % module.code.moduleName)
                         self.complete = True
                         return
- 
+
                     for input in proto.keys():
                         if input not in module.inputs:
                             module.inputs[input] = []
@@ -404,7 +404,7 @@ def handleIpPackets(pkt):
         for module in ip_modules:
             code = module.code
             #TODO do we need a shallow or deep copy?
-            ipd = copy.copy(ip)        
+            ipd = copy.copy(ip)
             ipd.timestamp = ptimestamp
             ipd.module_data = module.module_data
 
@@ -425,7 +425,7 @@ def handleIpPackets(pkt):
                     handleChildren(module, ipd, output)
 
 
-            del ipd            
+            del ipd
 
 
     else: #some error?
@@ -485,7 +485,7 @@ def handleUdpDatagrams(addr, data, ip):
             if output is not None:
                 udpd.unique = f_string
                 udpd.type = "udp"
-                handleChildren(module, udpd, output) 
+                handleChildren(module, udpd, output)
 
         if udpd.sval: #we were told by this module to stop collecting
             del udpd
@@ -540,7 +540,7 @@ def handleTcpStreams(tcp):
             module.module_data = tcpd.module_data
 
             if collecting:
-                module.streaminfo['tcp'][f_string] = stream_meta() 
+                module.streaminfo['tcp'][f_string] = stream_meta()
                 module.streaminfo['tcp'][f_string].stream_data = tcpd.stream_data
                 tcp.client.collect = 1
                 tcp.server.collect = 1
@@ -555,7 +555,7 @@ def handleTcpStreams(tcp):
             if f_string in module.streaminfo['tcp']: #If this module is collecting on this stream
 
                 #Create a copy of the data customized for this module
-                tcpd = copy_tcp_data(tcp, module.streaminfo['tcp'][f_string], client_direction) 
+                tcpd = copy_tcp_data(tcp, module.streaminfo['tcp'][f_string], client_direction)
                 tcpd.timestamp = ptimestamp
                 tcpd.stream_data = module.streaminfo['tcp'][f_string].stream_data
                 tcpd.module_data = module.module_data
@@ -628,7 +628,7 @@ def handleTcpStreams(tcp):
             code = module.code
             if f_string in module.streaminfo['tcp']:
                 try:
-                    tcpd = copy_tcp_data(tcp, module.streaminfo['tcp'][f_string], client_direction) 
+                    tcpd = copy_tcp_data(tcp, module.streaminfo['tcp'][f_string], client_direction)
                     tcpd.timestamp = ptimestamp
                     tcpd.stream_data = module.streaminfo['tcp'][f_string].stream_data
                     tcpd.module_data = module.module_data
@@ -651,7 +651,7 @@ def handleTcpStreams(tcp):
                             tcpd.type = 'tcp'
                             handleChildren(module, tcpd, output)
 
-                        
+
                 except Exception, e:
                     exc = traceback.format_exc()
                     chop.prettyprnt("YELLOW", "Exception in module %s -- Traceback: \n%s" % (code.moduleName, exc))
@@ -718,7 +718,7 @@ def handleProtocol(module, protocol, pp): #pp is parent protocol
 
 
     try:
-        output = code.handleProtocol(protocol) 
+        output = code.handleProtocol(protocol)
     except Exception, e:
         exc = traceback.format_exc()
         chop.prettyprnt("YELLOW", "Exception in module %s -- Traceback: \n%s" % (code.moduleName, exc))
@@ -785,7 +785,7 @@ def teardownProtocol(module, protocol, pp):
         except AttributeError, e:
             return
         else:
-            output = code.teardownProtocol(protocol) 
+            output = code.teardownProtocol(protocol)
     except Exception, e:
         exc = traceback.format_exc()
         chop.prettyprnt("YELLOW", "Exception in module %s -- Traceback: \n%s" % (code.moduleName, exc))
@@ -832,7 +832,7 @@ def handleChildren(module, protocol, output):
         for child in module.children:
             if outp.type in child.inputs or 'any' in child.inputs:
                 #This ensure each child gets a copy that it can muck with
-                child_copy = outp._clone() 
+                child_copy = outp._clone()
                 if outp._teardown:
                     teardownProtocol(child, child_copy, protocol)
                 else:
