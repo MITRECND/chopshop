@@ -296,7 +296,15 @@ def init(module_data):
     parser.add_option("-p", "--ports", action="store", dest="ports",
         default="80", help="List of ports to check comma separated, e.g., \"80,8080\", pass an empty string \"\" to scan all ports (default '80')")
 
-    (options,lo) = parser.parse_args(module_data['args'])
+    parser.add_option("-B", "--beast", action="store_false", dest="beast",
+                      default=True,
+                      help=("By default, this module attempts to account for "
+                            "beast mitigations, i.e., the 1/n-1 traffic "
+                            "pattern, which seems to cause issues with "
+                            "body reconstruction. Settings this flag "
+                            "disables that action"))
+
+    (options, lo) = parser.parse_args(module_data['args'])
 
     global __hash_function__
     if options.hash_function == 'sha1':
@@ -349,28 +357,42 @@ def handleStream(tcp):
     tcp.stream_data['htpy_obj'].timestamp = tcp.timestamp
     if tcp.server.count_new > 0:
         if tcp.module_data['options']['verbose']:
-            chop.tsprnt("%s:%s->%s:%s (%i)" % (src, sport, dst, dport, tcp.server.count_new))
-        try:
-            tcp.stream_data['connparser'].req_data(tcp.server.data[:tcp.server.count_new])
-        except htpy.stop:
-            tcp.stop()
-        except htpy.error:
-            if tcp.module_data['options']['verbose']:
-                chop.tsprnt("Stream error in htpy.")
-            tcp.stop()
-        tcp.discard(tcp.server.count_new)
+            chop.tsprnt("%s:%s->%s:%s (%i)"
+                        % (src, sport, dst, dport, tcp.server.count_new))
+
+        if tcp.server.count_new == 1 and tcp.module_data['options']['beast']:
+            tcp.discard(0)
+        else:
+            data_size = tcp.server.count - tcp.server.offset
+            try:
+                tcp.stream_data['connparser'].\
+                    req_data(tcp.server.data[:data_size])
+            except htpy.stop:
+                tcp.stop()
+            except htpy.error:
+                if tcp.module_data['options']['verbose']:
+                    chop.tsprnt("Stream error in htpy.")
+                tcp.stop()
+            tcp.discard(data_size)
     elif tcp.client.count_new > 0:
         if tcp.module_data['options']['verbose']:
-            chop.tsprnt("%s:%s->%s:%s (%i)" % (src, sport, dst, dport, tcp.client.count_new))
-        try:
-            tcp.stream_data['connparser'].res_data(tcp.client.data[:tcp.client.count_new])
-        except htpy.stop:
-            tcp.stop()
-        except htpy.error:
-            if tcp.module_data['options']['verbose']:
-                chop.tsprnt("Stream error in htpy.")
-            tcp.stop()
-        tcp.discard(tcp.client.count_new)
+            chop.tsprnt("%s:%s->%s:%s (%i)"
+                        % (src, sport, dst, dport, tcp.client.count_new))
+
+        if tcp.client.count_new == 1 and tcp.module_data['options']['beast']:
+            tcp.discard(0)
+        else:
+            data_size = tcp.client.count - tcp.client.offset
+            try:
+                tcp.stream_data['connparser'].\
+                    res_data(tcp.client.data[:data_size])
+            except htpy.stop:
+                tcp.stop()
+            except htpy.error:
+                if tcp.module_data['options']['verbose']:
+                    chop.tsprnt("Stream error in htpy.")
+                tcp.stop()
+            tcp.discard(data_size)
 
     if tcp.stream_data['htpy_obj'].ready:
         trans = tcp.stream_data['htpy_obj'].transaction
