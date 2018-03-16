@@ -30,8 +30,8 @@ import sys
 import os
 import struct
 import time
+from optparse import OptionParser
 
-	
 
 class Suture:
     def __init__(self,files,verbose, output):
@@ -54,12 +54,12 @@ class Suture:
                 vstring = "Writing to file: " + self.output + "\n"
                 sys.stderr.write(vstring)
 
-    
+
     def stop(self):
         self.halt = True
-    
+
     def process_file(self, file):
-        if self.halt: #Stop processing 
+        if self.halt: #Stop processing
             return
         swap_bytes = False
         if self.verbose:
@@ -69,7 +69,7 @@ class Suture:
         infile = open(file,'rb')
 
         indata = ""
-        
+
         #Read in Global Header - 24 bytes
         hdrinfo = infile.read(24)
         if len(hdrinfo) != 24:
@@ -113,7 +113,7 @@ class Suture:
                     vstring = "Skipping file " + file + " due to link type\n"
                     sys.stderr.write(vstring)
                 infile.close()
-                return 
+                return
 
         #For Reference
         #hdr_mn = struct.unpack('I',hdrinfo[0:4])[0]
@@ -195,7 +195,7 @@ class Suture:
     def process_bunch(self, filelist):
         for file in filelist:
             file = file.rstrip()
-            self.process_file(file) 
+            self.process_file(file)
 
 
     def end_bunch(self):
@@ -212,3 +212,31 @@ class Suture:
 
         return out
 
+
+def main():
+    optparser = OptionParser(
+                    description=("Program to merge pcaps and "
+                                 "output to a file or stdin"))
+    optparser.add_option("-o","--output",action="store",
+            dest="output",type="string",help="Output to file (or '-' for stdout)")
+    optparser.add_option("-v","--verbose",action="store_true",
+            dest="verbose",default=False,help="Be verbose when reading files")
+
+
+    (options,args) = optparser.parse_args()
+
+    try:
+        lines = sys.stdin.readlines()
+    except Exception, e:
+        sys.exit("Error getting files from stdin\n")
+
+    if not options.output:
+        sys.stderr.write("Output location required")
+        sys.exit()
+
+    suture = Suture(lines,options.verbose,options.output)
+    suture.process_files()
+
+
+if __name__ == '__main__':
+    main()
