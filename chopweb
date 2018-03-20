@@ -61,22 +61,17 @@ except:
     print "mod_pywebsocket required"
     sys.exit(-1)
 
-#Chopshop Working Directory -- defaults to where script exists
-CHOPSHOP_WD = os.path.realpath(os.path.dirname(sys.argv[0]))
-
-sys.path.append(CHOPSHOP_WD + '/shop')
-
 ##### DEBUG CODE #####
 ### This is meant to be used for the sole purpose of chopshop core development
 ### DO NOT ENABLE THIS UNLESS YOU ARE WORKING ON THE CORE OR SHOP COMPONENTS
-import ChopShopDebug as CSD
+import chopshop.shop.ChopShopDebug as CSD
 #CSD.enable_debug()
 #####
 
-from ChopException import ChopConfigException
-from ChopConfig import ChopConfig
-from ChopLib import ChopLib
-from ChopWebServer import ChopWebUi
+from chopshop.shop.ChopException import ChopConfigException
+from chopshop.shop.ChopConfig import ChopConfig
+from chopshop.shop.ChopLib import ChopLib
+from chopshop.shop.ChopWebServer import ChopWebUi
 global choplib
 global chopweb
 
@@ -99,17 +94,25 @@ def main():
     chopconfig = ChopConfig()
     chopweb = ChopWebUi()
 
-    optparser = OptionParser(usage='usage: %prog [options] ["bpf filter"] "list ; of ; modules"')
-    optparser.add_option("-a", "--host", action="store", dest="host", type="string",
-        default='',help="Host/Address to listen on")
-    optparser.add_option("-c", "--configfile", action="store", dest="configfile",
-                         type="string", default=None, help="Import a config file")
-    optparser.add_option("-C", "--saveconfig", action="store", dest="saveconfig",
-                         type="string", default=None, help="Save current arguments to a config file")
-    optparser.add_option("-p", "--port", action="store", dest="port", type="int",
-        default=8080,help="Port to listen on")
-    optparser.add_option("-v", "--version", action="store_true", dest="version",
-        default=False,help="print version and exit")
+    optparser = OptionParser(usage=('usage: %prog [options] ["bpf filter"] '
+                                    '"list ; of ; modules"'))
+    optparser.add_option("-a", "--host", action="store", dest="host",
+                         type="string", default='',
+                         help="Host/Address to listen on")
+    optparser.add_option("-c", "--configfile", action="store",
+                         dest="configfile", type="string", default=None,
+                         help="Import a config file")
+    optparser.add_option("-C", "--saveconfig", action="store",
+                         dest="saveconfig", type="string", default=None,
+                         help="Save current arguments to a config file")
+    optparser.add_option("-p", "--port", action="store", dest="port",
+                         type="int", default=8080, help="Port to listen on")
+    optparser.add_option("-w", "--webroot", action="store", dest="webroot",
+                         type="str", default=None,
+                         help="Directory of web content")
+    optparser.add_option("-v", "--version", action="store_true",
+                         dest="version", default=False,
+                         help="print version and exit")
 
     (options, args) = optparser.parse_args()
 
@@ -117,7 +120,7 @@ def main():
     # chopweb doesn't take a module list on the command line.  We
     # should address this down the road to make chopconfig work for
     # ChopWeb and ChopShop but for now I'm just taking it out
-    
+
     '''
     try:
         chopconfig.parse_opts(options, args)
@@ -126,8 +129,13 @@ def main():
         sys.exit(1)
     '''
 
+    if options.webroot is None:
+        cwd = os.path.dirname(os.path.abspath(__file__))
+        options.webroot = os.path.join(cwd, "webroot")
+
     chopweb.server_host = options.host
     chopweb.port = options.port
+    chopweb.document_root = options.webroot
     if chopweb.server_host:
         print "Starting chopweb on %s:%s" % (chopweb.server_host, chopweb.port)
     else:
@@ -138,6 +146,6 @@ def main():
 
     while chopweb.is_alive():
         time.sleep(.1)
-        
+
 if __name__ == '__main__':
     main()

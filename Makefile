@@ -21,47 +21,6 @@
 # OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
 # SUCH DAMAGE.
 
-SHELL=	/bin/sh
-SED=	/usr/bin/sed
-SED_ARGS=	-i '' -Ee
-INSTALL=	/usr/bin/install
-INSTALLDATA=	/usr/bin/install -m 644
-
-# Define this if you want to install into your home directory.
-# make install PREFIX=/home/wshields
-PREFIX?=	/usr/local
-
-# These can be defined if defaults are not good enough for you.
-OWNER?=		$(shell id -u)
-GROUP?=		$(shell id -g)
-
-# Install chopshop binaries and supporting libraries here.
-BINDIR=		${PREFIX}/bin
-LIBEXECDIR=	${PREFIX}/libexec/chopshop
-
-# Install modules and external libraries here.
-SHOPDIR=	${LIBEXECDIR}/shop
-MOD_DIR=	${LIBEXECDIR}/modules
-EXT_LIBS_DIR=	${LIBEXECDIR}/ext_libs
-
-# One of these things is not like the others!
-UNAME:=	$(shell uname -s)
-ifeq (${UNAME}, Linux)
-SED=	/bin/sed
-SED_ARGS=	-i'' -re
-endif
-
-# Use GNU tar when releasing on OS X. BSD tar, the default tar(1),
-# includes extended headers that cause (harmless) warnings when
-# extracting with older versions of GNU tar. Since I roll releases
-# on OS X always use gnutar. This should be extended for other systems
-# that don't default to BSD tar.
-ifeq (${UNAME}, Darwin)
-TAR=	/usr/bin/gnutar
-else
-TAR=	/usr/bin/tar
-endif
-
 # Define this if you have a specific python binary to use.
 # Provide the full path to your python binary of choice.
 #
@@ -70,7 +29,7 @@ endif
 ifeq (${UNAME}, FreeBSD)
 PYTHON?=	/usr/local/bin/python
 else
-PYTHON?=	/usr/bin/python
+PYTHON?=	/usr/bin/env python
 endif
 
 PY_VER:=	$(shell ${PYTHON} -V 2>&1)
@@ -156,16 +115,4 @@ endif
 # When installing we need to modify the chopshop working directory
 # so that external libraries and modules are found properly.
 install:
-	@${SED} ${SED_ARGS} 's,^(CHOPSHOP_WD = os.path.realpath\().*(\)),\1"${LIBEXECDIR}"\2,;1,1s,.*,#!${PYTHON},' chopshop
-	@${SED} ${SED_ARGS} 's,^(CHOPSHOP_WD = os.path.realpath\().*(\)),\1"${LIBEXECDIR}"\2,;1,1s,.*,#!${PYTHON},' chopweb
-	@${SED} ${SED_ARGS} 's,^(CHOPSHOP_WD = os.path.realpath\().*(\)),\1"${LIBEXECDIR}"\2,;1,1s,.*,#!${PYTHON},' shop/ChopGV.py
-	@${SED} ${SED_ARGS} 's,^(sys.path.append\().*,\1"${SHOPDIR}"),;1,1s,.*,#!${PYTHON},' suture 
-	@${INSTALL} -v -d ${BINDIR}
-	@${INSTALL} -v -o ${OWNER} -g ${GROUP} chopshop ${BINDIR}
-	@${INSTALL} -v -o ${OWNER} -g ${GROUP} suture ${BINDIR}
-	@${INSTALL} -v -d ${SHOPDIR}
-	@${INSTALLDATA} -v -o ${OWNER} -g ${GROUP} shop/* ${SHOPDIR}
-	@${INSTALL} -v -d ${MOD_DIR}
-	@${INSTALLDATA} -v -o ${OWNER} -g ${GROUP} modules/* ${MOD_DIR}
-	@${INSTALL} -v -d ${EXT_LIBS_DIR}
-	@${INSTALLDATA} -v -o ${OWNER} -g ${GROUP} ext_libs/* ${EXT_LIBS_DIR}
+	@echo "Please run 'pip install .'"

@@ -99,10 +99,9 @@ _TRANSFER_DATA_HANDLER_NAME = 'web_socket_transfer_data'
 # 1024 is practically large enough to contain WebSocket handshake lines.
 _MAX_MEMORIZED_LINES = 1024
 
-from ChopGV import CHOPSHOP_WD
-from ChopLib import ChopLib
-from ChopConfig import ChopConfig
-from ChopException import ChopUiException
+from chopshop.shop.ChopLib import ChopLib
+from chopshop.shop.ChopConfig import ChopConfig
+from chopshop.shop.ChopException import ChopUiException
 
 
 class _Options():
@@ -118,7 +117,7 @@ class _ChopQueueTracker(Thread):
         self.idlist = {}
         self.idcount = 0
 
-        #Check queue type  
+        #Check queue type
         #Throw exception if queue is not working
 
 
@@ -129,9 +128,9 @@ class _ChopQueueTracker(Thread):
         if self.message_queue is not None:
             pass #there is already a message queue register
         self.message_queue = message_queue
-    
+
     def get_new_queue(self):
-        new_queue = Queue.Queue() 
+        new_queue = Queue.Queue()
         queue_id = len(self.queues)
         self.queues.append(new_queue)
         return (queue_id, new_queue)
@@ -152,9 +151,9 @@ class _ChopQueueTracker(Thread):
             try:
                 message = self.message_queue.get(True, .1)
             except Queue.Empty, e:
-                continue             
+                continue
 
-            
+
             try:
                 #Since this can run choplib multiple times, need to
                 #give each module a web unique id to use which won't overlap
@@ -171,7 +170,7 @@ class _ChopQueueTracker(Thread):
                     message['id'] = int(self.idlist[message['module']])
 
                 for qu in self.queues:
-                    qu.put(message) 
+                    qu.put(message)
             except Exception, e:
                 raise ChopUiException(e)
 
@@ -187,7 +186,7 @@ class ChopWebUi(Thread):
         self.options.validation_host = None
         self.options.port = 8080
         self.options.validation_port = None
-        self.options.document_root = CHOPSHOP_WD + '/webroot/'
+        self.options.document_root = None
         self.options.request_queue_size = _DEFAULT_REQUEST_QUEUE_SIZE
         self.options.log_level = 'critical'
         self.options.log_file = ''
@@ -284,7 +283,7 @@ class _ChopDataParser(object):
             except Queue.Empty, e:
                 continue
 
-                    
+
 
             #TODO more efficient way of sanitization?
             if message['type'] == 'text':
@@ -312,7 +311,7 @@ class _ChopDataParser(object):
 
     def __del__(self):
         self.cleanup()
-         
+
 
 class _ChopLibShellLiason(object):
     def __init__(self, request, choplibshell):
@@ -324,7 +323,7 @@ class _ChopLibShellLiason(object):
         self.associated = False
 
     def go(self):
-        self.choplibshell.associate(self, self.request) 
+        self.choplibshell.associate(self, self.request)
         self.associated = True
 
         while self.associated:
@@ -338,7 +337,7 @@ class _ChopLibShellLiason(object):
 class _ChopLibShell(Thread):
     def __init__(self, queuetracker):
         Thread.__init__(self, name = 'ChopLibShell')
-        self.request = None 
+        self.request = None
         self.liason = None
         self.queuetracker = queuetracker
 
@@ -361,7 +360,7 @@ class _ChopLibShell(Thread):
         if self.liason == liason:
             self.request = None
             self.liason = None
-   
+
     def _force_deassociate(self):
         if self.liason is not None:
             self.request = None
@@ -454,9 +453,9 @@ class _ChopLibShell(Thread):
             elif message['type'] == 'text':
                 self.send_message(message['data']['data'])
 
-        clib.join()         
+        clib.join()
         del clib
-        
+
     def help_message(self):
         output = ("Available Commands: \n" +
                 "\tnew\n"+
@@ -465,13 +464,13 @@ class _ChopLibShell(Thread):
                 "\trenew\n"+
                 "\tset\n"+
                 "\tget\n"+
-                "\tlist_params\n" + 
+                "\tlist_params\n" +
                 "\trun\n" +
-                "\tstop\n"+ 
+                "\tstop\n"+
                 "\tdisconnect\n")
                 #"\tshutdown\n")
         return output
-    
+
     def params_message(self):
         params_string = ("Avaiable params: \n" +
                     "\t base_dir \n"  +
@@ -481,7 +480,7 @@ class _ChopLibShell(Thread):
                     "\t longrun \n" +
                     "\t GMT \n" +
                     "\t modules \n" +
-                    "\t interface \n" + 
+                    "\t interface \n" +
                     "\t filename \n" +
                     "\t bpf \n" +
                     "\t filelist\n" )
@@ -529,8 +528,8 @@ class _ChopLibShell(Thread):
                     outstring += (f + ",")
                 outstring = outstring[0:-1] + "]"
                 self.send_message(outstring)
-        
-        
+
+
         else:
             self.send_message("Unknown Parameter")
 
@@ -596,10 +595,10 @@ class _ChopLibShell(Thread):
                 self.send_message("Unable to create choplib instance: %s" % e)
         elif commands[0] == 'destroy':
             self.destroy_choplib()
-            self.send_message("Destroyed choplib instance") 
+            self.send_message("Destroyed choplib instance")
         elif commands[0] == 'renew':
             self.reset_choplib()
-            self.send_message("Renewed choplib instance") 
+            self.send_message("Renewed choplib instance")
         elif commands[0] == 'set':
             if self.choplib is None:
                 self.send_message("Please run 'new' first")
@@ -653,7 +652,7 @@ class _ChopLibShell(Thread):
                 time.sleep(.1)
                 continue
 
-            self.request.ws_stream.send_message("Shell Connected", binary = False) 
+            self.request.ws_stream.send_message("Shell Connected", binary = False)
             while (self.request is not None) and (not self.stopped):
                 try:
                     line = self.request.ws_stream.receive_message()
@@ -668,7 +667,7 @@ class _ChopLibShell(Thread):
                     liason = self.liason
                     request = self.request
                     self.liason.deassociate()
-                    self.deassociate(liason, request)                    
+                    self.deassociate(liason, request)
                     break
 
 
@@ -784,7 +783,7 @@ class ChopWebSocketRequestHandler(standalone.WebSocketRequestHandler):
                 self.send_error(e.status)
                 return False
 
-                
+
             try:
                 if self.path == "/data":
                     dataparser = _ChopDataParser(request, server_options.queuetracker)
