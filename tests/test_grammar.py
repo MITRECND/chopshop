@@ -30,11 +30,7 @@ import sys
 
 import pytest
 
-# TODO: Remove this once ChopShop is a proper package.
-sys.path.insert(0, os.path.join(os.path.dirname(os.path.dirname(__file__)),
-                                "shop"))
-
-import ChopGrammar as grammar
+import chopshop.shop.ChopGrammar as grammar
 
 
 def _make_grammar(string):

@@ -40,7 +40,7 @@ import struct
 import socket
 
 import chopshop.shop.ChopShopDebug as CSD
-from ChopProtocol import ChopProtocol
+from chopshop.shop.ChopProtocol import ChopProtocol
 
 
 tcp_modules = []
