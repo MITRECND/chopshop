@@ -1,55 +1,47 @@
-FROM debian:jessie
+FROM debian:jessie-slim
 
-#Special thanks to blacktop for creating this docker config https://github.com/blacktop
-MAINTAINER mitrecnd, https://github.com/mitrecnd
+COPY . /tmp/chopshop
+ADD https://bootstrap.pypa.io/get-pip.py /tmp/get-pip.py
 
-# Copy source code to tmp folder
-COPY . /tmp
-RUN chmod -R 755 /tmp
-
-# Install ChopShop Required Dependencies
 RUN buildDeps='apt-utils \
-                autoconf \
-                automake \
-                build-essential \
-                git-core \
-                libemu-dev \
-                libmagic-dev \
-                libpcre3-dev \
-                libssl-dev \
-                python-dev \
-                python-setuptools' \
-  && set -x \
-  && echo "[INFO] Installing Dependancies..." \
-  && apt-get -q update \
-  && apt-get install -y $buildDeps \
+               libpcap-dev \
+               autoconf \
+               automake \
+               build-essential \
+               git-core \
+               libmagic-dev \
+               libpcre3-dev \
+               libssl-dev \
+               python-dev' \
+ && apt-get -q update \
+ && apt-get install -yq $buildDeps \
                         ca-certificates \
-                        libpcap-dev \
+                        libpcap0.8 \
                         libpcre3 \
                         libtool \
-                        python \
-                        python-yara \
                         swig \
-                        python-m2crypto \
+                        python \
                         yara --no-install-recommends \
                         libemu-dev \
-  && easy_install pymongo \
-                  pycrypto \
-                  dnslib \
-                  pylibemu \
-                  hpack \
-  && echo "[INFO] Installing Modules..." \
-  && cd /tmp \
-  && docker/install/pynids.sh \
-  && docker/install/htpy.sh \
-  && docker/install/yaraprocessor.sh \
-  && echo "[INFO] Installing ChopShop..." \
-  && make \
-  && make install \
-  && echo "[INFO] Remove Build Dependancies..." \
-  && apt-get autoremove --purge -y $buildDeps \
-  && apt-get clean \
-  && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
+ && python /tmp/get-pip.py \
+ && git clone --recursive https://github.com/MITRECND/pynids /tmp/pynids \
+ && git clone --recursive https://github.com/MITRECND/htpy /tmp/htpy \
+ && git clone https://github.com/MITRECND/yaraprocessor.git /tmp/yaraprocessor \
+ && pip install --no-cache-dir \
+                yara \
+                m2crypto \
+                pymongo \
+                pycrypto \
+                dnslib \
+                pylibemu \
+                hpack \
+                /tmp/pynids \
+                /tmp/htpy \
+                /tmp/yaraprocessor \
+                /tmp/chopshop \
+ && apt-get autoremove --purge -y $buildDeps \
+ && apt-get clean \
+ && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
 
 VOLUME ["/pcap"]
 WORKDIR /pcap

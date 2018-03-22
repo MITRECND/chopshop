@@ -1,13 +1,13 @@
 ChopShop Dockerfile
 ==================
 
-This is the configuration dirctory for the Docker image of [ChopShop](https://github.com/MITRECND/chopshop) for [Docker](https://www.docker.io/)'s [trusted build](https://index.docker.io/u/mitrecnd/chopshop/) published to the public [Docker Registry](https://index.docker.io/). Creation of dockerfile and installation scripts by [blacktop](https://github.com/blacktop)
+This is the documentation for the Docker image of [ChopShop](https://github.com/MITRECND/chopshop) for [Docker](https://www.docker.io/)'s [trusted build](https://index.docker.io/u/mitrecnd/chopshop/) published to the public [Docker Registry](https://index.docker.io/). Creation of the original dockerfile and installation scripts by [blacktop](https://github.com/blacktop)
 
 ### Dependencies
-* [debian:jessie](https://index.docker.io/_/debian/)
+* [debian:jessie-slim](https://index.docker.io/_/debian/)
 
 ### Image Size
-[![](https://badge.imagelayers.io/mitrecnd/chopshop:latest.svg)](https://imagelayers.io/?images=mitrecnd/chopshop:latest 'Get your own badge on imagelayers.io')
+[![](https://images.microbadger.com/badges/image/mitrecnd/chopshop.svg)](https://microbadger.com/images/mitrecnd/chopshop "Get your own image badge on microbadger.com")
 
 ### Image Tags
 ```bash
