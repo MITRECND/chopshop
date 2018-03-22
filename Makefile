@@ -36,6 +36,7 @@ PY_VER:=	$(shell ${PYTHON} -V 2>&1)
 PY_MAJ:=	$(word 2,$(subst ., ,${PY_VER}))
 PY_MIN:=	$(word 3,$(subst ., ,${PY_VER}))
 PY_TEST:=	$(shell [ ${PY_MAJ} -eq 2 -a ${PY_MIN} -ge 6 ] && echo true)
+PIP_VERSION:= $(shell pip --version 2>/dev/null | awk '{print $$1, $$2}')
 
 DNSLIB_MODULES=	dns
 
@@ -57,6 +58,14 @@ ifeq (${PY_TEST}, true)
 else
 	@echo "  FATAL: Python BAD: ${PY_VER} (Need 2.6+)"
 endif
+
+	@echo "\nChecking pip..."
+ifdef PIP_VERSION
+	@echo "  pip found: ${PIP_VERSION}"
+else
+	@echo "  FATAL: pip not found"
+endif
+
 	@echo "\nChecking pynids..."
 	@if ${PYTHON} -c 'import nids'; then \
 		echo "  pynids OK"; \
@@ -112,7 +121,5 @@ endif
 		echo "    ${M2CRYPTO_MODULES}"; \
 	fi
 
-# When installing we need to modify the chopshop working directory
-# so that external libraries and modules are found properly.
 install:
-	@echo "Please run 'pip install .'"
+	pip install ./
