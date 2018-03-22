@@ -29,7 +29,7 @@ data objects. Control messages have the following structure:
 
    <pre>
    ctrl_message = { 'type' : 'ctrl',
-                    'data' : { 'msg': 'X', 
+                    'data' : { 'msg': 'X',
                                 other dependant on 'X'}
                   }
 
@@ -88,8 +88,9 @@ An instance of ChopLib is instantiated like any other python class:
 
 .. code:: python
 
-    #The following line assumes the shop is in your path
-    from ChopLib import ChopLib
+    # The following line assumes the chopshop package has been installed in
+    # your system
+    from chopshop.shop.ChopLib import ChopLib
 
     choplib = ChopLib()
 
@@ -297,7 +298,7 @@ to override with the object you want to replace it. For example:
 
 .. code:: python
 
-    from ChopUi import ChopUi
+    from chopshop.shop.ChopUi import ChopUi
     chopui = ChopUi()
     chopui.stdout = MyAwesomeStdoutHandler
 
