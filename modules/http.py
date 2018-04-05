@@ -40,7 +40,7 @@ from ChopProtocol import ChopProtocol
 # See if any useful information is missing
 
 moduleName = "http"
-moduleVersion = '0.2'
+moduleVersion = '0.3'
 # Teardown was introduced in choplib 4.3, but this
 # module shouldn't be dependant on it.
 minimumChopLib = '4.0'
@@ -290,8 +290,15 @@ def response_complete(cp, obj):
     return htpy.HTP_OK
 
 
-def register_connparser():
+def register_connparser(options):
     connparser = htpy.init()
+    if options['disable-decompression']:
+        try:
+            connparser.cfg.response_decompression = 0
+        except AttributeError as e:
+            # Errors should have been checked in in the init
+            # so this should be unnecessary
+            pass
     connparser.register_log(log)
     connparser.register_request_headers(request_headers)
     connparser.register_response_headers(response_headers)
@@ -332,6 +339,9 @@ def init(module_data):
                       help=("List of ports to check comma separated, e.g., "
                             "\"80,8080\", pass an empty string \"\" to scan "
                             "all ports (default '80')"))
+    parser.add_option("-c", "--disable-decompression", action="store_true",
+                      default=False, dest="disable_decompression",
+                      help=("Disable decompression of response bodies"))
     parser.add_option("-B", "--beast", action="store_false", dest="beast",
                       default=True,
                       help=("By default, this module attempts to account for "
@@ -341,6 +351,20 @@ def init(module_data):
                             "disables that action"))
 
     (options, lo) = parser.parse_args(module_data['args'])
+
+    if options.disable_decompression:
+        try:
+            parser = htpy.init()
+            parser.cfg.response_decompression = 1
+        except AttributeError as e:
+            module_options['error'] = \
+                ("Version of htpy installed does not support disabling "
+                 "decompression. Please upgrade htpy or do not use the "
+                 "'-c/--disable-decompression' option")
+            return module_options
+        except Exception as e:
+            module_options['error'] = ("Unknown error attempting to test htpy")
+            return module_options
 
     global __hash_function__
     if options.hash_function == 'sha1':
@@ -366,6 +390,8 @@ def init(module_data):
                               'length': options.length,
                               'hash_function': options.hash_function,
                               'beast': options.beast,
+                              'disable-decompression':
+                              options.disable_decompression,
                               'ports': ports}
 
     return module_options
@@ -383,7 +409,8 @@ def taste(tcp):
 
     tcp.stream_data['htpy_obj'] = \
         __htpyObj__(tcp.module_data['options'], tcp.timestamp)
-    tcp.stream_data['connparser'] = register_connparser()
+    tcp.stream_data['connparser'] = \
+        register_connparser(tcp.module_data['options'])
     tcp.stream_data['connparser'].set_obj(tcp.stream_data['htpy_obj'])
     return True
 
