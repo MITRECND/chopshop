@@ -377,11 +377,16 @@ def init(module_data):
         options.hash_function = 'md5'
         __hash_function__ = hashlib.md5
 
-    ports = options.ports.split(",")
-    try:  # This will except if ports is empty or malformed
-        ports = [int(port) for port in ports]
-    except Exception as e:
+    if options.ports == '':
         ports = []
+    else:
+        ports = options.ports.split(",")
+        try:  # This will except if ports is empty or malformed
+            ports = [int(port) for port in ports]
+        except Exception as e:
+            module_options['error'] = \
+                "Malformed port list '%s'" % (options.ports)
+            return module_options
 
     module_data['counter'] = 0
     module_data['options'] = {'verbose': options.verbose,
