@@ -59,15 +59,19 @@ def handleDatagram(udp):
           o.header.tc and 'TC',
           o.header.rd and 'RD',
           o.header.ra and 'RA' ]
-    d = { 'header': {
-                      'id': o.header.id,
-                      'type': QR[o.header.get_qr()],
-                      'opcode': OPCODE[o.header.get_opcode()],
-                      'flags': ",".join(filter(None, f)),
-                      'rcode': RCODE[o.header.rcode],
-                    },
-          'questions': o.questions
-        }
+    try:
+        d = { 'header': {
+                          'id': o.header.id,
+                          'type': QR[o.header.get_qr()],
+                          'opcode': OPCODE[o.header.get_opcode()],
+                          'flags': ",".join(filter(None, f)),
+                          'rcode': RCODE[o.header.rcode],
+                        },
+              'questions': o.questions
+            }
+    except DNSError, e:
+        chop.prnt("dnslib error: %s" % str(e))
+        return
     if OPCODE[o.header.opcode] == 'UPDATE':
         f1 = 'zo'
         f2 = 'pr'
@@ -105,13 +109,17 @@ def handleDatagram(udp):
         # Strip trailing dot.
         if rdata.endswith('.'):
             rdata = rdata[:-1]
-        dr = {
-              'rname': rname,
-              'rtype': QTYPE[r.rtype],
-              'rclass': CLASS[r.rclass],
-              'ttl': r.ttl,
-              'rdata': rdata
-            }
+        try:
+            dr = {
+                  'rname': rname,
+                  'rtype': QTYPE[r.rtype],
+                  'rclass': CLASS[r.rclass],
+                  'ttl': r.ttl,
+                  'rdata': rdata
+                }
+        except DNSError, e:
+            chop.prnt("dnslib error: %s" % str(e))
+            return
         d['rr'].append(dr)
 
     if sport == 53:
