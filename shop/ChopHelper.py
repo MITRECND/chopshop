@@ -45,7 +45,7 @@ import ChopShopDebug as CSD
     without having to do too much else to send output to the proper channel based on the user's settings
 
     chops provides four (4) main "channels" of output currently, which are:
-    
+
     1. prnt -- basic print functionality, "print" is a keyword in python and so could not be reused
         should accept the same syntax as a call to print
         depending on what the user has set (out to stdout, out to ui, etc.) this function will route the output to the
@@ -81,10 +81,10 @@ class chops:
     def debug(self, *fmtstring):
         self.prnt(*fmtstring)
 
-    def tsprnt(self, *fmtstring):
-        self.tsprettyprnt(None, *fmtstring)
+    def tsprnt(self, *fmtstring, **kwargs):
+        self.tsprettyprnt(None, *fmtstring, **kwargs)
 
-    def tsprettyprnt(self, color, *fmtstring):
+    def tsprettyprnt(self, color, *fmtstring, **kwargs):
         if self.to_outs['text']:
             if self.core is not None:
                 ptime = ""
@@ -103,30 +103,50 @@ class chops:
                     ptime = "[%s] " % (str(ptime))
                 fmtstring = (ptime,) + fmtstring
 
-            self.prettyprnt(color, *fmtstring)
+            self.prettyprnt(color, *fmtstring, **kwargs)
 
-    def prnt(self, *fmtstring):
-        self.prettyprnt(None, *fmtstring)
+    def prnt(self, *fmtstring, **kwargs):
+        self.prettyprnt(None, *fmtstring, **kwargs)
 
-    def prettyprnt(self, color, *fmtstring):
+    def prettyprnt(self, color, *fmtstring, **kwargs):
         if self.to_outs['text']:
             mystring = ''
 
-            supress = False 
-            extents = None 
+            supress = False
+            extents = None
             if fmtstring[-1] is None:
                 extents = -1
                 supress = True
 
             for strn in fmtstring[0:extents]:
-                strn = str(strn)
+                if isinstance(strn, unicode):
+                    if 'encoding' not in kwargs:
+                        raise AttributeError(
+                            ("Must specify 'encoding' parameter when passing "
+                             "unicode strings"))
+                    try:
+                        strn = str(strn.encode(kwargs['encoding']))
+                    except Exception as e:
+                        raise TypeError("Unable to encode string")
+                else:
+                    try:
+                        strn = str(strn)
+                    except Exception as e:
+                        raise TypeError("Unable to convert input to str")
+
+                if 'print_as' in kwargs:
+                    if kwargs['print_as'] == 'hex':
+                        strn = "0x" + "".join(i.encode('hex') for i in strn)
+                    else:
+                        raise AttributeError("Unknown value for print_as")
+
                 if mystring != '':
                     mystring += ' '
                 mystring += strn
 
             message = self.__get_message_template__()
             message['type'] = 'text'
-            message['data'] = {'data' : mystring, 
+            message['data'] = {'data' : mystring,
                                'suppress' : supress,
                                'color' : color,
                               }
@@ -148,13 +168,13 @@ class chops:
         return filename
 
 
-    #mode should not be used by chop users -- 
+    #mode should not be used by chop users --
     #it is meant to be used by savefile
     def appendfile(self, filename, data, finalize = False, mode = 'a'):
         if self.to_outs['savefiles']:
             message = self.__get_message_template__()
             message['type'] = 'filedata'
-            message['data'] = { 'filename': filename, 
+            message['data'] = { 'filename': filename,
                                 'data' : data,
                                 'mode' : mode,
                                 'finalize': finalize
@@ -181,7 +201,7 @@ class chops:
             obj[key] = ptime
 
         self.json(obj)
-        
+
     def json(self, obj):
         if self.to_outs['json']:
 
@@ -196,7 +216,7 @@ class chops:
                     msg = msg + " with custom json encoder"
                 self.prettyprnt("RED", msg, e)
                 return #don't put anything onto the queue
-           
+
             message = self.__get_message_template__()
             message['type'] = 'json'
             message['data'] = {'data': jdout}
@@ -248,10 +268,10 @@ class chops:
                 message['addr'] = {  'src' : metadata['addr']['src'],
                                      'dst' : metadata['addr']['dst'],
                                      'sport':metadata['addr']['sport'],
-                                     'dport':metadata['addr']['dport'] 
+                                     'dport':metadata['addr']['dport']
                                    }
         return message
-        
+
 
 
 """
@@ -272,7 +292,7 @@ class ChopHelper:
 
 
         if options['text']:
-            self.to_outs['text'] = True 
+            self.to_outs['text'] = True
 
         if options['jsonout']:
             self.to_outs['json'] = True
@@ -310,7 +330,7 @@ class ChopHelper:
                   }
 
         self.tocaller.put(message)
-        return chop 
+        return chop
 
     def setup_dummy(self):
         chop = chops(-1, 'dummy', self.tocaller, self.core)
