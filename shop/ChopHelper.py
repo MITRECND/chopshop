@@ -23,45 +23,57 @@
 # OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
 # SUCH DAMAGE.
 
-#shop/ChopHelper
+# shop/ChopHelper
 
 import sys
 import os
 import time
 import json
 from datetime import datetime
+import string
 
 from threading import Thread
 from threading import Lock
 import Queue
 
-#from multiprocessing import Queue as mQueue
+# from multiprocessing import Queue as mQueue
 import ChopShopDebug as CSD
 
 
 """
-    The chops class is the interface for ChopShop and modules to send output properly. Each module is given a reference
-    to it's own chops class called "chop" -- this allows them to use function calls like chop.prnt("foo") in their module
-    without having to do too much else to send output to the proper channel based on the user's settings
+    The chops class is the interface for ChopShop and modules to send output
+    properly. Each module is given a reference to it's own chops class called
+    "chop" -- this allows them to use function calls like chop.prnt("foo") in
+    their module without having to do too much else to send output to the
+    proper channel based on the user's settings
 
     chops provides four (4) main "channels" of output currently, which are:
 
-    1. prnt -- basic print functionality, "print" is a keyword in python and so could not be reused
-        should accept the same syntax as a call to print
-        depending on what the user has set (out to stdout, out to ui, etc.) this function will route the output to the
-        desired location
-    2. debug -- DEPRECATED -- noone was using this, so this has been deprecated
-    3. json -- json output to file
-        outputs json data to a json specific file
-        a module can specify a custom json encoder by calling set_custom_json_encoder and passing a function
-    4. output files -- allow a module writer to output files carved from their module in a respectable manner, the following
+    1. prnt -- basic print functionality, "print" is a keyword in python and
+               so could not be reused should accept the same syntax as a call
+               to print depending on what the user has set (out to stdout, out
+               to ui, etc.) this function will route the output to the desired
+               location
+    2. debug -- DEPRECATED -- no one was using this, so this has been
+                deprecated
+    3. json -- json output to file, outputs json data to a json specific file
+               a module can specify a custom json encoder by calling
+               set_custom_json_encoder and passing a function
+    4. output files -- allow a module writer to output files carved from their
+                       module in a respectable manner, the following
        commands are avaialble:
-        savefile -- save carved or other files from within a module, takes a filename, the data, and an optional "finalize" variable (default True)
-        if finalize is set to false, chops will keep the file open, otherwise will close the file, also note that this will open the file
-        with the 'w' flag so it will overwrite existing files
-        appendfile -- same as savefile except it opens files in 'a' mode which will not overwrite existing files, also defaults its 'finalize'
-        to False, so it keeps the handle open until explicitly closed
-        finalizefile -- given a filename will close the handle to it (if open). If the file is not open, this is a noop
+        savefile     -- save carved or other files from within a module, takes
+                        a filename, the data, and an optional "finalize"
+                        variable (default True) if finalize is set to false,
+                        chops will keep the file open, otherwise will close the
+                        file, also note that this will open the file with the
+                        'w' flag so it will overwrite existing files
+        appendfile   -- same as savefile except it opens files in 'a' mode
+                        which will not overwrite existing files, also defaults
+                        its 'finalize' to False, so it keeps the handle open
+                        until explicitly closed
+        finalizefile -- given a filename will close the handle to it (if open).
+                        If the file is not open, this is a noop
 
 """
 
@@ -70,7 +82,7 @@ class chops:
     GMT = False
     to_outs = None
 
-    def __init__(self, id, name, dataq, core = None):
+    def __init__(self, id, name, dataq, core=None):
         self.id = id
         self.name = name
         self.dataq = dataq
@@ -80,6 +92,31 @@ class chops:
 
     def debug(self, *fmtstring):
         self.prnt(*fmtstring)
+
+    def convertHexDump(self, data):
+        """This function attempts to dump data like something you'd see
+           in xxd
+        """
+        ROWSIZE = 16
+        output = ""
+        outputChars = string.ascii_letters + string.digits + string.punctuation
+        for (column, c) in enumerate(range(0, len(data), ROWSIZE)):
+            chunk = data[c: c + ROWSIZE]
+            chunkBytes = ["%02x" % (ord(v)) for v in chunk]
+
+            countCol = "%07x" % (column * ROWSIZE)
+            hexCol = ' '.join(
+                [''.join(chunkBytes[i: i + 2])
+                 for i in range(0, len(chunkBytes), 2)])
+            try:
+                strCol = ''.join(
+                    [b if b in outputChars else '.' for b in chunk])
+            except Exception as e:
+                strCol = ''.join(['.' for i in range(len(chunk))])
+
+            output += "{0}: {1:<40} {2}\n".format(countCol, hexCol, strCol)
+
+        return output
 
     def tsprnt(self, *fmtstring, **kwargs):
         self.tsprettyprnt(None, *fmtstring, **kwargs)
@@ -101,7 +138,7 @@ class chops:
                 else:
                     ptime = time.strftime(fmt, ts).rstrip()
                     ptime = "[%s] " % (str(ptime))
-                fmtstring = (ptime,) + fmtstring
+                kwargs['_ts_timestamp_'] = ptime
 
             self.prettyprnt(color, *fmtstring, **kwargs)
 
@@ -110,25 +147,29 @@ class chops:
 
     def prettyprnt(self, color, *fmtstring, **kwargs):
         if self.to_outs['text']:
-            mystring = ''
-
+            mystring = u''
             supress = False
             extents = None
-            if fmtstring[-1] is None:
+
+            if len(fmtstring) > 0 and fmtstring[-1] is None:
                 extents = -1
                 supress = True
 
-            for strn in fmtstring[0:extents]:
-                if isinstance(strn, unicode):
-                    if 'encoding' not in kwargs:
-                        raise AttributeError(
-                            ("Must specify 'encoding' parameter when passing "
-                             "unicode strings"))
+            if '_ts_timestamp_' in kwargs:
+                mystring += kwargs['_ts_timestamp_']
+                if 'print_as' in kwargs and kwargs['print_as'] == 'hexdump':
+                    mystring += "\n"
+                else:
+                    mystring += " "
+
+            for (counter, strn) in enumerate(fmtstring[0:extents]):
+                if 'encoding' in kwargs:
                     try:
                         strn = str(strn.encode(kwargs['encoding']))
                     except Exception as e:
                         raise TypeError("Unable to encode string")
-                else:
+
+                if not isinstance(strn, unicode):
                     try:
                         strn = str(strn)
                     except Exception as e:
@@ -137,23 +178,24 @@ class chops:
                 if 'print_as' in kwargs:
                     if kwargs['print_as'] == 'hex':
                         strn = "0x" + "".join(i.encode('hex') for i in strn)
+                    elif kwargs['print_as'] == 'hexdump':
+                        strn = self.convertHexDump(strn)
                     else:
                         raise AttributeError("Unknown value for print_as")
 
-                if mystring != '':
+                if counter > 0:
                     mystring += ' '
                 mystring += strn
 
             message = self.__get_message_template__()
             message['type'] = 'text'
-            message['data'] = {'data' : mystring,
-                               'suppress' : supress,
-                               'color' : color,
-                              }
+            message['data'] = {'data': mystring,
+                               'suppress': supress,
+                               'color': color}
 
             self.dataq.put(message)
 
-    def savefile(self, filename, data, finalize = True, prepend_timestamp = False):
+    def savefile(self, filename, data, finalize=True, prepend_timestamp=False):
         if prepend_timestamp:
             if self.core is not None:
                 ts = self.core.getptime()
@@ -164,21 +206,19 @@ class chops:
                     fmt = "%Y%m%d%H%M%S%Z"
                     ts = time.localtime(ts)
                 filename = "%s-%s" % (time.strftime(fmt, ts).strip(), filename)
-        self.appendfile(filename,data,finalize,'w')
+        self.appendfile(filename, data, finalize, 'w')
         return filename
 
-
-    #mode should not be used by chop users --
-    #it is meant to be used by savefile
-    def appendfile(self, filename, data, finalize = False, mode = 'a'):
+    # mode should not be used by chop users --
+    # it is meant to be used by savefile
+    def appendfile(self, filename, data, finalize=False, mode='a'):
         if self.to_outs['savefiles']:
             message = self.__get_message_template__()
             message['type'] = 'filedata'
-            message['data'] = { 'filename': filename,
-                                'data' : data,
-                                'mode' : mode,
-                                'finalize': finalize
-                              }
+            message['data'] = {'filename': filename,
+                               'data': data,
+                               'mode': mode,
+                               'finalize': finalize}
 
             self.dataq.put(message)
 
@@ -186,7 +226,7 @@ class chops:
         if self.to_outs['savefiles']:
             self.appendfile(filename, "", True)
 
-    def tsjson(self, obj, key = 'timestamp'):
+    def tsjson(self, obj, key='timestamp'):
         if self.core is not None:
             ptime = ""
             ts = self.core.getptime()
@@ -215,7 +255,7 @@ class chops:
                 if self.cls is not None:
                     msg = msg + " with custom json encoder"
                 self.prettyprnt("RED", msg, e)
-                return #don't put anything onto the queue
+                return  # don't put anything onto the queue
 
             message = self.__get_message_template__()
             message['type'] = 'json'
@@ -242,54 +282,49 @@ class chops:
     def set_custom_json_encoder(self, cls):
         self.cls = cls
 
-    def set_ts_format_short(self, on = False):
+    def set_ts_format_short(self, on=False):
         self.tsformatshort = on
 
-
     def __get_message_template__(self):
-        message = { 'module' : self.name,
-                    'id'  : self.id,
-                    'time'   : '',
-                    'addr'   : { 'src' : '',
-                                 'dst' : '',
-                                 'sport': '',
-                                 'dport': ''
-                               },
-                    'proto'  : ''
-                  }
+        message = {'module': self.name,
+                   'id': self.id,
+                   'time': '',
+                   'addr': {'src': '',
+                            'dst': '',
+                            'sport': '',
+                            'dport': ''},
+                   'proto': ''}
 
         if self.core is not None:
             metadata = self.core.getmeta()
 
             if 'proto' in metadata:
-            #if proto is in metadata it was filled out
+                # if proto is in metadata it was filled out
                 message['proto'] = metadata['proto']
                 message['time'] = metadata['time']
-                message['addr'] = {  'src' : metadata['addr']['src'],
-                                     'dst' : metadata['addr']['dst'],
-                                     'sport':metadata['addr']['sport'],
-                                     'dport':metadata['addr']['dport']
-                                   }
+                message['addr'] = {'src': metadata['addr']['src'],
+                                   'dst': metadata['addr']['dst'],
+                                   'sport': metadata['addr']['sport'],
+                                   'dport': metadata['addr']['dport']}
         return message
 
 
-
-"""
-     ChopHelper keeps track of all of the "chops" instances and provides an easy to use interface to obtain an instance.
-     It also informs the caller that a new module has been added
-"""
-
 class ChopHelper:
+    """ChopHelper
+
+        Keeps track of all of the "chops" instances and provides an
+        easy to use interface to obtain an instance. It also informs the caller
+        that a new module has been added
+    """
     def __init__(self, tocaller, options):
         self.tocaller = tocaller
         self.to_outs = {'text': False,
                         'json': False,
                         'savefiles': False,
-                        'pyobj': False
-                       }
+                        'pyobj': False}
+
         self.choplist = []
         self.core = None
-
 
         if options['text']:
             self.to_outs['text'] = True
@@ -306,7 +341,7 @@ class ChopHelper:
         chops.GMT = options['GMT']
         chops.to_outs = self.to_outs
 
-    #TODO add capability to modify to_outs on the fly
+    # TODO add capability to modify to_outs on the fly
 
     def set_core(self, core):
         self.core = core
@@ -314,20 +349,18 @@ class ChopHelper:
     def setup_main(self):
         return self.setup_module("ChopShop")
 
-    def setup_module(self, name, id = 0):
+    def setup_module(self, name, id=0):
         if id == 0:
             id = len(self.choplist)
 
         chop = chops(id, name, self.tocaller, self.core)
-        self.choplist.append({'chop' : chop, 'id' : id})
+        self.choplist.append({'chop': chop, 'id': id})
 
-        #Inform the caller that we are adding a module
-        message = { 'type' : 'ctrl',
-                    'data' : { 'msg'  : 'addmod',
-                               'name' : name,
-                               'id': id
-                             }
-                  }
+        # Inform the caller that we are adding a module
+        message = {'type': 'ctrl',
+                   'data': {'msg': 'addmod',
+                            'name': name,
+                            'id': id}}
 
         self.tocaller.put(message)
         return chop
@@ -337,7 +370,5 @@ class ChopHelper:
         chop.to_outs = {'text': False,
                         'json': False,
                         'savefiles': False,
-                        'pyobj': False
-                       }
+                        'pyobj': False}
         return chop
-
