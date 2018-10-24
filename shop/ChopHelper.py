@@ -128,19 +128,29 @@ class chops:
 
     def prettyprnt(self, color, *fmtstring):
         if self.to_outs['text']:
-            mystring = ''
+            mystring = u''
 
             supress = False
             extents = None
-            if fmtstring[-1] is None:
+
+            if len(fmtstring) > 0 and fmtstring[-1] is None:
                 extents = -1
                 supress = True
 
-            for strn in fmtstring[0:extents]:
-                strn = str(strn)
-                if mystring != '':
+            for (counter, strn) in enumerate(fmtstring[0:extents]):
+                if not isinstance(strn, unicode):
+                    try:
+                        strn = unicode(strn)
+                    except Exception as e:
+                        pass
+
+                if counter > 0:
                     mystring += ' '
-                mystring += strn
+
+                try:
+                    mystring = "%s%s" % (mystring, strn)
+                except Exception as e:
+                    raise TypeError("Unable to create string from inputs")
 
             message = self.__get_message_template__()
             message['type'] = 'text'
