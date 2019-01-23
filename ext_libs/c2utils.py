@@ -154,9 +154,10 @@ def packet_time(t, date=False, utc=False, isodate=False):
     """Given a unixtime (seconds since epoch) value, return a
     human-readable string describing that time.  if DATE is
     True, then also include the year, month, day, and timezone.
-    If UTC is true, return the time in UTC instead of local
+    If UTC is true, return the time in UTC instead of local machine
+    time
     """
-
+    # The following timezone code taken from python documentation
     # https://docs.python.org/2/library/datetime.html#datetime.tzinfo
     ZERO = datetime.timedelta(0)
 
