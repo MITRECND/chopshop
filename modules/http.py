@@ -35,13 +35,15 @@ import Queue
 from ChopProtocol import ChopProtocol
 
 
-#TODO
+# TODO
 # Add more error checking
 # See if any useful information is missing
 
-moduleName ="http"
-moduleVersion ='0.2'
-minimumChopLib ='4.0' #Teardown was introduced in choplib 4.3, but this module shouldn't be dependant on it.
+moduleName = "http"
+moduleVersion = '0.3'
+# Teardown was introduced in choplib 4.3, but this
+# module shouldn't be dependant on it.
+minimumChopLib = '4.0'
 
 __hash_function__ = None
 
@@ -60,10 +62,11 @@ class __htpyObj__:
 def log(cp, msg, level, obj):
     if level == htpy.HTP_LOG_ERROR:
         elog = cp.get_last_error()
-        if elog == None:
+        if elog is None:
             return htpy.HTP_ERROR
         if not obj.options['suppress']:
-            chop.prnt("%s:%i - %s (%i)" % (elog['file'], elog['line'], elog['msg'], elog['level']))
+            chop.prnt("%s:%i - %s (%i)" % (elog['file'], elog['line'],
+                                           elog['msg'], elog['level']))
     else:
         if not obj.options['suppress']:
             slevel = str(level)
@@ -80,6 +83,7 @@ def log(cp, msg, level, obj):
             chop.prnt("%s - %s" % (slevel, msg))
     return htpy.HTP_OK
 
+
 # The request and response body callbacks are treated identical with one
 # exception: the location in the output dictionary where the data is stored.
 # Because they are otherwise identical each body callback is a thin wrapper
@@ -87,8 +91,10 @@ def log(cp, msg, level, obj):
 def request_body(data, length, obj):
     return body(data, length, obj, 'request')
 
+
 def response_body(data, length, obj):
     return body(data, length, obj, 'response')
+
 
 def body(data, length, obj, direction):
     try:
@@ -101,11 +107,11 @@ def body(data, length, obj, direction):
 
         trans[direction]['tmp_hash'].update(data)
 
-        if trans[direction]['truncated'] == True:
+        if trans[direction]['truncated'] is True:
             return htpy.HTP_OK
 
         if obj.options['no-body']:
-            trans[direction]['body']  = ''
+            trans[direction]['body'] = ''
             trans[direction]['truncated'] = True
             return htpy.HTP_OK
 
@@ -114,30 +120,36 @@ def body(data, length, obj, direction):
         else:
             trans[direction]['body'] = data
 
-        #Truncate to Maximum Length
-        if obj.options['length'] > 0 and len(trans[direction]['body']) > obj.options['length']:
-            trans[direction]['body'] = trans[direction]['body'][:(obj.options['length'])]
+        # Truncate to Maximum Length
+        if (obj.options['length'] > 0 and
+                len(trans[direction]['body']) > obj.options['length']):
+            trans[direction]['body'] = \
+                trans[direction]['body'][:(obj.options['length'])]
             trans[direction]['truncated'] = True
     except KeyError as e:
         if obj.options['verbose']:
             if e.args[0] == direction:
-                chop.tsprnt("Body data for %s seen before any headers, possible mid-stream traffic" % (direction))
+                chop.tsprnt(("Body data for %s seen before any headers, "
+                             "possible mid-stream traffic") % (direction))
             else:
-                chop.tsprnt("Key not found error while processing %s body: %s" % (direction, str(e)))
+                chop.tsprnt(("Key not found error while processing "
+                             "%s body: %s") % (direction, str(e)))
         return htpy.HTP_ERROR
     except Exception as e:
         if obj.options['verbose']:
-            chop.tsprnt("Exception while processing %s body: %s" % (direction, str(e)))
+            chop.tsprnt("Exception while processing %s body: %s"
+                        % (direction, str(e)))
         return htpy.HTP_ERROR
 
     return htpy.HTP_OK
+
 
 def request_headers(cp, obj):
     try:
         trans = obj.temp
         trans['start'] = obj.timestamp
         trans['request'] = {}
-        trans['request']['truncated'] = False #Has the body been truncated?
+        trans['request']['truncated'] = False  # Has the body been truncated?
         trans['request']['body'] = None
         trans['request']['body_len'] = 0
 
@@ -165,42 +177,50 @@ def request_headers(cp, obj):
         trans['request']['protocol'] = proto
     except KeyError as e:
         if obj.options['verbose']:
-            chop.tsprnt("Key not found error while processing request headers: %s" % (str(e)))
+            chop.tsprnt(("Key not found error while processing request "
+                         "headers: %s") % (str(e)))
         return htpy.HTP_ERROR
     except Exception as e:
         if obj.options['verbose']:
-            chop.tsprnt("Exception while processing request headers: %s" % (str(e)))
+            chop.tsprnt("Exception while processing request headers: %s"
+                        % (str(e)))
         return htpy.HTP_ERROR
 
     return htpy.HTP_OK
 
+
 def request_complete(cp, obj):
-    #Move request data to the lines queue
+    # Move request data to the lines queue
     trans = obj.temp
 
     try:
         if trans['request']['body_len'] > 0:
-            trans['request']['body_hash'] = trans['request']['tmp_hash'].hexdigest()
+            trans['request']['body_hash'] = \
+                trans['request']['tmp_hash'].hexdigest()
         else:
             trans['request']['body_hash'] = ""
         del trans['request']['tmp_hash']
 
         obj.lines.put(obj.temp['request'])
         obj.temp['request'] = {}
-        #del obj.temp['request']
+        # del obj.temp['request']
     except KeyError as e:
         if obj.options['verbose']:
             if e.args[0] == 'request':
-                chop.tsprnt("Request completed before headers were seen -- possible midstream traffic")
+                chop.tsprnt(("Request completed before headers were seen -- "
+                             "possible midstream traffic"))
             else:
-                chop.tsprnt("Key not found error while processing htpy request complete event: %s" % (str(e)))
+                chop.tsprnt(("Key not found error while processing htpy "
+                             "request complete event: %s") % (str(e)))
         return htpy.HTP_ERROR
     except Exception as e:
         if obj.options['verbose']:
-            chop.tsprnt("Exception while processing htpy request complete event: %s" % (str(e)))
+            chop.tsprnt(("Exception while processing htpy request "
+                         "complete event: %s") % (str(e)))
         return htpy.HTP_ERROR
 
     return htpy.HTP_OK
+
 
 def response_headers(cp, obj):
     trans = obj.temp
@@ -218,54 +238,67 @@ def response_headers(cp, obj):
         trans['response']['body_len'] = 0
     except KeyError as e:
         if obj.options['verbose']:
-            chop.tsprnt("Key not found error while processing response headers: %s" % (str(e)))
+            chop.tsprnt(("Key not found error while processing "
+                         "response headers: %s") % (str(e)))
         return htpy.HTP_ERROR
     except Exception as e:
         if obj.options['verbose']:
-            chop.tsprnt("Exception while processing response headers: %s" % (str(e)))
+            chop.tsprnt("Exception while processing response headers: %s"
+                        % (str(e)))
         return htpy.HTP_ERROR
 
     return htpy.HTP_OK
+
 
 def response_complete(cp, obj):
     trans = obj.temp
 
     try:
         if trans['response']['body_len'] > 0:
-            trans['response']['body_hash'] = trans['response']['tmp_hash'].hexdigest()
+            trans['response']['body_hash'] = \
+                trans['response']['tmp_hash'].hexdigest()
         else:
             trans['response']['body_hash'] = ""
         del trans['response']['tmp_hash']
 
         try:
-            req = obj.lines.get(False) #Do not block
+            req = obj.lines.get(False)  # Do not block
         except Queue.Empty:
             pass
-            #TODO error
+            # TODO error
 
-        obj.transaction = {
-                            'request': req,
-                            'response' : trans['response'],
-                            'timestamp' : trans['start'],
-                          }
+        obj.transaction = {'request': req,
+                           'response': trans['response'],
+                           'timestamp': trans['start']}
 
         obj.ready = True
     except KeyError as e:
         if obj.options['verbose']:
             if e.args[0] == 'response':
-                chop.tsprnt("Response completed before headers were seen -- possible midstrea traffic")
+                chop.tsprnt(("Response completed before headers were seen -- "
+                             "possible midstream traffic"))
             else:
-                chop.tsprnt("Key not found error while processing htpy response complete event: %s" % (str(e)))
+                chop.tsprnt(("Key not found error while processing htpy "
+                             "response complete event: %s") % (str(e)))
         return htpy.HTP_ERROR
     except Exception as e:
         if obj.options['verbose']:
-            chop.tsprnt("Exception while processing htpy response complete event: %s" % (str(e)))
+            chop.tsprnt(("Exception while processing htpy response "
+                         "complete event: %s") % (str(e)))
         return htpy.HTP_ERROR
 
     return htpy.HTP_OK
 
-def register_connparser():
+
+def register_connparser(options):
     connparser = htpy.init()
+    if options['disable-decompression']:
+        try:
+            connparser.cfg.response_decompression = 0
+        except AttributeError as e:
+            # Errors should have been checked in in the init
+            # so this should be unnecessary
+            pass
     connparser.register_log(log)
     connparser.register_request_headers(request_headers)
     connparser.register_response_headers(response_headers)
@@ -277,26 +310,61 @@ def register_connparser():
 
 
 def module_info():
-    return "Takes in TCP traffic and outputs parsed HTTP traffic for use by secondary modules. Refer to the docs for output format"
+    return ("Takes in TCP traffic and outputs parsed HTTP traffic for "
+            "use by secondary modules. Refer to the docs for output format")
+
 
 def init(module_data):
-    module_options = { 'proto': [ {'tcp': 'http'}, { 'sslim': 'http' } ] }
+    module_options = {'proto': [{'tcp': 'http'},
+                                {'sslim': 'http'}]}
     parser = OptionParser()
 
     parser.add_option("-v", "--verbose", action="store_true", dest="verbose",
-        default=False, help="Be verbose about incoming packets and errors")
+                      default=False, help=("Be verbose about incoming "
+                                           "packets and errors"))
     parser.add_option("-b", "--no-body", action="store_true", dest="nobody",
-        default=False, help="Do not store http bodies")
+                      default=False, help="Do not store http bodies")
     parser.add_option("-s", "--suppress", action="store_true", dest="suppress",
-        default=False, help="Suppress htpy log output")
-    parser.add_option("-l", "--length", action="store", dest="length", type="int",
-        default=5242880, help="Maximum length of bodies in bytes (Default: 5MB, set to 0 to process all body data)")
-    parser.add_option("-a", "--hash-function", action="store", dest="hash_function",
-        default="md5", help="Hash Function to use on bodies (default 'md5', available: 'sha1', 'sha256', 'sha512')")
+                      default=False, help="Suppress htpy log output")
+    parser.add_option("-l", "--length", action="store", dest="length",
+                      type="int", default=5242880,
+                      help=("Maximum length of bodies in bytes (Default: "
+                            "5MB, set to 0 to process all body data)"))
+    parser.add_option("-a", "--hash-function", action="store",
+                      dest="hash_function", default="md5",
+                      help=("Hash Function to use on bodies (default 'md5', "
+                            "available: 'sha1', 'sha256', 'sha512')"))
     parser.add_option("-p", "--ports", action="store", dest="ports",
-        default="80", help="List of ports to check comma separated, e.g., \"80,8080\", pass an empty string \"\" to scan all ports (default '80')")
+                      default="80",
+                      help=("List of ports to check comma separated, e.g., "
+                            "\"80,8080\", pass an empty string \"\" to scan "
+                            "all ports (default '80')"))
+    parser.add_option("-c", "--disable-decompression", action="store_true",
+                      default=False, dest="disable_decompression",
+                      help=("Disable decompression of response bodies"))
+    parser.add_option("-B", "--beast", action="store_false", dest="beast",
+                      default=True,
+                      help=("By default, this module attempts to account for "
+                            "beast mitigations, i.e., the 1/n-1 traffic "
+                            "pattern, which seems to cause issues with "
+                            "body reconstruction. Settings this flag "
+                            "disables that action"))
 
-    (options,lo) = parser.parse_args(module_data['args'])
+    (options, lo) = parser.parse_args(module_data['args'])
+
+    if options.disable_decompression:
+        try:
+            parser = htpy.init()
+            parser.cfg.response_decompression = 1
+        except AttributeError as e:
+            module_options['error'] = \
+                ("Version of htpy installed does not support disabling "
+                 "decompression. Please upgrade htpy or do not use the "
+                 "'-c/--disable-decompression' option")
+            return module_options
+        except Exception as e:
+            module_options['error'] = ("Unknown error attempting to test htpy")
+            return module_options
 
     global __hash_function__
     if options.hash_function == 'sha1':
@@ -309,23 +377,30 @@ def init(module_data):
         options.hash_function = 'md5'
         __hash_function__ = hashlib.md5
 
-    ports = options.ports.split(",")
-    try: #This will except if ports is empty or malformed
-        ports = [int(port) for port in ports]
-    except:
+    if options.ports == '':
         ports = []
+    else:
+        ports = options.ports.split(",")
+        try:  # This will except if ports is empty or malformed
+            ports = [int(port) for port in ports]
+        except Exception as e:
+            module_options['error'] = \
+                "Malformed port list '%s'" % (options.ports)
+            return module_options
 
     module_data['counter'] = 0
-    module_data['options'] = {
-                                'verbose' : options.verbose,
-                                'suppress': options.suppress,
-                                'no-body' : options.nobody,
-                                'length' : options.length,
-                                'hash_function' : options.hash_function,
-                                'ports' : ports
-                             }
+    module_data['options'] = {'verbose': options.verbose,
+                              'suppress': options.suppress,
+                              'no-body': options.nobody,
+                              'length': options.length,
+                              'hash_function': options.hash_function,
+                              'beast': options.beast,
+                              'disable-decompression':
+                              options.disable_decompression,
+                              'ports': ports}
 
     return module_options
+
 
 def taste(tcp):
     ((src, sport), (dst, dport)) = tcp.addr
@@ -337,11 +412,13 @@ def taste(tcp):
     if tcp.module_data['options']['verbose']:
         chop.tsprnt("New session: %s:%s->%s:%s" % (src, sport, dst, dport))
 
-
-    tcp.stream_data['htpy_obj'] = __htpyObj__(tcp.module_data['options'], tcp.timestamp)
-    tcp.stream_data['connparser'] = register_connparser()
+    tcp.stream_data['htpy_obj'] = \
+        __htpyObj__(tcp.module_data['options'], tcp.timestamp)
+    tcp.stream_data['connparser'] = \
+        register_connparser(tcp.module_data['options'])
     tcp.stream_data['connparser'].set_obj(tcp.stream_data['htpy_obj'])
     return True
+
 
 def handleStream(tcp):
     chopp = ChopProtocol('http')
@@ -349,28 +426,42 @@ def handleStream(tcp):
     tcp.stream_data['htpy_obj'].timestamp = tcp.timestamp
     if tcp.server.count_new > 0:
         if tcp.module_data['options']['verbose']:
-            chop.tsprnt("%s:%s->%s:%s (%i)" % (src, sport, dst, dport, tcp.server.count_new))
-        try:
-            tcp.stream_data['connparser'].req_data(tcp.server.data[:tcp.server.count_new])
-        except htpy.stop:
-            tcp.stop()
-        except htpy.error:
-            if tcp.module_data['options']['verbose']:
-                chop.tsprnt("Stream error in htpy.")
-            tcp.stop()
-        tcp.discard(tcp.server.count_new)
+            chop.tsprnt("%s:%s->%s:%s (%i)"
+                        % (src, sport, dst, dport, tcp.server.count_new))
+
+        if tcp.server.count_new == 1 and tcp.module_data['options']['beast']:
+            tcp.discard(0)
+        else:
+            data_size = tcp.server.count - tcp.server.offset
+            try:
+                tcp.stream_data['connparser'].\
+                    req_data(tcp.server.data[:data_size])
+            except htpy.stop:
+                tcp.stop()
+            except htpy.error:
+                if tcp.module_data['options']['verbose']:
+                    chop.tsprnt("Stream error in htpy.")
+                tcp.stop()
+            tcp.discard(data_size)
     elif tcp.client.count_new > 0:
         if tcp.module_data['options']['verbose']:
-            chop.tsprnt("%s:%s->%s:%s (%i)" % (src, sport, dst, dport, tcp.client.count_new))
-        try:
-            tcp.stream_data['connparser'].res_data(tcp.client.data[:tcp.client.count_new])
-        except htpy.stop:
-            tcp.stop()
-        except htpy.error:
-            if tcp.module_data['options']['verbose']:
-                chop.tsprnt("Stream error in htpy.")
-            tcp.stop()
-        tcp.discard(tcp.client.count_new)
+            chop.tsprnt("%s:%s->%s:%s (%i)"
+                        % (src, sport, dst, dport, tcp.client.count_new))
+
+        if tcp.client.count_new == 1 and tcp.module_data['options']['beast']:
+            tcp.discard(0)
+        else:
+            data_size = tcp.client.count - tcp.client.offset
+            try:
+                tcp.stream_data['connparser'].\
+                    res_data(tcp.client.data[:data_size])
+            except htpy.stop:
+                tcp.stop()
+            except htpy.error:
+                if tcp.module_data['options']['verbose']:
+                    chop.tsprnt("Stream error in htpy.")
+                tcp.stop()
+            tcp.discard(data_size)
 
     if tcp.stream_data['htpy_obj'].ready:
         trans = tcp.stream_data['htpy_obj'].transaction
@@ -388,13 +479,15 @@ def handleStream(tcp):
 
     return None
 
+
 def teardown(tcp):
     chopp = ChopProtocol('http')
     ((src, sport), (dst, dport)) = tcp.addr
     tcp.stream_data['htpy_obj'].timestamp = tcp.timestamp
 
-    #There's data collected in temp
-    if len(tcp.stream_data['htpy_obj'].temp.keys()) > 1: #we don't care if only start is populated
+    # There's data collected in temp
+    if len(tcp.stream_data['htpy_obj'].temp.keys()) > 1:
+        # we don't care if only start is populated
         t = tcp.stream_data['htpy_obj'].temp
 
         if 'request' in t:
@@ -408,7 +501,8 @@ def teardown(tcp):
 
             if 'tmp_hash' in t['request']:
                 if t['request']['body_len'] > 0:
-                    t['request']['body_hash'] = t['request']['tmp_hash'].hexdigest()
+                    t['request']['body_hash'] = \
+                        t['request']['tmp_hash'].hexdigest()
                 else:
                     t['request']['body_hash'] = ""
                 del t['request']['tmp_hash']
@@ -417,7 +511,8 @@ def teardown(tcp):
             resp = t['response']
             if 'tmp_hash' in t['response']:
                 if t['response']['body_len'] > 0:
-                    t['response']['body_hash'] = t['response']['tmp_hash'].hexdigest()
+                    t['response']['body_hash'] = \
+                        t['response']['tmp_hash'].hexdigest()
                 else:
                     t['response']['body_hash'] = ""
                 del t['response']['tmp_hash']
@@ -440,8 +535,10 @@ def teardown(tcp):
 
     return None
 
+
 def shutdown(module_data):
     return
+
 
 def handleProtocol(chopp):
     if chopp.type != 'sslim':
@@ -450,11 +547,12 @@ def handleProtocol(chopp):
     stream_data = chopp.stream_data
 
     if 'htpy_obj' not in stream_data:
-        stream_data['htpy_obj'] = __htpyObj__(chopp.module_data['options'], chopp.timestamp)
+        stream_data['htpy_obj'] = \
+            __htpyObj__(chopp.module_data['options'], chopp.timestamp)
         stream_data['connparser'] = register_connparser()
         stream_data['connparser'].set_obj(stream_data['htpy_obj'])
 
-    ((src, sport),(dst,dport)) = chopp.addr
+    ((src, sport), (dst, dport)) = chopp.addr
     stream_data['htpy_obj'].timestamp = chopp.timestamp
 
     if chopp.clientData:
@@ -498,13 +596,14 @@ def handleProtocol(chopp):
 
         return new_chopp
 
+
 def teardownProtocol(chopp):
     if chopp.type != 'sslim':
         return
 
     stream_data = chopp.stream_data
 
-    #sslim returns an empty object on teardown
+    # sslim returns an empty object on teardown
     if 'htpy_obj' not in stream_data:
         return
 
@@ -512,8 +611,9 @@ def teardownProtocol(chopp):
     ((src, sport), (dst, dport)) = chopp.addr
     stream_data['htpy_obj'].timestamp = chopp.timestamp
 
-    #There's data collected in temp
-    if len(stream_data['htpy_obj'].temp.keys()) > 1: #we don't care if only start is populated
+    # There's data collected in temp
+    if len(stream_data['htpy_obj'].temp.keys()) > 1:
+        # we don't care if only start is populated
         t = stream_data['htpy_obj'].temp
 
         if 'request' in t:
@@ -527,7 +627,8 @@ def teardownProtocol(chopp):
 
             if 'tmp_hash' in t['request']:
                 if t['request']['body_len'] > 0:
-                    t['request']['body_hash'] = t['request']['tmp_hash'].hexdigest()
+                    t['request']['body_hash'] = \
+                        t['request']['tmp_hash'].hexdigest()
                 else:
                     t['request']['body_hash'] = ""
                 del t['request']['tmp_hash']
@@ -537,7 +638,8 @@ def teardownProtocol(chopp):
 
             if 'tmp_hash' in t['response']:
                 if t['response']['body_len'] > 0:
-                    t['response']['body_hash'] = t['response']['tmp_hash'].hexdigest()
+                    t['response']['body_hash'] = \
+                        t['response']['tmp_hash'].hexdigest()
                 else:
                     t['response']['body_hash'] = ""
                 del t['response']['tmp_hash']
