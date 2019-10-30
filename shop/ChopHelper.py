@@ -148,9 +148,13 @@ class chops:
                     mystring += ' '
 
                 try:
-                    mystring = "%s%s" % (mystring, strn)
+                    mystring += strn
+                except UnicodeDecodeError as e:
+                    raise TypeError(
+                        "unicode decoding error: %s" % (str(e)))
                 except Exception as e:
-                    raise TypeError("Unable to create string from inputs")
+                    raise TypeError(
+                        "unable to create string from inputs: %s" % (str(e)))
 
             message = self.__get_message_template__()
             message['type'] = 'text'
